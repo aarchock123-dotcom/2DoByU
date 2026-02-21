@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Board & Habit Tracker</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#d4a373">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Habit Tracker">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f3f0; padding: 20px; color: #2d2d2d; overflow-x: hidden; }
+        .container { max-width: 1400px; margin: 0 auto; position: relative; z-index: 1; }
+        
+        /* Header & Navigation */
+        .header-area { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .add-main-btn { background: #d4a373; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: 0.2s; }
+        .add-main-btn:hover { background: #c49363; transform: translateY(-1px); }
+        .tab-navigation { display: flex; gap: 10px; }
+        .tab-button { background: none; border: none; color: #8a8a8a; padding: 12px 20px; cursor: pointer; border-bottom: 2px solid transparent; font-size: 1.1em; }
+        .tab-button.active { color: #2d2d2d; border-bottom-color: #d4a373; font-weight: 600; }
+        .tab-content { display: none; margin-top: 20px; }
+        .tab-content.active { display: block; }
+
+        /* Task Board Columns */
+        .columns-container { display: flex; gap: 20px; overflow-x: auto; padding-bottom: 20px; }
+        .column { background: #faf9f7; border-radius: 8px; padding: 20px; min-width: 320px; border: 1px solid #e8e5e1; flex: 1; }
+        .column-header { display: flex; justify-content: space-between; margin-bottom: 20px; font-weight: 600; text-transform: uppercase; font-size: 0.85em; letter-spacing: 1px; }
+        .task-count { background: #e8e5e1; padding: 2px 8px; border-radius: 10px; color: #666; }
+
+        /* Task Cards */
+        .cards { min-height: 150px; }
+        .card { background: white; border-radius: 6px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); cursor: grab; border-left: 5px solid #d4a373; transition: 0.2s; }
+        .card.dragging { opacity: 0.4; transform: scale(0.95); }
+        .card.priority-high { border-left-color: #e74c3c; }
+        .card.priority-medium { border-left-color: #f39c12; }
+        .card.priority-low { border-left-color: #3498db; }
+        .overdue-badge { background: #ffebee; color: #c62828; font-size: 0.7em; padding: 3px 6px; border-radius: 4px; font-weight: bold; margin-top: 8px; display: inline-block; border: 1px solid #ef9a9a; }
+        .date-text { font-size: 0.8em; color: #8a8a8a; margin-top: 4px; }
+
+        /* Habit Tracker */
+        .habits-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+        .habit-card { background: white; padding: 20px; border-radius: 8px; border: 1px solid #e8e5e1; }
+        .habit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .habit-streak { background: #ff5722; color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.8em; font-weight: bold; }
+        .days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 15px; }
+        .day-checkbox { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border: 1px solid #e8e5e1; border-radius: 4px; cursor: pointer; font-size: 0.6em; color: #8a8a8a; transition: 0.3s; }
+        .day-checkbox.checked { background: #8b9d83; border-color: #8b9d83; color: white; }
+
+        /* Progress Tree */
+        .tree-container { background: white; border-radius: 8px; padding: 30px; margin-bottom: 30px; border: 1px solid #e8e5e1; text-align: center; position: relative; }
+        .tree-svg { width: 220px; height: 220px; }
+        .tree-branch, .tree-leaf, .tree-flower { transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275); transform-origin: center bottom; }
+        .tree-leaf { fill: #8b9d83; }
+        .tree-flower { fill: #ffb7c5; stroke: #ff99aa; stroke-width: 0.5; opacity: 0; transform: scale(0); }
+        .blooming { opacity: 1 !important; transform: scale(1) !important; }
+        #comp-rate { transition: color 0.5s; }
+        .perfect-score { color: #d4a373; text-shadow: 0 0 10px rgba(212, 163, 115, 0.5); }
+
+        /* Fireworks Canvas */
+        #fireworks { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; }
+
+        /* Modals */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; backdrop-filter: blur(2px); }
+        .modal { background: white; padding: 35px; border-radius: 12px; width: 450px; display: flex; flex-direction: column; gap: 20px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 0.75em; font-weight: bold; color: #8a8a8a; }
+        .input-field { padding: 12px; border: 1px solid #e8e5e1; border-radius: 6px; font-size: 1em; width: 100%; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px; }
+        .btn { padding: 12px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: 600; }
+        .btn-save { background: #d4a373; color: white; }
+        .btn-cancel { background: #f5f3f0; }
+        .btn-delete { color: #e74c3c; background: none; margin-right: auto; }
+
+        /* Install Banner */
+        #install-banner { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #2d2d2d; color: white; padding: 14px 20px; border-radius: 10px; z-index: 9999; display: flex; align-items: center; gap: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); font-size: 0.9em; max-width: 90vw; }
+        #install-banner button { background: #d4a373; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; white-space: nowrap; }
+        #install-banner .dismiss { background: none; color: #aaa; padding: 4px 8px; }
+    </style>
+</head>
+<body>
+
+<canvas id="fireworks"></canvas>
+
+<div class="container">
+    <div class="header-area">
+        <div class="tab-navigation">
+            <button class="tab-button active" data-tab="tasks">Task Board</button>
+            <button class="tab-button" data-tab="habits">Habit Tracker</button>
+        </div>
+        <button id="main-action-btn" class="add-main-btn" onclick="openTaskModal()">+ New Task</button>
+    </div>
+
+    <div id="tasks-tab" class="tab-content active">
+        <div class="columns-container">
+            <div class="column">
+                <div class="column-header">To Do <span class="task-count" id="count-todo">0</span></div>
+                <div class="cards" data-column="todo" ondragover="handleDragOver(event)" ondrop="handleDrop(event)"></div>
+            </div>
+            <div class="column">
+                <div class="column-header">In Progress <span class="task-count" id="count-inprogress">0</span></div>
+                <div class="cards" data-column="inprogress" ondragover="handleDragOver(event)" ondrop="handleDrop(event)"></div>
+            </div>
+            <div class="column">
+                <div class="column-header">Done <span class="task-count" id="count-done">0</span></div>
+                <div class="cards" data-column="done" ondragover="handleDragOver(event)" ondrop="handleDrop(event)"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="habits-tab" class="tab-content">
+        <div class="tree-container">
+            <h3>Progress Tree</h3>
+            <svg class="tree-svg" viewBox="0 0 200 200">
+                <rect fill="#8b7355" x="95" y="150" width="10" height="40"/>
+                <g id="branches">
+                    <path class="tree-branch" d="M100 150 Q80 130 60 110" stroke="#6b5d4f" stroke-width="3" fill="none" />
+                    <path class="tree-branch" d="M100 150 Q120 130 140 110" stroke="#6b5d4f" stroke-width="3" fill="none" />
+                    <path class="tree-branch" d="M100 130 Q90 110 90 80" stroke="#6b5d4f" stroke-width="2" fill="none" />
+                    <path class="tree-branch" d="M100 130 Q110 110 110 80" stroke="#6b5d4f" stroke-width="2" fill="none" />
+                </g>
+                <g id="leaves">
+                    <circle class="tree-leaf" cx="60" cy="110" r="8" /><circle class="tree-leaf" cx="140" cy="110" r="8" />
+                    <circle class="tree-leaf" cx="90" cy="80" r="8" /><circle class="tree-leaf" cx="110" cy="80" r="8" />
+                    <circle class="tree-leaf" cx="50" cy="100" r="7" /><circle class="tree-leaf" cx="150" cy="100" r="7" />
+                    <circle class="tree-leaf" cx="80" cy="70" r="7" /><circle class="tree-leaf" cx="120" cy="70" r="7" />
+                    <circle class="tree-leaf" cx="100" cy="60" r="10" /><circle class="tree-leaf" cx="70" cy="115" r="6" />
+                    <circle class="tree-leaf" cx="130" cy="115" r="6" /><circle class="tree-leaf" cx="100" cy="100" r="5" />
+                </g>
+                <g id="flowers">
+                    <circle class="tree-flower" cx="60" cy="105" r="4" /><circle class="tree-flower" cx="140" cy="105" r="4" />
+                    <circle class="tree-flower" cx="90" cy="75" r="4" /><circle class="tree-flower" cx="110" cy="75" r="4" />
+                    <circle class="tree-flower" cx="100" cy="55" r="5" /><circle class="tree-flower" cx="120" cy="65" r="4" />
+                    <circle class="tree-flower" cx="80" cy="65" r="4" />
+                </g>
+            </svg>
+            <div style="margin-top:10px; color:#8a8a8a; font-weight: bold; font-size: 1.2em;">
+                Completion: <span id="comp-rate">0%</span>
+            </div>
+        </div>
+        <div class="habits-grid" id="habits-grid"></div>
+    </div>
+</div>
+
+<!-- Install Banner -->
+<div id="install-banner">
+    <span>📲 Install this app on your device!</span>
+    <button id="install-btn">Install</button>
+    <button class="dismiss" id="dismiss-btn">✕</button>
+</div>
+
+<div class="modal-overlay" id="task-modal">
+    <div class="modal">
+        <h2 id="task-modal-title">New Task</h2>
+        <div class="form-group"><label>TITLE</label><input type="text" id="t-title" class="input-field"></div>
+        <div class="form-group"><label>DUE DATE</label><input type="date" id="t-date" class="input-field"></div>
+        <div class="form-group">
+            <label>PRIORITY</label>
+            <select id="t-priority" class="input-field">
+                <option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option>
+            </select>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-delete" id="t-delete-btn" style="display:none;" onclick="deleteCurrentTask()">Delete</button>
+            <button class="btn btn-cancel" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-save" onclick="saveTask()">Save Task</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="habit-modal">
+    <div class="modal">
+        <h2>New Habit</h2>
+        <div class="form-group"><label>HABIT NAME</label><input type="text" id="h-name" class="input-field" placeholder="e.g. Read for 20 mins"></div>
+        <div class="modal-footer">
+            <button class="btn btn-cancel" onclick="closeModals()">Cancel</button>
+            <button class="btn btn-save" onclick="saveHabit()">Create Habit</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let taskIdCounter = Date.now();
+    let tasks = { todo: [], inprogress: [], done: [] };
+    let habits = [];
+    let editingTask = null;
+    let draggedTaskId = null;
+    let celebratedThisSession = false;
+
+    // --- Core Data & Drag ---
+    function saveAndRender() {
+        localStorage.setItem('kanban_habit_v5', JSON.stringify({ tasks, habits, taskIdCounter }));
+        renderTasks();
+        renderHabits();
+    }
+
+    function loadData() {
+        const saved = JSON.parse(localStorage.getItem('kanban_habit_v5'));
+        if (saved) {
+            tasks = saved.tasks || tasks;
+            habits = saved.habits || habits;
+            taskIdCounter = saved.taskIdCounter || taskIdCounter;
+        }
+        renderTasks();
+        renderHabits();
+    }
+
+    function handleDragStart(e) { draggedTaskId = e.target.dataset.id; e.target.classList.add('dragging'); }
+    function handleDragOver(e) { e.preventDefault(); }
+    function handleDrop(e) {
+        e.preventDefault();
+        const targetCol = e.currentTarget.dataset.column;
+        let movingTask = null;
+        Object.keys(tasks).forEach(col => {
+            const idx = tasks[col].findIndex(t => t.id == draggedTaskId);
+            if (idx !== -1) movingTask = tasks[col].splice(idx, 1)[0];
+        });
+        if (movingTask) { tasks[targetCol].push(movingTask); saveAndRender(); }
+    }
+
+    // --- Tasks ---
+    function renderTasks() {
+        Object.keys(tasks).forEach(col => {
+            const container = document.querySelector(`.cards[data-column="${col}"]`);
+            container.innerHTML = '';
+            document.getElementById(`count-${col}`).textContent = tasks[col].length;
+            tasks[col].forEach(task => {
+                const card = document.createElement('div');
+                card.className = `card priority-${task.priority}`;
+                card.draggable = true;
+                card.dataset.id = task.id;
+                const overdue = col !== 'done' && task.dueDate && new Date(task.dueDate) < new Date().setHours(0,0,0,0);
+                card.innerHTML = `<div style="font-weight:600;">${task.title}</div><div class="date-text">📅 ${task.dueDate || 'No date'}</div>${overdue ? '<div class="overdue-badge">⚠️ OVERDUE</div>' : ''}`;
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', (e) => e.target.classList.remove('dragging'));
+                card.onclick = () => openEditModal(task, col);
+                container.appendChild(card);
+            });
+        });
+    }
+
+    function openTaskModal() { editingTask = null; document.getElementById('task-modal-title').textContent = "New Task"; document.getElementById('t-title').value = ''; document.getElementById('t-date').value = ''; document.getElementById('t-priority').value = 'medium'; document.getElementById('t-delete-btn').style.display = 'none'; document.getElementById('task-modal').style.display = 'flex'; }
+    function openEditModal(task, col) { editingTask = { ...task, col }; document.getElementById('task-modal-title').textContent = "Edit Task"; document.getElementById('t-title').value = task.title; document.getElementById('t-date').value = task.dueDate || ''; document.getElementById('t-priority').value = task.priority; document.getElementById('t-delete-btn').style.display = 'block'; document.getElementById('task-modal').style.display = 'flex'; }
+    function openHabitModal() { document.getElementById('habit-modal').style.display = 'flex'; }
+    function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none'); }
+
+    function saveTask() {
+        const title = document.getElementById('t-title').value; if (!title) return;
+        const data = { title, dueDate: document.getElementById('t-date').value, priority: document.getElementById('t-priority').value };
+        if (editingTask) { const idx = tasks[editingTask.col].findIndex(t => t.id == editingTask.id); tasks[editingTask.col][idx] = { ...tasks[editingTask.col][idx], ...data }; }
+        else { tasks.todo.push({ id: taskIdCounter++, ...data }); }
+        closeModals(); saveAndRender();
+    }
+
+    function deleteCurrentTask() { tasks[editingTask.col] = tasks[editingTask.col].filter(t => t.id !== editingTask.id); closeModals(); saveAndRender(); }
+
+    // --- Habits ---
+    function saveHabit() { const name = document.getElementById('h-name').value; if (name) { habits.push({ name, days: Array(7).fill(false) }); document.getElementById('h-name').value = ''; closeModals(); saveAndRender(); } }
+    function renderHabits() {
+        const grid = document.getElementById('habits-grid');
+        grid.innerHTML = '';
+        habits.forEach((h, hIdx) => {
+            const streak = h.days.reduce((a, b) => a + (b ? 1 : 0), 0);
+            const card = document.createElement('div');
+            card.className = 'habit-card';
+            card.innerHTML = `
+                <div class="habit-header"><strong>${h.name}</strong><span class="habit-streak">🔥 ${streak}</span></div>
+                <div class="days-grid">${h.days.map((d, dIdx) => `<div class="day-checkbox ${d ? 'checked' : ''}" onclick="toggleHabit(${hIdx}, ${dIdx})">${['M','T','W','T','F','S','S'][dIdx]}</div>`).join('')}</div>
+                <button class="btn-delete" style="font-size:0.7em;" onclick="deleteHabit(${hIdx})">Remove</button>
+            `;
+            grid.appendChild(card);
+        });
+        updateTree();
+    }
+
+    function toggleHabit(hIdx, dIdx) { habits[hIdx].days[dIdx] = !habits[hIdx].days[dIdx]; saveAndRender(); }
+    function deleteHabit(idx) { if(confirm("Delete habit?")) { habits.splice(idx, 1); saveAndRender(); } }
+
+    function updateTree() {
+        const total = habits.length * 7;
+        const checked = habits.reduce((acc, h) => acc + h.days.filter(d => d).length, 0);
+        const rate = total > 0 ? Math.round((checked / total) * 100) : 0;
+        const rateEl = document.getElementById('comp-rate');
+        rateEl.textContent = rate + '%';
+        if (rate === 100) {
+            rateEl.classList.add('perfect-score');
+            document.querySelectorAll('.tree-flower').forEach(f => f.classList.add('blooming'));
+            if (!celebratedThisSession) { triggerFireworks(); celebratedThisSession = true; }
+        } else {
+            rateEl.classList.remove('perfect-score');
+            document.querySelectorAll('.tree-flower').forEach(f => f.classList.remove('blooming'));
+            celebratedThisSession = false;
+        }
+        document.querySelectorAll('.tree-branch').forEach((b, i) => b.style.opacity = rate > (i * 10 + 5) ? '1' : '0');
+        document.querySelectorAll('.tree-leaf').forEach((l, i) => {
+            const threshold = 20 + (i * 6.6);
+            l.style.opacity = rate > threshold ? '1' : '0';
+            l.style.transform = rate > threshold ? 'scale(1)' : 'scale(0)';
+        });
+    }
+
+    // --- Fireworks ---
+    const canvas = document.getElementById('fireworks');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    function triggerFireworks() {
+        for (let i = 0; i < 5; i++) setTimeout(() => createFirework(Math.random() * canvas.width, Math.random() * (canvas.height / 2)), i * 400);
+    }
+    function createFirework(x, y) {
+        const colors = ['#ff0055', '#00ffcc', '#ffcc00', '#ff00ff', '#d4a373'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        for (let i = 0; i < 50; i++) particles.push({ x, y, vx: (Math.random() - 0.5) * 8, vy: (Math.random() - 0.5) * 8, life: 1.0, color });
+    }
+    function animateFireworks() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach((p, i) => {
+            p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life -= 0.015;
+            if (p.life <= 0) particles.splice(i, 1);
+            ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+            ctx.fillStyle = p.color + Math.floor(p.life * 255).toString(16).padStart(2, '0');
+            ctx.fill();
+        });
+        requestAnimationFrame(animateFireworks);
+    }
+    animateFireworks();
+
+    // --- Tab Switcher ---
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.onclick = () => {
+            document.querySelectorAll('.tab-button, .tab-content').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+            const target = btn.dataset.tab;
+            document.getElementById(target + '-tab').classList.add('active');
+            const actionBtn = document.getElementById('main-action-btn');
+            actionBtn.textContent = target === 'tasks' ? "+ New Task" : "+ New Habit";
+            actionBtn.onclick = target === 'tasks' ? openTaskModal : openHabitModal;
+        };
+    });
+
+    // --- PWA Install Prompt ---
+    let deferredPrompt;
+    const banner = document.getElementById('install-banner');
+    const installBtn = document.getElementById('install-btn');
+    const dismissBtn = document.getElementById('dismiss-btn');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        banner.style.display = 'flex';
+    });
+
+    installBtn.addEventListener('click', async () => {
+        banner.style.display = 'none';
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            deferredPrompt = null;
+        }
+    });
+
+    dismissBtn.addEventListener('click', () => {
+        banner.style.display = 'none';
+    });
+
+    window.addEventListener('appinstalled', () => {
+        banner.style.display = 'none';
+    });
+
+    // --- Register Service Worker ---
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(console.error);
+    }
+
+    loadData();
+</script>
+</body>
+</html>

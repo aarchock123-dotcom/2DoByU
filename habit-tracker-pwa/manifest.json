@@ -1,0 +1,24 @@
+{
+  "name": "Task Board & Habit Tracker",
+  "short_name": "Habit Tracker",
+  "description": "A Trello-style task board and weekly habit tracker with progress tree.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f5f3f0",
+  "theme_color": "#d4a373",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
