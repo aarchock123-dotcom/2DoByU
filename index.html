@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>2DoByU</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#d4a373">
@@ -20,9 +20,8 @@
   --sidebar-w:220px; --topbar-h:52px;
   --radius:6px; --radius-lg:10px;
 }
-body { letter-spacing:-0.01em; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); overflow-x:hidden; letter-spacing:-0.01em; }
 h1,h2,h3,strong { letter-spacing:-0.02em; }
-body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); overflow-x:hidden; }
 
 /* ══════════════════════════════════════════
    PIN SCREEN
@@ -100,7 +99,11 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
    TASK BOARD
 ══════════════════════════════════════════ */
 .columns-container { display:flex; gap:18px; overflow-x:auto; padding-bottom:16px; }
-.column { background:var(--surface2); border-radius:8px; padding:18px; min-width:280px; border:1px solid var(--border); flex:1; }
+.column { background:var(--surface2); border-radius:8px; padding:18px; min-width:260px; border:1px solid var(--border); flex:1; }
+@media(max-width:700px){
+  .columns-container { flex-direction:column; overflow-x:visible; }
+  .column { min-width:unset; }
+}
 .column-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-weight:600; text-transform:uppercase; font-size:.8em; letter-spacing:1px; }
 .task-count { background:var(--border); padding:2px 8px; border-radius:10px; color:#666; }
 .cards { min-height:120px; }
@@ -195,8 +198,36 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .cal-event.task-event { background:#fff3cd; color:#856404; }
 .cal-event.task-event.done { background:#d4edda; color:#155724; text-decoration:line-through; }
 .cal-event.task-event.overdue { background:#f8d7da; color:#721c24; }
-.cal-event.habit-event { background:#e8f4e8; color:#2d6a2d; }
-.cal-event.habit-event.missed { background:#fde8e8; color:#8b0000; }
+.card-time { font-size:.75em; color:var(--muted); }
+.card.touch-drag-over { background:#fdf4ea; outline:2px dashed var(--accent); }
+.card.touch-dragging { opacity:.35; transform:scale(.93); pointer-events:none; }
+.drag-ghost { position:fixed; pointer-events:none; z-index:9999; opacity:.85; transform:scale(.97); border-radius:6px; background:white; padding:12px; box-shadow:0 8px 24px rgba(0,0,0,.18); border-left:4px solid var(--accent); min-width:200px; }
+
+/* ── CALENDAR VIEWS ── */
+.cal-view-group { display:flex; gap:5px; flex-wrap:wrap; }
+.cal-view-btn { padding:6px 12px; border-radius:20px; border:1px solid var(--border); background:white; cursor:pointer; font-size:.78em; font-weight:500; transition:.15s; }
+.cal-view-btn.active { background:var(--accent); color:white; border-color:var(--accent); }
+.cal-week-grid { display:grid; grid-template-columns: 52px repeat(7,1fr); gap:1px; background:var(--border); border-radius:8px; overflow:hidden; }
+.cal-week-grid.workweek { grid-template-columns: 52px repeat(5,1fr); }
+.cal-time-col { background:var(--surface2); }
+.cal-time-slot { font-size:.65em; color:var(--muted); padding:0 4px; height:44px; display:flex; align-items:center; justify-content:flex-end; border-bottom:1px solid var(--border); }
+.cal-week-day-header { background:var(--surface2); text-align:center; padding:8px 4px; font-size:.75em; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; cursor:pointer; }
+.cal-week-day-header:hover { background:#fdf4ea; }
+.cal-week-day-header.today-col { color:var(--accent); }
+.cal-week-cell { background:white; min-height:44px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); position:relative; cursor:pointer; }
+.cal-week-cell:hover { background:#fdf4ea; }
+.cal-daily-container { background:white; border:1px solid var(--border); border-radius:8px; padding:20px; }
+.cal-daily-header { font-size:1.1em; font-weight:700; margin-bottom:16px; }
+.cal-daily-section { margin-bottom:20px; }
+.cal-daily-section h4 { font-size:.8em; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; margin-bottom:10px; }
+.cal-daily-item { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:6px; background:var(--surface2); margin-bottom:7px; cursor:pointer; border-left:3px solid var(--accent); transition:.15s; }
+.cal-daily-item:hover { background:#fdf4ea; }
+.cal-daily-item .item-title { font-size:.9em; font-weight:500; flex:1; }
+.cal-daily-item .item-time { font-size:.75em; color:var(--muted); }
+.cal-daily-item.habit-item { border-left-color:#8b9d83; }
+.cal-daily-item.done-item { opacity:.6; text-decoration:line-through; }
+.cal-done-preview { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:12px 16px; margin-bottom:8px; font-size:.85em; color:#166534; }
+.done-show-more { font-size:.75em; color:var(--accent); cursor:pointer; text-decoration:underline; margin-top:4px; display:inline-block; }
 
 /* ══════════════════════════════════════════
    MODALS & MISC
@@ -411,6 +442,10 @@ body.dark .nav-item.active { background:#2a2218; }
         <div class="mini-cal-header" id="mini-cal-header"></div>
         <div class="mini-cal" id="mini-cal"></div>
       </div>
+      <div class="analytics-section">
+        <h3>All Completed Tasks</h3>
+        <div id="all-done-list"></div>
+      </div>
     </div>
 
     <div class="page" id="page-calendar">
@@ -422,13 +457,21 @@ body.dark .nav-item.active { background:#2a2218; }
         <span class="cal-month-label" id="cal-month-label"></span>
         <button class="cal-nav-btn" onclick="calMove(1)">›</button>
         <button class="cal-nav-btn" onclick="calGoToday()">Today</button>
+        <div class="cal-view-group">
+          <button class="cal-view-btn active" data-view="month" onclick="setCalView('month')">Month</button>
+          <button class="cal-view-btn" data-view="week" onclick="setCalView('week')">Week</button>
+          <button class="cal-view-btn" data-view="workweek" onclick="setCalView('workweek')">Work Week</button>
+          <button class="cal-view-btn" data-view="7days" onclick="setCalView('7days')">7 Days</button>
+          <button class="cal-view-btn" data-view="daily" onclick="setCalView('daily')">Day</button>
+        </div>
         <div class="cal-filter-group">
           <button class="cal-filter-btn active" data-filter="all" onclick="setCalFilter('all')">All</button>
           <button class="cal-filter-btn" data-filter="tasks" onclick="setCalFilter('tasks')">Tasks</button>
           <button class="cal-filter-btn" data-filter="habits" onclick="setCalFilter('habits')">Habits</button>
         </div>
       </div>
-      <div class="cal-grid" id="cal-grid"></div>
+      <div id="cal-grid"></div>
+      <div id="cal-daily-panel" style="display:none"></div>
     </div>
 
     <div class="page" id="page-settings">
@@ -633,21 +676,47 @@ body.dark .nav-item.active { background:#2a2218; }
   <button class="dismiss" id="dismiss-btn">✕</button>
 </div>
 
-<div class="modal-overlay" id="task-modal">
+<div class="modal-overlay" id="task-modal" role="dialog" aria-modal="true" aria-labelledby="task-modal-title">
   <div class="modal">
     <h2 id="task-modal-title">New Task</h2>
     <div class="form-group"><label>Title</label><input type="text" id="t-title" class="input-field" placeholder="Task name"></div>
     <div class="form-row">
       <div class="form-group"><label>Due Date</label><input type="date" id="t-date" class="input-field"></div>
+      <div class="form-group"><label>Time</label><input type="time" id="t-time" class="input-field"></div>
+    </div>
+    <div class="form-row">
       <div class="form-group">
         <label>Priority</label>
         <select id="t-priority" class="input-field">
           <option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option>
         </select>
       </div>
+      <div class="form-group" id="t-status-group">
+        <label>Status</label>
+        <select id="t-status" class="input-field">
+          <option value="todo">To Do</option>
+          <option value="inprogress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
     </div>
     <div class="form-group"><label>Label / Tag</label><input type="text" id="t-tag" class="input-field" placeholder="e.g. Work, Personal"></div>
     <div class="form-group"><label>Notes</label><textarea id="t-notes" class="input-field" rows="2" placeholder="Optional notes…"></textarea></div>
+    <div class="form-group" id="t-recurrence-group">
+      <label>Recurrence</label>
+      <div class="form-row">
+        <select id="t-recur-type" class="input-field" onchange="toggleRecurCount()">
+          <option value="none">No recurrence</option>
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+          <option value="monthly">Monthly</option>
+        </select>
+        <div class="form-group" id="t-recur-count-group" style="display:none">
+          <label>Occurrences (max 10)</label>
+          <input type="number" id="t-recur-count" class="input-field" min="2" max="10" value="3" placeholder="2–10">
+        </div>
+      </div>
+    </div>
     <div class="modal-footer">
       <button class="btn btn-delete" id="t-delete-btn" style="display:none" onclick="deleteCurrentTask()">Delete</button>
       <button class="btn btn-cancel" onclick="closeModals()">Cancel</button>
@@ -656,7 +725,7 @@ body.dark .nav-item.active { background:#2a2218; }
   </div>
 </div>
 
-<div class="modal-overlay" id="habit-modal">
+<div class="modal-overlay" id="habit-modal" role="dialog" aria-modal="true" aria-labelledby="habit-modal-title">
   <div class="modal">
     <h2 id="habit-modal-title">New Habit</h2>
     <div class="form-group"><label>Habit Name</label><input type="text" id="h-name" class="input-field" placeholder="e.g. Read for 20 mins"></div>
@@ -673,12 +742,16 @@ body.dark .nav-item.active { background:#2a2218; }
         </select>
       </div>
       <div class="form-group">
-        <label>Type</label>
-        <select id="h-type" class="input-field">
-          <option value="positive">✅ Build (positive)</option>
-          <option value="negative">🚫 Break (negative)</option>
-        </select>
+        <label>Time (optional)</label>
+        <input type="time" id="h-time" class="input-field">
       </div>
+    </div>
+    <div class="form-group">
+      <label>Type</label>
+      <select id="h-type" class="input-field">
+        <option value="positive">✅ Build (positive)</option>
+        <option value="negative">🚫 Break (negative)</option>
+      </select>
     </div>
     <div class="form-group">
       <label>Frequency</label>
@@ -723,6 +796,35 @@ body.dark .nav-item.active { background:#2a2218; }
 </div>
 
 <script>
+// ════════════════════════════════════════════════
+//  SECURITY: XSS escape — always use esc() before
+//  inserting user-generated text into innerHTML
+// ════════════════════════════════════════════════
+function esc(str){
+  return String(str==null?'':str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+// ════════════════════════════════════════════════
+//  UTILITY: parse local date string without UTC shift
+//  new Date('2024-01-15') → UTC midnight → wrong day
+//  in negative-offset timezones. Always append T00:00
+// ════════════════════════════════════════════════
+function parseLocalDate(dateStr){
+  if(!dateStr) return null;
+  return new Date(dateStr + 'T00:00:00');
+}
+
+// ════════════════════════════════════════════════
+//  KEYBOARD: Escape closes any open modal
+// ════════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape') closeModals();
+});
 // ════════════════════════════════════════════════
 //  CRYPTO
 // ════════════════════════════════════════════════
@@ -895,8 +997,34 @@ let tasks={todo:[],inprogress:[],done:[]};
 let habits=[];
 let editingTask=null,editingHabitIdx=null,draggedTaskId=null,celebratedThisSession=false;
 
-async function loadData(){const enc=localStorage.getItem(STORAGE_KEY);if(!enc)return;try{const d=await decrypt(currentPin,enc);tasks=d.tasks||tasks;habits=d.habits||habits;taskIdCounter=d.taskIdCounter||taskIdCounter;}catch{}}
-async function saveAndRender(){if(currentPin===null)return;localStorage.setItem(STORAGE_KEY,await encrypt(currentPin,{tasks,habits,taskIdCounter}));renderTasks();renderHabits();if(currentPage==='analytics')renderAnalytics();if(currentPage==='calendar')renderCalendar();}
+async function loadData(){
+  const enc=localStorage.getItem(STORAGE_KEY);
+  if(!enc) return;
+  try{
+    const d=await decrypt(currentPin,enc);
+    tasks=d.tasks||tasks;
+    habits=d.habits||habits;
+    taskIdCounter=d.taskIdCounter||taskIdCounter;
+    // Ensure taskIdCounter is always ahead of any existing IDs
+    const allIds=[...tasks.todo,...tasks.inprogress,...tasks.done].map(t=>t.id||0);
+    if(allIds.length) taskIdCounter=Math.max(taskIdCounter,...allIds)+1;
+  } catch(err){
+    console.error('[2DoByU] loadData failed — possible wrong PIN or corrupt data:', err);
+  }
+}
+async function saveAndRender(){
+  if(currentPin===null) return;
+  try{
+    localStorage.setItem(STORAGE_KEY, await encrypt(currentPin,{tasks,habits,taskIdCounter}));
+  } catch(err){
+    console.error('[2DoByU] saveAndRender encrypt failed:', err);
+    showToast('⚠️ Save failed — data may not be persisted.');
+  }
+  renderTasks();
+  renderHabits();
+  if(currentPage==='analytics') renderAnalytics();
+  if(currentPage==='calendar') renderCalendar();
+}
 
 // ════════════════════════════════════════════════
 //  TASKS
@@ -907,35 +1035,205 @@ function tagColor(tag){if(!tag)return null;let h=0;for(let i=0;i<tag.length;i++)
 function renderTasks(){
   Object.keys(tasks).forEach(col=>{
     const el=document.querySelector(`.cards[data-column="${col}"]`);if(!el)return;
-    el.innerHTML='';document.getElementById(`count-${col}`).textContent=tasks[col].length;
+    let list=tasks[col];
+    let hiddenCount=0;
+    if(col==='done' && list.length>10){
+      hiddenCount=list.length-10;
+      list=[...list].slice(-10);
+    }
+    document.getElementById(`count-${col}`).textContent=tasks[col].length;
+    el.innerHTML='';
     if(tasks[col].length===0){el.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div>No tasks yet</div>';return;}
-    tasks[col].forEach(task=>{
+    if(hiddenCount>0){
+      const info=document.createElement('div');
+      info.innerHTML=`<div class="cal-done-preview">+${hiddenCount} older completed tasks — <span class="done-show-more" onclick="navigateTo('analytics')">view all in Analytics</span></div>`;
+      el.appendChild(info);
+    }
+    list.forEach(task=>{
       const card=document.createElement('div');
       card.className=`card priority-${task.priority}`;card.draggable=true;card.dataset.id=task.id;
-      const overdue=col!=='done'&&task.dueDate&&new Date(task.dueDate)<new Date().setHours(0,0,0,0);
+      const overdue=col!=='done'&&task.dueDate&&parseLocalDate(task.dueDate)<new Date().setHours(0,0,0,0);
       const tc=tagColor(task.tag);
-      card.innerHTML=`<div class="card-title">${task.title}</div>
+      const timeStr=task.time?`<span class="card-time">⏰ ${esc(task.time)}</span>`:'';
+      card.innerHTML=`<div class="card-title">${esc(task.title)}</div>
         <div class="card-meta">
-          <span class="date-text">📅 ${task.dueDate||'No date'}</span>
+          <span class="date-text">📅 ${esc(task.dueDate||'No date')}</span>
+          ${timeStr}
           ${overdue?'<span class="overdue-badge">⚠️ Overdue</span>':''}
-          ${task.tag?`<span class="tag-badge" style="background:${tc}22;color:${tc}">${task.tag}</span>`:''}
+          ${task.tag?`<span class="tag-badge" style="background:${esc(tagColor(task.tag))}22;color:${esc(tagColor(task.tag))}">${esc(task.tag)}</span>`:''}
         </div>
-        ${task.notes?`<div class="card-notes">${task.notes}</div>`:''}`;
-      card.addEventListener('dragstart',e=>{draggedTaskId=e.target.dataset.id;e.target.classList.add('dragging');});
+        ${task.notes?`<div class="card-notes">${esc(task.notes)}</div>`:''}`;
+      card.addEventListener('dragstart',e=>{draggedTaskId=task.id;e.target.classList.add('dragging');});
       card.addEventListener('dragend',e=>e.target.classList.remove('dragging'));
-      card.onclick=()=>openEditModal(task,col);
+      // Touch drag — use a moved flag to distinguish tap from drag
+      card.addEventListener('touchstart',touchDragStart,{passive:true});
+      card.addEventListener('touchmove',touchDragMove,{passive:false});
+      card.addEventListener('touchend',touchDragEnd,{passive:true});
+      // Only open edit modal on a genuine tap (not after a drag)
+      card.addEventListener('click',()=>{ if(!touchWasDragged) openEditModal(task,col); });
       el.appendChild(card);
     });
   });
 }
 
+// ════════════════════════════════════════════════
+//  TOUCH DRAG & DROP
+// ════════════════════════════════════════════════
+let touchDragId=null, touchGhost=null, touchDragSource=null, touchWasDragged=false;
+
+function touchDragStart(e){
+  touchWasDragged=false;
+  const card=e.currentTarget;
+  touchDragId=card.dataset.id;
+  touchDragSource=card;
+  // Delay ghost creation to distinguish from a tap
+  touchDragSource._dragTimer=setTimeout(()=>{
+    card.classList.add('touch-dragging');
+    touchGhost=document.createElement('div');
+    touchGhost.className='drag-ghost';
+    touchGhost.textContent=card.querySelector('.card-title').textContent;
+    document.body.appendChild(touchGhost);
+    const t=e.touches[0];
+    touchGhost.style.left=(t.clientX-80)+'px';
+    touchGhost.style.top=(t.clientY-20)+'px';
+  }, 200);
+}
+function touchDragMove(e){
+  clearTimeout(touchDragSource?._dragTimer);
+  if(!touchGhost && touchDragId){
+    // Ghost not yet created — create immediately since user is clearly dragging
+    touchDragSource.classList.add('touch-dragging');
+    touchGhost=document.createElement('div');
+    touchGhost.className='drag-ghost';
+    touchGhost.textContent=touchDragSource.querySelector('.card-title')?.textContent||'';
+    document.body.appendChild(touchGhost);
+  }
+  if(!touchGhost)return;
+  e.preventDefault();
+  touchWasDragged=true;
+  const t=e.touches[0];
+  touchGhost.style.left=(t.clientX-80)+'px';
+  touchGhost.style.top=(t.clientY-20)+'px';
+  document.querySelectorAll('.cards').forEach(c=>c.classList.remove('touch-drag-over'));
+  const el=document.elementFromPoint(t.clientX,t.clientY);
+  const col=el?.closest('.cards');
+  if(col) col.classList.add('touch-drag-over');
+}
+function touchDragEnd(e){
+  clearTimeout(touchDragSource?._dragTimer);
+  if(touchGhost){ touchGhost.remove(); touchGhost=null; }
+  if(touchDragSource) touchDragSource.classList.remove('touch-dragging');
+  document.querySelectorAll('.cards').forEach(c=>c.classList.remove('touch-drag-over'));
+  if(touchWasDragged && touchDragId){
+    const t=e.changedTouches[0];
+    const el=document.elementFromPoint(t.clientX,t.clientY);
+    const col=el?.closest('.cards')?.dataset.column;
+    if(col){
+      let moved=null;
+      // Use strict equality — IDs are stored as numbers, dataset.id is string; compare as strings
+      Object.keys(tasks).forEach(c=>{
+        const i=tasks[c].findIndex(tk=>String(tk.id)===String(touchDragId));
+        if(i!==-1) moved=tasks[c].splice(i,1)[0];
+      });
+      if(moved){ tasks[col].push(moved); saveAndRender(); }
+    }
+  }
+  touchDragId=null; touchDragSource=null;
+  // Reset flag after a tick so the click handler can read it
+  setTimeout(()=>{ touchWasDragged=false; }, 50);
+}
+
 function handleDragOver(e){e.preventDefault();}
 function handleDrop(e){e.preventDefault();const col=e.currentTarget.dataset.column;let moved=null;Object.keys(tasks).forEach(c=>{const i=tasks[c].findIndex(t=>t.id==draggedTaskId);if(i!==-1)moved=tasks[c].splice(i,1)[0];});if(moved){tasks[col].push(moved);saveAndRender();}}
 
-function openTaskModal(){editingTask=null;document.getElementById('task-modal-title').textContent='New Task';document.getElementById('t-title').value='';document.getElementById('t-date').value='';document.getElementById('t-priority').value='medium';document.getElementById('t-tag').value='';document.getElementById('t-notes').value='';document.getElementById('t-delete-btn').style.display='none';document.getElementById('task-modal').style.display='flex';}
-function openEditModal(task,col){editingTask={...task,col};document.getElementById('task-modal-title').textContent='Edit Task';document.getElementById('t-title').value=task.title;document.getElementById('t-date').value=task.dueDate||'';document.getElementById('t-priority').value=task.priority;document.getElementById('t-tag').value=task.tag||'';document.getElementById('t-notes').value=task.notes||'';document.getElementById('t-delete-btn').style.display='block';document.getElementById('task-modal').style.display='flex';}
-function saveTask(){const title=document.getElementById('t-title').value;if(!title)return;const data={title,dueDate:document.getElementById('t-date').value,priority:document.getElementById('t-priority').value,tag:document.getElementById('t-tag').value.trim(),notes:document.getElementById('t-notes').value.trim()};if(editingTask){const idx=tasks[editingTask.col].findIndex(t=>t.id==editingTask.id);tasks[editingTask.col][idx]={...tasks[editingTask.col][idx],...data};}else{tasks.todo.push({id:taskIdCounter++,...data});}closeModals();saveAndRender();}
-function deleteCurrentTask(){tasks[editingTask.col]=tasks[editingTask.col].filter(t=>t.id!==editingTask.id);closeModals();saveAndRender();}
+function toggleRecurCount(){
+  const v=document.getElementById('t-recur-type').value;
+  document.getElementById('t-recur-count-group').style.display=v!=='none'?'block':'none';
+}
+
+function openTaskModal(prefillDate){
+  editingTask=null;
+  document.getElementById('task-modal-title').textContent='New Task';
+  document.getElementById('t-title').value='';
+  document.getElementById('t-date').value=prefillDate||'';
+  document.getElementById('t-time').value='';
+  document.getElementById('t-priority').value='medium';
+  document.getElementById('t-status').value='todo';
+  document.getElementById('t-tag').value='';
+  document.getElementById('t-notes').value='';
+  document.getElementById('t-recur-type').value='none';
+  document.getElementById('t-recur-count-group').style.display='none';
+  document.getElementById('t-recur-count').value=3;
+  document.getElementById('t-delete-btn').style.display='none';
+  document.getElementById('t-status-group').style.display='flex';
+  document.getElementById('t-recurrence-group').style.display='block';
+  document.getElementById('task-modal').style.display='flex';
+}
+function openEditModal(task,col){
+  editingTask={...task,col};
+  document.getElementById('task-modal-title').textContent='Edit Task';
+  document.getElementById('t-title').value=task.title;
+  document.getElementById('t-date').value=task.dueDate||'';
+  document.getElementById('t-time').value=task.time||'';
+  document.getElementById('t-priority').value=task.priority;
+  document.getElementById('t-status').value=col;
+  document.getElementById('t-tag').value=task.tag||'';
+  document.getElementById('t-notes').value=task.notes||'';
+  document.getElementById('t-delete-btn').style.display='block';
+  document.getElementById('t-status-group').style.display='flex';
+  document.getElementById('t-recurrence-group').style.display='none';
+  document.getElementById('task-modal').style.display='flex';
+}
+function saveTask(){
+  const title=document.getElementById('t-title').value.trim();
+  if(!title){ document.getElementById('t-title').focus(); return; }
+  const newStatus=document.getElementById('t-status').value;
+  if(!tasks[newStatus]){ console.error('Invalid status column:', newStatus); return; }
+  const data={
+    title,
+    dueDate:document.getElementById('t-date').value,
+    time:document.getElementById('t-time').value,
+    priority:document.getElementById('t-priority').value,
+    tag:document.getElementById('t-tag').value.trim(),
+    notes:document.getElementById('t-notes').value.trim()
+  };
+  if(editingTask){
+    // Move between columns if status changed
+    const oldCol=editingTask.col;
+    const idx=tasks[oldCol].findIndex(t=>t.id==editingTask.id);
+    const updated={...tasks[oldCol][idx],...data};
+    if(newStatus!==oldCol){
+      tasks[oldCol].splice(idx,1);
+      tasks[newStatus].push(updated);
+    } else {
+      tasks[oldCol][idx]=updated;
+    }
+  } else {
+    // Handle recurrence
+    const recurType=document.getElementById('t-recur-type').value;
+    const recurCount=Math.min(10,Math.max(2,parseInt(document.getElementById('t-recur-count').value)||2));
+    if(recurType!=='none'){
+      for(let i=0;i<recurCount;i++){
+        // Create a fresh Date object for each iteration to avoid mutation bugs
+        const base=data.dueDate?new Date(data.dueDate+'T00:00:00'):new Date();
+        if(recurType==='daily') base.setDate(base.getDate()+i);
+        else if(recurType==='weekly') base.setDate(base.getDate()+i*7);
+        else if(recurType==='monthly') base.setMonth(base.getMonth()+i);
+        const dStr=base.toISOString().slice(0,10);
+        tasks[newStatus].push({id:taskIdCounter++,...data,dueDate:dStr,title:`${data.title} (${i+1}/${recurCount})`});
+      }
+    } else {
+      tasks[newStatus].push({id:taskIdCounter++,...data});
+    }
+  }
+  closeModals();saveAndRender();
+}
+function deleteCurrentTask(){
+  if(!editingTask) return;
+  tasks[editingTask.col]=tasks[editingTask.col].filter(t=>t.id!==editingTask.id);
+  closeModals();
+  saveAndRender();
+}
 function closeModals(){document.querySelectorAll('.modal-overlay').forEach(m=>m.style.display='none');}
 
 // ════════════════════════════════════════════════
@@ -969,25 +1267,41 @@ function renderHabits(){
     card.innerHTML=`
       <div class="habit-header">
         <div class="habit-name-area">
-          <div class="habit-name">${h.type==='negative'?'🚫 ':''}${h.name}</div>
-          <div class="habit-category"><span class="cat-dot" style="background:${catColor}"></span>${h.category||'Other'}</div>
+          <div class="habit-name">${h.type==='negative'?'🚫 ':''}${esc(h.name)}</div>
+          <div class="habit-category"><span class="cat-dot" style="background:${esc(catColor)}"></span>${esc(h.category||'Other')}</div>
         </div>
         <div class="habit-badges">
           ${h.type==='negative'?'<span class="habit-type-badge">Break habit</span>':''}
           <span class="habit-streak">🔥 ${streak}/${total}</span>
         </div>
       </div>
-      <div class="habit-freq">${FREQ_LABELS[h.freq||'daily']}</div>
+      <div class="habit-freq">${esc(FREQ_LABELS[h.freq||'daily'])}${h.time?` · ⏰ ${esc(h.time)}`:''}</div>
       <div class="days-grid">${['M','T','W','T','F','S','S'].map((label,dIdx)=>{
         const isActive=active.includes(dIdx);
-        return`<div class="day-checkbox ${h.days[dIdx]?'checked':''} ${!isActive?'style="opacity:.3;cursor:default"':''}" 
-          onclick="${isActive?`toggleHabit(${hIdx},${dIdx})`:''}">
+        return`<div class="day-checkbox ${h.days[dIdx]?'checked':''}" 
+          data-hidx="${hIdx}" data-didx="${dIdx}" data-active="${isActive}"
+          style="${!isActive?'opacity:.3;cursor:default':''}">
           ${label}</div>`;
       }).join('')}</div>
-      <button class="btn-delete" style="font-size:.75em;cursor:pointer;" onclick="openEditHabitModal(${hIdx})">Edit</button>
-      <button class="btn-delete" style="font-size:.75em;cursor:pointer;margin-left:8px;" onclick="deleteHabitConfirm(${hIdx})">Remove</button>`;
+      <button class="btn-delete" style="font-size:.75em;cursor:pointer;" data-edit-habit="${hIdx}">Edit</button>
+      <button class="btn-delete" style="font-size:.75em;cursor:pointer;margin-left:8px;" data-del-habit="${hIdx}">Remove</button>`;
     grid.appendChild(card);
   });
+  // Event delegation for habit grid — attach only once to avoid accumulating listeners
+  if(!grid._delegationAttached){
+    grid._delegationAttached = true;
+    grid.addEventListener('click', e => {
+      const dayEl = e.target.closest('.day-checkbox');
+      if(dayEl && dayEl.dataset.active === 'true'){
+        toggleHabit(parseInt(dayEl.dataset.hidx), parseInt(dayEl.dataset.didx));
+        return;
+      }
+      const editBtn = e.target.closest('[data-edit-habit]');
+      if(editBtn){ openEditHabitModal(parseInt(editBtn.dataset.editHabit)); return; }
+      const delBtn = e.target.closest('[data-del-habit]');
+      if(delBtn){ deleteHabitConfirm(parseInt(delBtn.dataset.delHabit)); return; }
+    });
+  }
   updateTree();
 }
 
@@ -1006,6 +1320,7 @@ function openHabitModal(){
   editingHabitIdx=null;
   document.getElementById('habit-modal-title').textContent='New Habit';
   document.getElementById('h-name').value='';document.getElementById('h-category').value='Health';document.getElementById('h-type').value='positive';document.getElementById('h-freq').value='daily';
+  document.getElementById('h-time').value='';
   document.getElementById('h-custom-days-group').style.display='none';
   document.querySelectorAll('#h-custom-days-group input[type=checkbox]').forEach(c=>c.checked=false);
   selectedHabitColor='#d4a373';document.querySelectorAll('.color-swatch').forEach(s=>{s.classList.toggle('selected',s.dataset.color==='#d4a373');});
@@ -1017,6 +1332,7 @@ function openEditHabitModal(idx){
   editingHabitIdx=idx;const h=habits[idx];
   document.getElementById('habit-modal-title').textContent='Edit Habit';
   document.getElementById('h-name').value=h.name;document.getElementById('h-category').value=h.category||'Health';document.getElementById('h-type').value=h.type||'positive';document.getElementById('h-freq').value=h.freq||'daily';
+  document.getElementById('h-time').value=h.time||'';
   const isCustom=(h.freq||'daily')==='custom';
   document.getElementById('h-custom-days-group').style.display=isCustom?'block':'none';
   document.querySelectorAll('#h-custom-days-group input[type=checkbox]').forEach(c=>{c.checked=(h.customDays||[]).includes(parseInt(c.value));});
@@ -1026,10 +1342,11 @@ function openEditHabitModal(idx){
 }
 
 function saveHabit(){
-  const name=document.getElementById('h-name').value;if(!name)return;
+  const name=document.getElementById('h-name').value.trim();
+  if(!name){ document.getElementById('h-name').focus(); return; }
   const freq=document.getElementById('h-freq').value;
   const customDays=freq==='custom'?[...document.querySelectorAll('#h-custom-days-group input[type=checkbox]:checked')].map(c=>parseInt(c.value)):[];
-  const data={name,category:document.getElementById('h-category').value,type:document.getElementById('h-type').value,freq,customDays,color:selectedHabitColor};
+  const data={name,category:document.getElementById('h-category').value,type:document.getElementById('h-type').value,freq,customDays,color:selectedHabitColor,time:document.getElementById('h-time').value};
   if(editingHabitIdx!==null){habits[editingHabitIdx]={...habits[editingHabitIdx],...data};}
   else{habits.push({...data,days:Array(7).fill(false)});}
   closeModals();saveAndRender();
@@ -1087,12 +1404,37 @@ function renderAnalytics(){
     const checked=h.days.filter((d,i)=>a.includes(i)&&d).length;
     const pct=a.length>0?Math.round((checked/a.length)*100):0;
     return`<div class="habit-analytics-row">
-      <div class="hab-name"><span class="cat-dot" style="background:${h.color||CAT_COLORS[h.category]||'#aaa'}"></span>${h.name}</div>
+      <div class="hab-name"><span class="cat-dot" style="background:${esc(h.color||CAT_COLORS[h.category]||'#aaa')}"></span>${esc(h.name)}</div>
       <div class="hab-progress-bar"><div class="hab-progress-fill" style="width:${pct}%;background:${h.color||CAT_COLORS[h.category]||'#8b9d83'}"></div></div>
       <div class="hab-pct">${pct}%</div>
     </div>`;
   }).join('');
   renderMiniCal();
+  // All completed tasks — use data-id attribute for click, no JSON in onclick
+  const doneList=document.getElementById('all-done-list');
+  if(tasks.done.length===0){doneList.innerHTML='<div class="empty-state">No completed tasks yet</div>';return;}
+  const sorted=[...tasks.done].reverse();
+  doneList.innerHTML=sorted.map(t=>{
+    const tc=tagColor(t.tag);
+    return`<div class="habit-analytics-row" data-done-task-id="${t.id}" style="cursor:pointer">
+      <div class="hab-name" style="display:flex;flex-direction:column;gap:2px">
+        <span style="font-weight:600">${esc(t.title)}</span>
+        <span style="font-size:.75em;color:var(--muted)">${esc(t.dueDate||'No date')}${t.time?' · '+esc(t.time):''} ${t.tag?`· <span style="color:${esc(tc)}">${esc(t.tag)}</span>`:''}</span>
+      </div>
+      <span style="color:#2d6a2d;font-size:.8em;font-weight:600">✅ Done</span>
+    </div>`;
+  }).join('');
+  // Event delegation for done list clicks
+  if(!doneList._delegationAttached){
+    doneList._delegationAttached=true;
+    doneList.addEventListener('click', e=>{
+      const row=e.target.closest('[data-done-task-id]');
+      if(!row) return;
+      const id=parseInt(row.dataset.doneTaskId);
+      const task=tasks.done.find(t=>t.id===id);
+      if(task) openEditModal(task,'done');
+    });
+  }
 }
 
 function renderMiniCal(){
@@ -1119,13 +1461,184 @@ function renderMiniCal(){
   cal.innerHTML=cells;
 }
 
-let calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calFilter='all';
-function calMove(dir){calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}renderCalendar();}
-function calGoToday(){calYear=new Date().getFullYear();calMonth=new Date().getMonth();renderCalendar();}
+let calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calFilter='all',calView='month',calDay=new Date().getDate();
+
+function calMove(dir){
+  if(calView==='daily'){calDay+=dir;const d=new Date(calYear,calMonth,calDay);calYear=d.getFullYear();calMonth=d.getMonth();calDay=d.getDate();}
+  else if(calView==='week'||calView==='workweek'||calView==='7days'){calDay+=dir*7;const d=new Date(calYear,calMonth,calDay);calYear=d.getFullYear();calMonth=d.getMonth();calDay=d.getDate();}
+  else{calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}}
+  renderCalendar();
+}
+function calGoToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();calDay=n.getDate();renderCalendar();}
 function setCalFilter(f){calFilter=f;document.querySelectorAll('.cal-filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.filter===f));renderCalendar();}
+function setCalView(v){calView=v;document.querySelectorAll('.cal-view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===v));renderCalendar();}
+
+function openDailyView(year,month,day){calYear=year;calMonth=month;calDay=day;setCalView('daily');}
+
+function getDayEvents(dateStr){
+  const allTasks=[...tasks.todo,...tasks.inprogress,...tasks.done];
+  const dayTasks=calFilter!=='habits'?allTasks.filter(t=>t.dueDate===dateStr):[];
+  const dateObj=new Date(dateStr+'T12:00:00');
+  const dow=dateObj.getDay();
+  const habitDow=dow===0?6:dow-1;
+  const dayHabits=calFilter!=='tasks'?habits.filter(h=>freqActiveDays(h).includes(habitDow)):[];
+  return{dayTasks,dayHabits};
+}
+
+function renderDailyView(year,month,day){
+  const dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  const dateLabel=new Date(year,month,day).toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+  const {dayTasks,dayHabits}=getDayEvents(dateStr);
+  const grid=document.getElementById('cal-grid');
+  const panel=document.getElementById('cal-daily-panel');
+  grid.style.display='none';
+  panel.style.display='block';
+
+  const taskHTML=dayTasks.length===0
+    ?'<div class="empty-state" style="padding:10px 0;font-size:.85em">No tasks</div>'
+    :dayTasks.map(t=>{
+      const isDone=tasks.done.some(x=>x.id===t.id);
+      const colKey=isDone?'done':tasks.inprogress.some(x=>x.id===t.id)?'inprogress':'todo';
+      return`<div class="cal-daily-item${isDone?' done-item':''}" data-task-id="${t.id}" data-col="${colKey}">
+        <span style="font-size:.9em">${isDone?'✅':'📋'}</span>
+        <div class="item-title">${esc(t.title)}${t.notes?`<div style="font-size:.75em;color:var(--muted)">${esc(t.notes)}</div>`:''}</div>
+        <span class="item-time">${esc(t.time||'')}</span>
+      </div>`;
+    }).join('');
+
+  const habitHTML=dayHabits.length===0
+    ?'<div class="empty-state" style="padding:10px 0;font-size:.85em">No habits scheduled</div>'
+    :dayHabits.map(h=>{
+      const dow=new Date(dateStr+'T12:00:00').getDay();
+      const hDow=dow===0?6:dow-1;
+      const checked=h.days[hDow];
+      const hIdx=habits.indexOf(h);
+      return`<div class="cal-daily-item habit-item" data-habit-idx="${hIdx}">
+        <span style="font-size:.9em;color:${esc(h.color||'#8b9d83')}">${checked?'✅':'⬜'}</span>
+        <div class="item-title">${esc(h.name)}</div>
+        <span class="item-time">${esc(h.time||'')}</span>
+      </div>`;
+    }).join('');
+
+  panel.innerHTML=`<div class="cal-daily-container">
+    <div class="cal-daily-header">📅 ${esc(dateLabel)}</div>
+    <div class="cal-daily-section"><h4>Tasks (${dayTasks.length})</h4>${taskHTML}</div>
+    <div class="cal-daily-section"><h4>Habits (${dayHabits.length})</h4>${habitHTML}</div>
+    <button class="action-btn" data-add-task-date="${dateStr}" style="margin-top:8px;font-size:.85em;padding:8px 14px">+ Add Task for This Day</button>
+  </div>`;
+
+  // Event delegation — attach once per panel render (panel.innerHTML is reset each time so we re-attach)
+  panel.addEventListener('click', e=>{
+    const taskRow=e.target.closest('[data-task-id]');
+    if(taskRow){
+      const id=parseInt(taskRow.dataset.taskId);
+      const col=taskRow.dataset.col;
+      const task=tasks[col]?.find(t=>t.id===id);
+      if(task) openEditModal(task,col);
+      return;
+    }
+    const habitRow=e.target.closest('[data-habit-idx]');
+    if(habitRow){ openEditHabitModal(parseInt(habitRow.dataset.habitIdx)); return; }
+    const addBtn=e.target.closest('[data-add-task-date]');
+    if(addBtn){ openTaskModal(addBtn.dataset.addTaskDate); return; }
+  }, {once:true});
+}
+
+function renderWeekView(isWorkweek, is7days){
+  const grid=document.getElementById('cal-grid');
+  const panel=document.getElementById('cal-daily-panel');
+  panel.style.display='none';
+  const anchor=new Date(calYear,calMonth,calDay);
+  let startOffset=0;
+  if(!is7days){
+    const dow=anchor.getDay();
+    startOffset=isWorkweek?(dow===0?-6:1-dow):(0-dow);
+  }
+  const days=isWorkweek?5:7;
+  const dates=[];
+  for(let i=0;i<days;i++){
+    const d=new Date(calYear,calMonth,calDay+startOffset+i);
+    dates.push(d);
+  }
+  const today=new Date();
+  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  // Handle cross-month label correctly
+  const startLabel=dates[0];
+  const endLabel=dates[days-1];
+  const rangeLabel=startLabel.getMonth()===endLabel.getMonth()
+    ?`${monthNames[startLabel.getMonth()]} ${startLabel.getDate()}–${endLabel.getDate()}, ${startLabel.getFullYear()}`
+    :`${monthNames[startLabel.getMonth()]} ${startLabel.getDate()} – ${monthNames[endLabel.getMonth()]} ${endLabel.getDate()}, ${endLabel.getFullYear()}`;
+  document.getElementById('cal-month-label').textContent=rangeLabel;
+
+  let html=`<div class="cal-week-grid${isWorkweek?' workweek':''}">`;
+  html+='<div class="cal-day-header cal-time-col"></div>';
+  const dayLabels=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  dates.forEach(d=>{
+    const isToday=d.toDateString()===today.toDateString();
+    html+=`<div class="cal-week-day-header${isToday?' today-col':''}" 
+      data-open-day="${d.getFullYear()}-${d.getMonth()}-${d.getDate()}">
+      ${dayLabels[d.getDay()]} ${d.getDate()}</div>`;
+  });
+  html+='<div class="cal-time-col" style="min-height:60px"></div>';
+  dates.forEach(d=>{
+    const dateStr=d.toISOString().slice(0,10);
+    const {dayTasks,dayHabits}=getDayEvents(dateStr);
+    const isToday=d.toDateString()===today.toDateString();
+    html+=`<div class="cal-week-cell" style="padding:4px;${isToday?'background:#fdf4ea':''}">`;
+    dayTasks.forEach(t=>{
+      const isDone=tasks.done.some(x=>x.id===t.id);
+      const isOverdue=!isDone&&dateStr<today.toISOString().slice(0,10);
+      const colKey=isDone?'done':tasks.inprogress.some(x=>x.id===t.id)?'inprogress':'todo';
+      html+=`<div class="cal-event task-event${isDone?' done':isOverdue?' overdue':''}" 
+        data-task-id="${t.id}" data-col="${colKey}"
+        title="${esc(t.title)}">${esc(t.title)}${t.time?` ⏰${esc(t.time)}`:''}</div>`;
+    });
+    dayHabits.forEach(h=>{
+      const dow=d.getDay(); const hDow=dow===0?6:dow-1;
+      const checked=h.days[hDow];
+      const hIdx=habits.indexOf(h);
+      html+=`<div class="cal-event habit-event${!checked?' missed':''}" 
+        data-habit-idx="${hIdx}"
+        title="${esc(h.name)}">${checked?'✅':'⬜'} ${esc(h.name)}</div>`;
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  grid.innerHTML=html;
+  grid.style.display='block';
+
+  // Event delegation for week view
+  grid.addEventListener('click', e=>{
+    const dayHdr=e.target.closest('[data-open-day]');
+    if(dayHdr){ const [y,m,d]=dayHdr.dataset.openDay.split('-').map(Number); openDailyView(y,m,d); return; }
+    const taskEl=e.target.closest('[data-task-id][data-col]');
+    if(taskEl){
+      e.stopPropagation();
+      const id=parseInt(taskEl.dataset.taskId);
+      const col=taskEl.dataset.col;
+      const task=tasks[col]?.find(t=>t.id===id);
+      if(task) openEditModal(task,col);
+      return;
+    }
+    const habitEl=e.target.closest('[data-habit-idx]');
+    if(habitEl){ e.stopPropagation(); openEditHabitModal(parseInt(habitEl.dataset.habitIdx)); return; }
+  }, {once:true});
+}
 
 function renderCalendar(){
   const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  if(calView==='daily'){
+    document.getElementById('cal-month-label').textContent=new Date(calYear,calMonth,calDay).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
+    document.getElementById('cal-grid').style.display='none';
+    renderDailyView(calYear,calMonth,calDay);
+    return;
+  }
+  document.getElementById('cal-daily-panel').style.display='none';
+  if(calView==='week'){renderWeekView(false,false);return;}
+  if(calView==='workweek'){renderWeekView(true,false);return;}
+  if(calView==='7days'){renderWeekView(false,true);return;}
+
+  // Month view
   document.getElementById('cal-month-label').textContent=`${monthNames[calMonth]} ${calYear}`;
   const firstDay=new Date(calYear,calMonth,1).getDay();
   const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
@@ -1141,35 +1654,65 @@ function renderCalendar(){
       allTasks.filter(t=>t.dueDate===dateStr).forEach(t=>{
         const isDone=tasks.done.some(x=>x.id===t.id);
         const isOverdue=!isDone&&dateStr<today.toISOString().slice(0,10);
-        events+=`<div class="cal-event task-event${isDone?' done':isOverdue?' overdue':''}" title="${t.title}">📋 ${t.title}</div>`;
+        const colKey=isDone?'done':tasks.inprogress.some(x=>x.id===t.id)?'inprogress':'todo';
+        events+=`<div class="cal-event task-event${isDone?' done':isOverdue?' overdue':''}" 
+          data-task-id="${t.id}" data-col="${colKey}"
+          title="${esc(t.title)}">📋 ${esc(t.title)}${t.time?` ⏰${esc(t.time)}`:''}</div>`;
       });
     }
     if(calFilter!=='tasks'){
       const dow=new Date(calYear,calMonth,d).getDay();
-      const habitDow=dow===0?6:dow-1; 
+      const habitDow=dow===0?6:dow-1;
       habits.forEach(h=>{
         if(freqActiveDays(h).includes(habitDow)){
           const checked=h.days[habitDow];
-          events+=`<div class="cal-event habit-event${!checked?' missed':''}" title="${h.name}">${checked?'✅':'⬜'} ${h.name}</div>`;
+          const hIdx=habits.indexOf(h);
+          events+=`<div class="cal-event habit-event${!checked?' missed':''}" 
+            data-habit-idx="${hIdx}"
+            title="${esc(h.name)}">${checked?'✅':'⬜'} ${esc(h.name)}</div>`;
         }
       });
     }
-    html+=`<div class="cal-cell${isToday?' today':''}"><div class="cal-date-num">${d}</div>${events}</div>`;
+    html+=`<div class="cal-cell${isToday?' today':''}" data-open-day="${calYear}-${calMonth}-${d}">
+      <div class="cal-date-num">${d}</div>${events}</div>`;
   }
-  document.getElementById('cal-grid').innerHTML=html;
+  const grid=document.getElementById('cal-grid');
+  grid.className='cal-grid';
+  grid.innerHTML=html;
+  grid.style.display='grid';
+
+  // Event delegation for month view — once per render since innerHTML is replaced
+  grid.addEventListener('click', e=>{
+    const taskEl=e.target.closest('[data-task-id][data-col]');
+    if(taskEl){
+      e.stopPropagation();
+      const id=parseInt(taskEl.dataset.taskId);
+      const col=taskEl.dataset.col;
+      const task=tasks[col]?.find(t=>t.id===id);
+      if(task) openEditModal(task,col);
+      return;
+    }
+    const habitEl=e.target.closest('[data-habit-idx]');
+    if(habitEl){ e.stopPropagation(); openEditHabitModal(parseInt(habitEl.dataset.habitIdx)); return; }
+    const dayCell=e.target.closest('[data-open-day]');
+    if(dayCell){ const [y,m,d]=dayCell.dataset.openDay.split('-').map(Number); openDailyView(y,m,d); }
+  }, {once:true});
 }
 
 // ════════════════════════════════════════════════
 //  EXPORTS
 // ════════════════════════════════════════════════
+// FIX: proper CSV escaping — double-up quotes instead of replacing with single-quote
+function csvField(val){ return '"' + String(val||'').replace(/"/g,'""') + '"'; }
+
 function exportData(){
   const allTasks=[...tasks.todo.map(t=>({...t,status:'To Do'})),...tasks.inprogress.map(t=>({...t,status:'In Progress'})),...tasks.done.map(t=>({...t,status:'Done'}))];
-  let csv='TASKS\nTitle,Status,Priority,Due Date,Tag,Notes\n';
-  allTasks.forEach(t=>{csv+=`"${t.title}","${t.status}","${t.priority}","${t.dueDate||''}","${t.tag||''}","${(t.notes||'').replace(/"/g,"'")}"\n`;});
-  csv+='\nHABITS\nName,Category,Type,Frequency,Mon,Tue,Wed,Thu,Fri,Sat,Sun\n';
-  habits.forEach(h=>{csv+=`"${h.name}","${h.category}","${h.type}","${FREQ_LABELS[h.freq||'daily']}",${h.days.map(d=>d?1:0).join(',')}\n`;});
+  let csv='TASKS\nTitle,Status,Priority,Due Date,Time,Tag,Notes\n';
+  allTasks.forEach(t=>{csv+=`${csvField(t.title)},${csvField(t.status)},${csvField(t.priority)},${csvField(t.dueDate)},${csvField(t.time)},${csvField(t.tag)},${csvField(t.notes)}\n`;});
+  csv+='\nHABITS\nName,Category,Type,Frequency,Time,Mon,Tue,Wed,Thu,Fri,Sat,Sun\n';
+  habits.forEach(h=>{csv+=`${csvField(h.name)},${csvField(h.category)},${csvField(h.type)},${csvField(FREQ_LABELS[h.freq||'daily'])},${csvField(h.time)},${h.days.map(d=>d?1:0).join(',')}\n`;});
   const blob=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`habit-tracker-${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`2DoByU-export-${new Date().toISOString().slice(0,10)}.csv`;a.click();
 }
 
 function exportBackupJSON() {
@@ -1199,13 +1742,35 @@ function parseCSVLine(line) {
 //  FIREWORKS
 // ════════════════════════════════════════════════
 const canvas=document.getElementById('fireworks'),ctx=canvas.getContext('2d');
-let particles=[];
+let particles=[], fireworksAnimating=false;
 function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
 window.addEventListener('resize',resizeCanvas);resizeCanvas();
 function triggerFireworks(){for(let i=0;i<5;i++)setTimeout(()=>createFirework(Math.random()*canvas.width,Math.random()*(canvas.height/2)),i*400);}
-function createFirework(x,y){const colors=['#ff0055','#00ffcc','#ffcc00','#ff00ff','#d4a373'],color=colors[Math.floor(Math.random()*colors.length)];for(let i=0;i<50;i++)particles.push({x,y,vx:(Math.random()-.5)*8,vy:(Math.random()-.5)*8,life:1.0,color});}
-function animateFireworks(){ctx.clearRect(0,0,canvas.width,canvas.height);particles.forEach((p,i)=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.05;p.life-=.015;if(p.life<=0)particles.splice(i,1);ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fillStyle=p.color+Math.floor(p.life*255).toString(16).padStart(2,'0');ctx.fill();});requestAnimationFrame(animateFireworks);}
-animateFireworks();
+function createFirework(x,y){
+  const colors=['#ff0055','#00ffcc','#ffcc00','#ff00ff','#d4a373'],color=colors[Math.floor(Math.random()*colors.length)];
+  for(let i=0;i<50;i++) particles.push({x,y,vx:(Math.random()-.5)*8,vy:(Math.random()-.5)*8,life:1.0,color});
+  // Start animation loop only if not already running
+  if(!fireworksAnimating){ fireworksAnimating=true; requestAnimationFrame(animateFireworks); }
+}
+function animateFireworks(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  // FIX: iterate backwards to safely splice without index corruption
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx; p.y+=p.vy; p.vy+=.05; p.life-=.015;
+    if(p.life<=0){ particles.splice(i,1); continue; }
+    ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2);
+    ctx.fillStyle=p.color+Math.floor(p.life*255).toString(16).padStart(2,'0');
+    ctx.fill();
+  }
+  if(particles.length>0){
+    requestAnimationFrame(animateFireworks);
+  } else {
+    // No particles left — stop the loop to save CPU
+    fireworksAnimating=false;
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+  }
+}
 
 // ════════════════════════════════════════════════
 //  PWA INSTALL
