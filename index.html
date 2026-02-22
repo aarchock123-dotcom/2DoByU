@@ -622,6 +622,9 @@ body.dark .nav-item.active { background:#2a2218; }
           </div>
         </div>
     </div>
+      <div id="cal-grid" style="display:none"></div>
+      <div id="cal-daily-panel" style="display:none"></div>
+    </div>
 
     <div class="page" id="page-settings">
       <div class="page-header">
@@ -804,7 +807,7 @@ body.dark .nav-item.active { background:#2a2218; }
             <div class="settings-row-label">2DoByU</div>
             <div class="settings-row-desc">Your personal task & habit tracker</div>
           </div>
-          <div class="settings-row-right"><span class="version-tag">v2.2.0</span></div>
+          <div class="settings-row-right"><span class="version-tag">v2.3.0</span></div>
         </div>
         <div class="settings-row">
           <div class="settings-row-left">
@@ -1050,10 +1053,11 @@ async function handleComplete(){
   }
   if(pinMode==='confirm'){
     if(pinBuffer===pinFirstPass){
-      await storePinVerifier(pinBuffer);
-      currentPin=pinBuffer; 
-      pinBuffer=''; 
-      await saveAndRender(); // Re-encrypt with new PIN
+      const newPin = pinBuffer;
+      pinBuffer = '';
+      await storePinVerifier(newPin);
+      currentPin = newPin;
+      await saveAndRender(); // Re-encrypt all data with new PIN
       isSettingsAction = false;
       openApp();
       showToast("PIN saved securely.");
@@ -1073,9 +1077,11 @@ async function handleComplete(){
   }
   if (pinMode === 'verify_change') {
     if (await verifyPin(pinBuffer)) {
-      pinMode = 'setup'; pinBuffer = ''; updateDots();
+      pinMode = 'setup'; pinBuffer = ''; pinFirstPass = ''; updateDots();
       document.getElementById('pin-title').textContent = 'New PIN';
       document.getElementById('pin-subtitle').textContent = 'Choose a 4-digit PIN';
+      const backBtn = document.getElementById('pin-back-btn');
+      backBtn.style.display = 'block'; backBtn.textContent = '← Cancel'; backBtn.onclick = cancelPinAction;
     } else { flashError('Incorrect PIN'); }
     return;
   }
@@ -2141,207 +2147,78 @@ function renderMultiMonthView(numMonths){
   },{once:true});
 }
 
-function renderCalendar() {
-  const container = document.getElementById('calendar-grid');
-  if (!container) return;
-  container.innerHTML = '';
-  
-  // Reset grid layout styles
-  container.style.display = 'grid';
-  container.style.gridTemplateColumns = 'repeat(7, 1fr)';
-  container.style.background = 'var(--border)';
-  container.style.gap = '1px';
-
-  if (calView === 'month' || calView.includes('month')) {
-    let monthsToShow = 1;
-    if (calView === '3month') monthsToShow = 3;
-    if (calView === '6month') monthsToShow = 6;
-    
-    for (let i = 0; i < monthsToShow; i++) {
-      const targetDate = new Date(calYear, calMonth + i, 1);
-      renderMonthGrid(container, targetDate.getFullYear(), targetDate.getMonth());
-    }
-  } 
-  else if (calView === 'week' || calView === 'workweek') {
-    renderWeeklyView(container);
-  } 
-  else if (calView === 'daily') {
-    renderDailyView(container);
-  }
-}
-
-function renderWeeklyView(container) {
-  container.style.display = 'flex'; 
-  container.style.flexDirection = 'column';
-  container.style.gap = '12px';
-  container.style.background = 'transparent';
-
-  const startOfWeek = new Date(calYear, calMonth, calDay);
-  const dayOffset = startOfWeek.getDay(); 
-  startOfWeek.setDate(startOfWeek.getDate() - dayOffset);
-
-  const daysToRender = calView === 'workweek' ? 5 : 7;
-  const startAt = calView === 'workweek' ? 1 : 0; // Skip Sunday for work week
-
-  for (let i = startAt; i < startAt + daysToRender; i++) {
-    const d = new Date(startOfWeek);
-    d.setDate(d.getDate() + i);
-    const dateStr = d.toISOString().slice(0, 10);
-    const { dayTasks, dayHabits } = getDayEvents(dateStr); //
-    
-    const isToday = dateStr === new Date().toISOString().slice(0, 10);
-    
-    const dayHtml = `
-      <div style="background: white; border-radius: 8px; border: 1px solid ${isToday ? 'var(--accent)' : 'var(--border)'}; overflow: hidden;">
-        <div style="padding: 10px 15px; background: ${isToday ? '#fdf4ea' : 'var(--surface2)'}; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;">
-          <span style="font-weight: 700; color: ${isToday ? 'var(--accent)' : 'var(--text)'}">
-            ${d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}
-          </span>
-          ${isToday ? '<span style="font-size:0.7em; background:var(--accent); color:white; padding:2px 6px; border-radius:4px;">TODAY</span>' : ''}
-        </div>
-        <div style="padding: 12px;">
-          ${renderEventsHtml(dayTasks, dayHabits, dateStr)}
-        </div>
-      </div>`;
-    container.insertAdjacentHTML('beforeend', dayHtml);
-  }
-}
-
-function renderDailyView(container) {
-  container.style.display = 'block';
-  container.style.background = 'transparent';
-  
-  const d = new Date(calYear, calMonth, calDay);
-  const dateStr = d.toISOString().slice(0, 10);
-  const { dayTasks, dayHabits } = getDayEvents(dateStr);
-
-  container.innerHTML = `
-    <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 24px;">
-      <h2 style="margin-bottom: 20px; font-size: 1.5em;">${d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
-      <div style="min-height: 200px;">
-        ${renderEventsHtml(dayTasks, dayHabits, dateStr)}
-      </div>
-    </div>
-  `;
-}
-
-// Helper to render the shared HTML for tasks and habits
-function renderEventsHtml(tasks, habits, dateStr) {
-  if (tasks.length === 0 && habits.length === 0) {
-    return `<div style="color:var(--muted); font-size:0.85em; font-style:italic;">No tasks or habits scheduled.</div>`;
-  }
-
-  let html = '<div style="display:flex; flex-direction:column; gap:6px;">';
-  
-  // Render Habits
-  habits.forEach(h => {
-    const history = habitHistory[h.name] || {};
-    const status = history[dateStr];
-    const isMissed = !status && new Date(dateStr) < new Date().setHours(0,0,0,0);
-    html += `<div class="cal-event habit-event ${isMissed ? 'missed' : ''}" style="border-left: 3px solid #8b9d83">
-      ${h.type === 'negative' ? '🚫' : '✓'} ${esc(h.name)}
-    </div>`;
-  });
-
-  // Render Tasks
-  tasks.forEach(t => {
-    const isDone = t.status === 'done';
-    const isOverdue = !isDone && t.date && new Date(t.date) < new Date().setHours(0,0,0,0);
-    html += `<div class="cal-event task-event ${isDone ? 'done' : ''} ${isOverdue ? 'overdue' : ''}" style="border-left: 3px solid var(--accent)">
-      ${esc(t.title)}
-    </div>`;
-  });
-
-  return html + '</div>';
-}
-
-function renderMonthGrid(container, year, month) {
-  const first = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const monthName = new Date(year, month).toLocaleString(undefined, { month: 'long', year: 'numeric' });
-
-  // Month Header Row (inside the grid)
-  container.insertAdjacentHTML('beforeend', `
-    <div style="grid-column: span 7; padding: 15px; background: white; font-weight: 700; border-bottom: 1px solid var(--border); font-size: 1.1em;">
-      ${monthName}
-    </div>
-  `);
-
-  // Day Headers
-  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
-    container.insertAdjacentHTML('beforeend', `<div class="cal-day-header">${d}</div>`);
-  });
-
-  // Empty cells for alignment
-  for (let i = 0; i < first; i++) {
-    container.insertAdjacentHTML('beforeend', `<div class="cal-cell other-month"></div>`);
-  }
-
-  // Actual days
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    const { dayTasks, dayHabits } = getDayEvents(dateStr);
-    const isToday = dateStr === new Date().toISOString().slice(0, 10);
-    
-    let cellHtml = `
-      <div class="cal-cell ${isToday ? 'today' : ''}" onclick="openDayView('${dateStr}')">
-        <div class="cal-date-num">${d}</div>
-        ${renderEventsHtml(dayTasks, dayHabits, dateStr)}
-      </div>`;
-    container.insertAdjacentHTML('beforeend', cellHtml);
-  }
-}function openDayView(dateStr) {
-  const d = new Date(dateStr);
-  calYear = d.getFullYear();
-  calMonth = d.getMonth();
-  calDay = d.getDate();
-  calView = 'daily';
-  document.getElementById('cal-view-select').value = 'daily';
+function calMove(dir){
+  if(calView==='daily'){calDay+=dir;const d=new Date(calYear,calMonth,calDay);calYear=d.getFullYear();calMonth=d.getMonth();calDay=d.getDate();}
+  else if(calView==='3days'){calDay+=dir*3;const d=new Date(calYear,calMonth,calDay);calYear=d.getFullYear();calMonth=d.getMonth();calDay=d.getDate();}
+  else if(calView==='week'||calView==='workweek'){calDay+=dir*7;const d=new Date(calYear,calMonth,calDay);calYear=d.getFullYear();calMonth=d.getMonth();calDay=d.getDate();}
+  else if(calView==='3month'){calMonth+=dir*3;if(calMonth>11){calYear+=Math.floor(calMonth/12);calMonth=calMonth%12;}else if(calMonth<0){calMonth+=12;calYear--;}}
+  else if(calView==='6month'){calMonth+=dir*6;if(calMonth>11){calYear+=Math.floor(calMonth/12);calMonth=calMonth%12;}else if(calMonth<0){calMonth+=12;calYear--;}}
+  else{calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}}
   renderCalendar();
 }
+function calGoToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();calDay=n.getDate();renderCalendar();}
+function openDailyView(year,month,day){calYear=year;calMonth=month;calDay=day;calView='daily';document.getElementById('cal-view-select').value='daily';renderCalendar();}
 
-    if (currentCalFilters.type !== 'tasks') {
-      const dow = new Date(calYear, calMonth, d).getDay();
-      const habitDow = dow === 0 ? 6 : dow - 1;
-      
-      let filteredHabits = habits.filter(h => freqActiveDays(h).includes(habitDow));
-      if (currentCalFilters.habitType !== 'all') filteredHabits = filteredHabits.filter(h => h.type === currentCalFilters.habitType);
-      if (currentCalFilters.category !== 'all') filteredHabits = filteredHabits.filter(h => (h.category || 'Other').toLowerCase() === currentCalFilters.category.toLowerCase());
+function renderCalendar(){
+  const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  if(calView==='daily'){
+    document.getElementById('cal-month-label').textContent=new Date(calYear,calMonth,calDay).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
+    document.getElementById('cal-grid').style.display='none';
+    renderDailyView(calYear,calMonth,calDay);
+    return;
+  }
+  document.getElementById('cal-daily-panel').style.display='none';
+  if(calView==='week'){renderWeekView(false,false,false);return;}
+  if(calView==='workweek'){renderWeekView(true,false,false);return;}
+  if(calView==='3days'){renderWeekView(false,false,true);return;}
+  if(calView==='3month'){renderMultiMonthView(3);return;}
+  if(calView==='6month'){renderMultiMonthView(6);return;}
 
-      filteredHabits.forEach(h => {
-        const checked = h.days[habitDow];
-        const hIdx = habits.indexOf(h);
-        events += `<div class="cal-event habit-event${!checked ? ' missed' : ''}" data-habit-idx="${hIdx}" title="${esc(h.name)}">${checked ? '✅' : '⬜'} ${esc(h.name)}</div>`;
-      });
-    }
-    html+=`<div class="cal-cell${isToday?' today':''}" data-open-day="${calYear}-${calMonth}-${d}">
-      <div class="cal-date-num">${d}</div>${events}</div>`;
+  // Month view
+  document.getElementById('cal-month-label').textContent=`${monthNames[calMonth]} ${calYear}`;
+  const firstDay=new Date(calYear,calMonth,1).getDay();
+  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  const today=new Date();
+  const todayStr=today.toISOString().slice(0,10);
+  const allTasks=[...tasks.todo,...tasks.inprogress,...tasks.done];
+  let html=['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="cal-day-header">${d}</div>`).join('');
+  for(let i=0;i<firstDay;i++)html+=`<div class="cal-cell other-month"></div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const isToday=dateStr===todayStr;
+    const {dayTasks,dayHabits}=getDayEvents(dateStr);
+    let events='';
+    dayTasks.forEach(t=>{
+      const isDone=tasks.done.some(x=>x.id===t.id);
+      const isOverdue=!isDone&&dateStr<todayStr;
+      const colKey=isDone?'done':tasks.inprogress.some(x=>x.id===t.id)?'inprogress':'todo';
+      events+=`<div class="cal-event task-event${isDone?' done':isOverdue?' overdue':''}" data-task-id="${t.id}" data-col="${colKey}" title="${esc(t.title)}">📋 ${esc(t.title)}${t.time?` ⏰${esc(t.time)}`:''}</div>`;
+    });
+    const dow=new Date(calYear,calMonth,d).getDay();
+    const habitDow=dow===0?6:dow-1;
+    dayHabits.forEach(h=>{
+      const checked=h.days[habitDow];
+      const hIdx=habits.indexOf(h);
+      events+=`<div class="cal-event habit-event${!checked?' missed':''}" data-habit-idx="${hIdx}" title="${esc(h.name)}">${checked?'✅':'⬜'} ${esc(h.name)}</div>`;
+    });
+    html+=`<div class="cal-cell${isToday?' today':''}" data-open-day="${calYear}-${calMonth}-${d}"><div class="cal-date-num">${d}</div>${events}</div>`;
   }
   const grid=document.getElementById('cal-grid');
   grid.className='cal-grid';
   grid.innerHTML=html;
   grid.style.display='grid';
 
-  // Event delegation for month view — once per render since innerHTML is replaced
   grid.addEventListener('click', e=>{
     const taskEl=e.target.closest('[data-task-id][data-col]');
-    if(taskEl){
-      e.stopPropagation();
-      const id=parseInt(taskEl.dataset.taskId);
-      const col=taskEl.dataset.col;
-      const task=tasks[col]?.find(t=>t.id===id);
-      if(task) openEditModal(task,col);
-      return;
-    }
+    if(taskEl){e.stopPropagation();const id=parseInt(taskEl.dataset.taskId);const col=taskEl.dataset.col;const task=tasks[col]?.find(t=>t.id===id);if(task) openEditModal(task,col);return;}
     const habitEl=e.target.closest('[data-habit-idx]');
-    if(habitEl){ e.stopPropagation(); openEditHabitModal(parseInt(habitEl.dataset.habitIdx)); return; }
+    if(habitEl){e.stopPropagation();openEditHabitModal(parseInt(habitEl.dataset.habitIdx));return;}
     const dayCell=e.target.closest('[data-open-day]');
-    if(dayCell){ const [y,m,d]=dayCell.dataset.openDay.split('-').map(Number); openDailyView(y,m,d); }
-  }, {once:true});
+    if(dayCell){const [y,m,d]=dayCell.dataset.openDay.split('-').map(Number);openDailyView(y,m,d);}
+  },{once:true});
 }
 
-// ════════════════════════════════════════════════
-//  EXPORTS
+
 // ════════════════════════════════════════════════
 // FIX: proper CSV escaping — double-up quotes instead of replacing with single-quote
 function csvField(val){ return '"' + String(val||'').replace(/"/g,'""') + '"'; }
@@ -2421,7 +2298,9 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPro
 document.getElementById('install-btn').addEventListener('click',async()=>{document.getElementById('install-banner').style.display='none';if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;}});
 document.getElementById('dismiss-btn').addEventListener('click',()=>{document.getElementById('install-banner').style.display='none';});
 window.addEventListener('appinstalled',()=>{document.getElementById('install-banner').style.display='none';});
-if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(console.error);
+if('serviceWorker' in navigator && !['claudeusercontent.com','localhost'].some(h=>location.hostname.includes(h))){
+  navigator.serviceWorker.register('sw.js').catch(e=>console.warn('[2DoByU] SW not registered:',e));
+}
 
 // ════════════════════════════════════════════════
 //  SWIPE GESTURES — calendar navigation on touch
