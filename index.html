@@ -84,7 +84,7 @@ h1,h2,h3,strong { letter-spacing:-0.02em; }
 .page.active { display:block; }
 .page-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
 .page-title { font-size:1.4em; font-weight:700; }
-.action-btn { background:var(--accent); color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:600; cursor:pointer; transition:.2s; font-size:.9em; }
+.action-btn { background:var(--accent); color:white; border:none; padding:10px 20px; border-radius:6px; font-weight:600; cursor:pointer; transition:.2s; font-size:.9em; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .action-btn:hover { background:var(--accent-dark); transform:translateY(-1px); }
 
 /* ── RESPONSIVE ── */
@@ -195,6 +195,9 @@ h1,h2,h3,strong { letter-spacing:-0.02em; }
 .cal-cell.other-month .cal-date-num { color:var(--muted); }
 .cal-date-num { font-size:.8em; font-weight:600; margin-bottom:4px; width:24px; height:24px; display:flex; align-items:center; justify-content:center; }
 .cal-event { font-size:.68em; padding:2px 5px; border-radius:3px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; }
+.cal-event.habit-event { background:#e8f5e9; color:#2d6a2d; }
+.cal-event.habit-event.missed { background:#f5f5f5; color:#999; }
+.numpad-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .cal-event.task-event { background:#fff3cd; color:#856404; }
 .cal-event.task-event.done { background:#d4edda; color:#155724; text-decoration:line-through; }
 .cal-event.task-event.overdue { background:#f8d7da; color:#721c24; }
@@ -203,19 +206,50 @@ h1,h2,h3,strong { letter-spacing:-0.02em; }
 .card.touch-dragging { opacity:.35; transform:scale(.93); pointer-events:none; }
 .drag-ghost { position:fixed; pointer-events:none; z-index:9999; opacity:.85; transform:scale(.97); border-radius:6px; background:white; padding:12px; box-shadow:0 8px 24px rgba(0,0,0,.18); border-left:4px solid var(--accent); min-width:200px; }
 
-/* ── CALENDAR VIEWS ── */
+/* ── CALENDAR VIEW BUTTONS ── */
 .cal-view-group { display:flex; gap:5px; flex-wrap:wrap; }
 .cal-view-btn { padding:6px 12px; border-radius:20px; border:1px solid var(--border); background:white; cursor:pointer; font-size:.78em; font-weight:500; transition:.15s; }
 .cal-view-btn.active { background:var(--accent); color:white; border-color:var(--accent); }
-.cal-week-grid { display:grid; grid-template-columns: 52px repeat(7,1fr); gap:1px; background:var(--border); border-radius:8px; overflow:hidden; }
-.cal-week-grid.workweek { grid-template-columns: 52px repeat(5,1fr); }
-.cal-time-col { background:var(--surface2); }
-.cal-time-slot { font-size:.65em; color:var(--muted); padding:0 4px; height:44px; display:flex; align-items:center; justify-content:flex-end; border-bottom:1px solid var(--border); }
-.cal-week-day-header { background:var(--surface2); text-align:center; padding:8px 4px; font-size:.75em; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; cursor:pointer; }
-.cal-week-day-header:hover { background:#fdf4ea; }
-.cal-week-day-header.today-col { color:var(--accent); }
-.cal-week-cell { background:white; min-height:44px; border-bottom:1px solid var(--border); border-right:1px solid var(--border); position:relative; cursor:pointer; }
-.cal-week-cell:hover { background:#fdf4ea; }
+
+/* ── OUTLOOK-STYLE TIME GRID ── */
+.outlook-container { display:flex; flex-direction:column; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:white; }
+.outlook-header { display:grid; background:var(--surface2); border-bottom:2px solid var(--border); position:sticky; top:0; z-index:10; }
+.outlook-header-corner { background:var(--surface2); border-right:1px solid var(--border); padding:8px 4px; }
+.outlook-day-col { text-align:center; padding:10px 4px 8px; border-right:1px solid var(--border); cursor:pointer; transition:background .1s; }
+.outlook-day-col:hover { background:#fdf4ea; }
+.outlook-day-col:last-child { border-right:none; }
+.outlook-day-name { font-size:.72em; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.8px; }
+.outlook-day-num { font-size:1.5em; font-weight:300; color:var(--text); line-height:1.2; margin-top:2px; }
+.outlook-day-col.today-col .outlook-day-name { color:var(--accent); }
+.outlook-day-col.today-col .outlook-day-num { background:var(--accent); color:white; border-radius:50%; width:40px; height:40px; display:flex; align-items:center; justify-content:center; margin:2px auto 0; font-size:1.3em; font-weight:600; }
+.outlook-allday-row { display:grid; border-bottom:2px solid var(--border); background:var(--surface2); }
+.outlook-allday-label { font-size:.6em; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.5px; padding:6px 4px; text-align:right; border-right:1px solid var(--border); display:flex; align-items:center; justify-content:flex-end; }
+.outlook-allday-cell { border-right:1px solid var(--border); padding:3px 4px; min-height:28px; }
+.outlook-allday-cell:last-child { border-right:none; }
+.outlook-allday-event { font-size:.7em; font-weight:600; padding:2px 6px; border-radius:3px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+.outlook-allday-event.task-ev { background:#fff3cd; color:#856404; border-left:3px solid #f39c12; }
+.outlook-allday-event.task-ev.done { background:#d4edda; color:#155724; border-left-color:#28a745; text-decoration:line-through; }
+.outlook-allday-event.task-ev.overdue { background:#f8d7da; color:#721c24; border-left-color:#dc3545; }
+.outlook-allday-event.habit-ev { background:#e8f5e9; color:#2d6a2d; border-left:3px solid #8b9d83; }
+.outlook-scroll { overflow-y:auto; max-height:calc(100vh - 260px); min-height:300px; position:relative; }
+.outlook-time-grid { display:grid; position:relative; }
+.outlook-hour-row { display:contents; }
+.outlook-time-label { font-size:.65em; color:var(--muted); text-align:right; padding:0 8px 0 0; height:60px; display:flex; align-items:flex-start; padding-top:3px; border-right:1px solid var(--border); background:white; position:sticky; left:0; z-index:2; box-sizing:border-box; }
+.outlook-hour-cell { border-right:1px solid var(--border); border-bottom:1px solid #f0f0f0; height:60px; position:relative; cursor:pointer; transition:background .1s; box-sizing:border-box; }
+.outlook-hour-cell:last-child { border-right:none; }
+.outlook-hour-cell:hover { background:#fdf4ea44; }
+.outlook-hour-cell.today-bg { background:#fdf4ea22; }
+.outlook-time-event { position:absolute; left:3px; right:3px; border-radius:4px; padding:2px 5px; font-size:.7em; font-weight:600; overflow:hidden; cursor:pointer; z-index:3; box-shadow:0 1px 3px rgba(0,0,0,.12); line-height:1.3; box-sizing:border-box; }
+.outlook-time-event.task-ev { background:#fff3cd; color:#856404; border-left:3px solid #f39c12; }
+.outlook-time-event.task-ev.done { background:#d4edda; color:#155724; border-left-color:#28a745; }
+.outlook-time-event.task-ev.overdue { background:#f8d7da; color:#721c24; border-left-color:#dc3545; }
+.outlook-time-event.habit-ev { background:#e8f5e9; color:#2d6a2d; border-left:3px solid #8b9d83; }
+.outlook-now-line { position:absolute; left:0; right:0; height:2px; background:#e74c3c; z-index:5; pointer-events:none; }
+.outlook-now-dot { position:absolute; left:-4px; top:-4px; width:10px; height:10px; border-radius:50%; background:#e74c3c; }
+body.dark .outlook-container, body.dark .outlook-header, body.dark .outlook-time-label, body.dark .outlook-allday-row { background:var(--surface); }
+body.dark .outlook-hour-cell { background:var(--surface); border-bottom-color:var(--border); }
+body.dark .outlook-hour-cell.today-bg { background:#2a2218; }
+body.dark .outlook-day-col:hover, body.dark .outlook-hour-cell:hover { background:#2a2218; }
 .cal-daily-container { background:white; border:1px solid var(--border); border-radius:8px; padding:20px; }
 .cal-daily-header { font-size:1.1em; font-weight:700; margin-bottom:16px; }
 .cal-daily-section { margin-bottom:20px; }
@@ -228,6 +262,39 @@ h1,h2,h3,strong { letter-spacing:-0.02em; }
 .cal-daily-item.done-item { opacity:.6; text-decoration:line-through; }
 .cal-done-preview { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:6px; padding:12px 16px; margin-bottom:8px; font-size:.85em; color:#166534; }
 .done-show-more { font-size:.75em; color:var(--accent); cursor:pointer; text-decoration:underline; margin-top:4px; display:inline-block; }
+
+/* ── HOURLY DAILY VIEW ── */
+.cal-hour-grid { display:grid; grid-template-columns:52px 1fr; border-radius:8px; overflow:hidden; border:1px solid var(--border); background:var(--border); gap:1px; }
+.cal-hour-label { background:var(--surface2); font-size:.65em; color:var(--muted); padding:0 6px; height:52px; display:flex; align-items:flex-start; padding-top:4px; justify-content:flex-end; border-bottom:1px solid var(--border); }
+.cal-hour-slot { background:white; height:52px; border-bottom:1px solid var(--border); position:relative; cursor:pointer; transition:background .1s; }
+.cal-hour-slot:hover { background:#fdf4ea; }
+.cal-hour-event { position:absolute; left:4px; right:4px; border-radius:4px; padding:2px 6px; font-size:.72em; font-weight:600; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; cursor:pointer; z-index:2; box-shadow:0 1px 3px rgba(0,0,0,.1); }
+.cal-hour-event.task-ev { background:#fff3cd; color:#856404; border-left:3px solid #f39c12; }
+.cal-hour-event.task-ev.done { background:#d4edda; color:#155724; border-left-color:#28a745; }
+.cal-hour-event.task-ev.overdue { background:#f8d7da; color:#721c24; border-left-color:#dc3545; }
+.cal-hour-event.habit-ev { background:#e8f5e9; color:#2d6a2d; border-left:3px solid #8b9d83; }
+.cal-allday-section { background:white; border:1px solid var(--border); border-radius:8px; padding:12px 16px; margin-bottom:12px; }
+.cal-allday-section h4 { font-size:.72em; color:var(--muted); font-weight:700; text-transform:uppercase; letter-spacing:.8px; margin-bottom:8px; }
+
+/* ── MULTI-MONTH VIEWS ── */
+.cal-multi-month { display:grid; gap:20px; }
+.cal-multi-month.months-3 { grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); }
+.cal-multi-month.months-6 { grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
+.cal-mini-month { background:white; border:1px solid var(--border); border-radius:8px; padding:14px; }
+.cal-mini-month-title { font-weight:700; font-size:.9em; text-align:center; margin-bottom:8px; }
+.cal-mini-month-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; }
+.cal-mini-hdr { font-size:.6em; color:var(--muted); font-weight:700; text-align:center; padding:2px 0; }
+.cal-mini-day { aspect-ratio:1; display:flex; align-items:center; justify-content:center; font-size:.7em; border-radius:4px; cursor:pointer; font-weight:500; transition:.1s; }
+.cal-mini-day:hover { background:#fdf4ea; }
+.cal-mini-day.today { background:var(--accent); color:white; font-weight:700; }
+.cal-mini-day.has-ev { background:#fff3cd; color:#856404; }
+.cal-mini-day.all-done-ev { background:#d4edda; color:#155724; }
+.cal-mini-day.other-m { opacity:.3; }
+
+/* ── TOUCH IMPROVEMENTS ── */
+.card { -webkit-user-select:none; user-select:none; touch-action:pan-y; }
+.cards { -webkit-overflow-scrolling:touch; }
+@media(hover:none){ .card { touch-action:none; } }
 
 /* ══════════════════════════════════════════
    MODALS & MISC
@@ -301,6 +368,43 @@ body.dark #pin-screen { background:var(--bg); }
 body.dark .numpad-btn { color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.3); }
 body.dark .cal-day-header { background:var(--surface2); }
 body.dark .nav-item.active { background:#2a2218; }
+.card { 
+  touch-action: none; /* Critical for mobile dragging */
+  user-select: none; 
+  position: relative; 
+}
+.card.touch-dragging { 
+  opacity: 0.5; 
+  transform: scale(0.95); 
+}
+.drag-ghost { 
+  position: fixed; 
+  pointer-events: none; 
+  z-index: 9999; 
+  opacity: 0.9; 
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2); 
+  transform: rotate(3deg); /* Slight tilt for visual feedback */
+}
+/* Grid for Week/Day views */
+.outlook-grid { 
+  display: grid; 
+  grid-template-columns: 60px repeat(7, 1fr); 
+  border: 1px solid var(--border); 
+  background: white; 
+}
+.drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 10000;
+  opacity: 0.9;
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+  transform: rotate(2deg); /* Makes it feel "picked up" */
+}
+.touch-dragging {
+  opacity: 0.3 !important;
+}
 </style>
 </head>
 <body>
@@ -449,29 +553,74 @@ body.dark .nav-item.active { background:#2a2218; }
     </div>
 
     <div class="page" id="page-calendar">
-      <div class="page-header">
-        <h1 class="page-title">Calendar</h1>
-      </div>
-      <div class="cal-toolbar">
-        <button class="cal-nav-btn" onclick="calMove(-1)">‹</button>
-        <span class="cal-month-label" id="cal-month-label"></span>
-        <button class="cal-nav-btn" onclick="calMove(1)">›</button>
-        <button class="cal-nav-btn" onclick="calGoToday()">Today</button>
-        <div class="cal-view-group">
-          <button class="cal-view-btn active" data-view="month" onclick="setCalView('month')">Month</button>
-          <button class="cal-view-btn" data-view="week" onclick="setCalView('week')">Week</button>
-          <button class="cal-view-btn" data-view="workweek" onclick="setCalView('workweek')">Work Week</button>
-          <button class="cal-view-btn" data-view="7days" onclick="setCalView('7days')">7 Days</button>
-          <button class="cal-view-btn" data-view="daily" onclick="setCalView('daily')">Day</button>
+      <div class="cal-toolbar" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button class="cal-nav-btn" onclick="calMove(-1)">‹</button>
+          <span class="cal-month-label" id="cal-month-label"></span>
+          <button class="cal-nav-btn" onclick="calMove(1)">›</button>
+          <button class="cal-nav-btn" onclick="calGoToday()">Today</button>
         </div>
-        <div class="cal-filter-group">
-          <button class="cal-filter-btn active" data-filter="all" onclick="setCalFilter('all')">All</button>
-          <button class="cal-filter-btn" data-filter="tasks" onclick="setCalFilter('tasks')">Tasks</button>
-          <button class="cal-filter-btn" data-filter="habits" onclick="setCalFilter('habits')">Habits</button>
+        
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <select class="input-field" id="cal-view-select" onchange="setCalView(this.value)" style="width: auto; padding: 6px 10px; font-weight: 600;">
+            <option value="month">Month</option>
+            <option value="3month">3 Months</option>
+            <option value="6month">6 Months</option>
+            <option value="week">Week</option>
+            <option value="workweek">Work Week</option>
+            <option value="3days">3 Days</option>
+            <option value="daily">Day</option>
+          </select>
+
+          <div style="position: relative;">
+            <button class="cal-nav-btn" id="btn-cal-filter" onclick="toggleCalFilterMenu()">Filters ▾</button>
+            <div id="cal-filter-dropdown" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 5px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 15px; width: 260px; z-index: 200; box-shadow: 0 8px 24px rgba(0,0,0,0.15); flex-direction: column; gap: 12px; text-align: left;">
+              
+              <div class="form-group">
+                <label>Show Item Type</label>
+                <select id="f-type" class="input-field" onchange="applyCalFilters()">
+                  <option value="all">All Items</option>
+                  <option value="tasks">Tasks Only</option>
+                  <option value="habits">Habits Only</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Task Priority</label>
+                <select id="f-priority" class="input-field" onchange="applyCalFilters()">
+                  <option value="all">All Priorities</option>
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Habit Type</label>
+                <select id="f-habit-type" class="input-field" onchange="applyCalFilters()">
+                  <option value="all">All Types</option>
+                  <option value="positive">Build (Positive)</option>
+                  <option value="negative">Break (Negative)</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Category / Tag</label>
+                <select id="f-category" class="input-field" onchange="applyCalFilters()">
+                  <option value="all">All Categories</option>
+                  <option value="Health">Health</option>
+                  <option value="Mind">Mind</option>
+                  <option value="Work">Work</option>
+                  <option value="Personal">Personal</option>
+                  <option value="Social">Social</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              <button class="btn btn-cancel" style="width: 100%; margin-top: 5px;" onclick="resetCalFilters()">Reset Filters</button>
+            </div>
+          </div>
         </div>
-      </div>
-      <div id="cal-grid"></div>
-      <div id="cal-daily-panel" style="display:none"></div>
     </div>
 
     <div class="page" id="page-settings">
@@ -655,7 +804,7 @@ body.dark .nav-item.active { background:#2a2218; }
             <div class="settings-row-label">2DoByU</div>
             <div class="settings-row-desc">Your personal task & habit tracker</div>
           </div>
-          <div class="settings-row-right"><span class="version-tag">v2.1.0</span></div>
+          <div class="settings-row-right"><span class="version-tag">v2.2.0</span></div>
         </div>
         <div class="settings-row">
           <div class="settings-row-left">
@@ -1079,6 +1228,69 @@ function renderTasks(){
 // ════════════════════════════════════════════════
 //  TOUCH DRAG & DROP
 // ════════════════════════════════════════════════
+function initTouchDrag() {
+  let dragItem = null;
+  let ghost = null;
+  let startX, startY;
+
+  // Listen for the start of a touch or mouse click
+  document.addEventListener('pointerdown', e => {
+    const card = e.target.closest('.card');
+    // Only drag if it's a left click or touch, and not clicking an icon
+    if (!card || e.button !== 0 || e.target.closest('.card-actions')) return;
+    
+    dragItem = card;
+    startX = e.clientX;
+    startY = e.clientY;
+    
+    // Tell the browser we are taking over this touch point
+    card.setPointerCapture(e.pointerId);
+  });
+
+  document.addEventListener('pointermove', e => {
+    if (!dragItem) return;
+    
+    // Create the 'ghost' element once the user has moved their finger/mouse 10px
+    if (!ghost && (Math.abs(e.clientX - startX) > 10 || Math.abs(e.clientY - startY) > 10)) {
+      ghost = dragItem.cloneNode(true);
+      ghost.classList.add('drag-ghost');
+      ghost.style.width = dragItem.offsetWidth + 'px';
+      document.body.appendChild(ghost);
+      dragItem.classList.add('touch-dragging');
+    }
+
+    if (ghost) {
+      // Make the ghost follow the finger
+      ghost.style.left = `${e.clientX - ghost.offsetWidth / 2}px`;
+      ghost.style.top = `${e.clientY - ghost.offsetHeight / 2}px`;
+      
+      // Visual feedback: Highlight columns as we hover over them
+      const col = document.elementFromPoint(e.clientX, e.clientY)?.closest('.column');
+      document.querySelectorAll('.column').forEach(c => c.style.background = '');
+      if (col) col.style.background = 'rgba(212, 163, 115, 0.05)';
+    }
+  });
+
+  document.addEventListener('pointerup', e => {
+    if (!dragItem) return;
+    if (ghost) {
+      // Find what column the finger was over when lifted
+      const dropTarget = document.elementFromPoint(e.clientX, e.clientY)?.closest('.column');
+      if (dropTarget) {
+        const newStatus = dropTarget.dataset.status;
+        const taskId = dragItem.dataset.id;
+        
+        // This connects to your existing logic to move the task
+        moveTask(taskId, newStatus); 
+      }
+      ghost.remove();
+      ghost = null;
+      dragItem.classList.remove('touch-dragging');
+      document.querySelectorAll('.column').forEach(c => c.style.background = '');
+    }
+    dragItem = null;
+  });
+}
 let touchDragId=null, touchGhost=null, touchDragSource=null, touchWasDragged=false;
 
 function touchDragStart(e){
@@ -1461,216 +1673,645 @@ function renderMiniCal(){
   cal.innerHTML=cells;
 }
 
-let calYear=new Date().getFullYear(),calMonth=new Date().getMonth(),calFilter='all',calView='month',calDay=new Date().getDate();
+let calYear = new Date().getFullYear(), calMonth = new Date().getMonth(), calDay = new Date().getDate();
+let calView = 'month';
 
-function calMove(dir){
-  if(calView==='daily'){calDay+=dir;const d=new Date(calYear,calMonth,calDay);calYear=d.getFullYear();calMonth=d.getMonth();calDay=d.getDate();}
-  else if(calView==='week'||calView==='workweek'||calView==='7days'){calDay+=dir*7;const d=new Date(calYear,calMonth,calDay);calYear=d.getFullYear();calMonth=d.getMonth();calDay=d.getDate();}
-  else{calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}}
+// New Filter State Object
+let currentCalFilters = { type: 'all', priority: 'all', habitType: 'all', category: 'all' };
+
+function toggleCalFilterMenu() {
+  const el = document.getElementById('cal-filter-dropdown');
+  
+  // Update categories dynamically right before opening
+  if (el.style.display === 'none' || el.style.display === '') {
+    const catSelect = document.getElementById('f-category');
+    const currentVal = catSelect.value; // Remember what was selected
+    
+    // Scrape unique tags from habits and tasks
+    const uniqueTags = new Set(['Other']);
+    habits.forEach(h => { if(h.category) uniqueTags.add(h.category); });
+    Object.values(tasks).flat().forEach(t => { if(t.tag) uniqueTags.add(t.tag); });
+    
+    // Rebuild the dropdown HTML
+    let optionsHTML = `<option value="all">All Categories</option>`;
+    Array.from(uniqueTags).sort().forEach(tag => {
+      optionsHTML += `<option value="${tag}">${tag}</option>`;
+    });
+    
+    catSelect.innerHTML = optionsHTML;
+    
+    // Restore the user's previous selection if it still exists
+    if (uniqueTags.has(currentVal) || currentVal === 'all') {
+      catSelect.value = currentVal;
+    }
+  }
+
+  el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+}
+
+// Close filter menu when clicking outside
+document.addEventListener('click', e => {
+  const btn = document.getElementById('btn-cal-filter');
+  const drop = document.getElementById('cal-filter-dropdown');
+  if (drop && drop.style.display !== 'none' && !btn.contains(e.target) && !drop.contains(e.target)) {
+    drop.style.display = 'none';
+  }
+});
+
+function applyCalFilters() {
+  currentCalFilters.type = document.getElementById('f-type').value;
+  currentCalFilters.priority = document.getElementById('f-priority').value;
+  currentCalFilters.habitType = document.getElementById('f-habit-type').value;
+  currentCalFilters.category = document.getElementById('f-category').value;
   renderCalendar();
 }
-function calGoToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();calDay=n.getDate();renderCalendar();}
-function setCalFilter(f){calFilter=f;document.querySelectorAll('.cal-filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.filter===f));renderCalendar();}
-function setCalView(v){calView=v;document.querySelectorAll('.cal-view-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===v));renderCalendar();}
 
-function openDailyView(year,month,day){calYear=year;calMonth=month;calDay=day;setCalView('daily');}
+function resetCalFilters() {
+  document.getElementById('f-type').value = 'all';
+  document.getElementById('f-priority').value = 'all';
+  document.getElementById('f-habit-type').value = 'all';
+  document.getElementById('f-category').value = 'all';
+  applyCalFilters();
+}
 
-function getDayEvents(dateStr){
-  const allTasks=[...tasks.todo,...tasks.inprogress,...tasks.done];
-  const dayTasks=calFilter!=='habits'?allTasks.filter(t=>t.dueDate===dateStr):[];
-  const dateObj=new Date(dateStr+'T12:00:00');
-  const dow=dateObj.getDay();
-  const habitDow=dow===0?6:dow-1;
-  const dayHabits=calFilter!=='tasks'?habits.filter(h=>freqActiveDays(h).includes(habitDow)):[];
-  return{dayTasks,dayHabits};
+function setCalView(v) {
+  calView = v;
+  document.getElementById('cal-view-select').value = v;
+  renderCalendar();
+}
+
+function getDayEvents(dateStr) {
+  const allTasks = [...tasks.todo, ...tasks.inprogress, ...tasks.done];
+  
+  // 1. Filter Tasks
+  let dayTasks = currentCalFilters.type !== 'habits' ? allTasks.filter(t => t.dueDate === dateStr) : [];
+  if (currentCalFilters.priority !== 'all') {
+    dayTasks = dayTasks.filter(t => t.priority === currentCalFilters.priority);
+  }
+  if (currentCalFilters.category !== 'all') {
+    dayTasks = dayTasks.filter(t => (t.tag || 'Other').toLowerCase() === currentCalFilters.category.toLowerCase());
+  }
+
+  // 2. Filter Habits
+  const dateObj = new Date(dateStr + 'T12:00:00');
+  const dow = dateObj.getDay();
+  const habitDow = dow === 0 ? 6 : dow - 1;
+  
+  let dayHabits = currentCalFilters.type !== 'tasks' ? habits.filter(h => freqActiveDays(h).includes(habitDow)) : [];
+  if (currentCalFilters.habitType !== 'all') {
+    dayHabits = dayHabits.filter(h => h.type === currentCalFilters.habitType);
+  }
+  if (currentCalFilters.category !== 'all') {
+    dayHabits = dayHabits.filter(h => (h.category || 'Other').toLowerCase() === currentCalFilters.category.toLowerCase());
+  }
+
+  return { dayTasks, dayHabits };
 }
 
 function renderDailyView(year,month,day){
   const dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-  const dateLabel=new Date(year,month,day).toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'});
   const {dayTasks,dayHabits}=getDayEvents(dateStr);
   const grid=document.getElementById('cal-grid');
   const panel=document.getElementById('cal-daily-panel');
   grid.style.display='none';
   panel.style.display='block';
 
-  const taskHTML=dayTasks.length===0
-    ?'<div class="empty-state" style="padding:10px 0;font-size:.85em">No tasks</div>'
-    :dayTasks.map(t=>{
-      const isDone=tasks.done.some(x=>x.id===t.id);
-      const colKey=isDone?'done':tasks.inprogress.some(x=>x.id===t.id)?'inprogress':'todo';
-      return`<div class="cal-daily-item${isDone?' done-item':''}" data-task-id="${t.id}" data-col="${colKey}">
-        <span style="font-size:.9em">${isDone?'✅':'📋'}</span>
-        <div class="item-title">${esc(t.title)}${t.notes?`<div style="font-size:.75em;color:var(--muted)">${esc(t.notes)}</div>`:''}</div>
-        <span class="item-time">${esc(t.time||'')}</span>
-      </div>`;
-    }).join('');
+  const today=new Date();
+  const todayStr=today.toISOString().slice(0,10);
+  const isToday=dateStr===todayStr;
+  const HR=60; const TIME_COL=52;
+  const dow=new Date(dateStr+'T12:00:00').getDay();
+  const hDow=dow===0?6:dow-1;
 
-  const habitHTML=dayHabits.length===0
-    ?'<div class="empty-state" style="padding:10px 0;font-size:.85em">No habits scheduled</div>'
-    :dayHabits.map(h=>{
-      const dow=new Date(dateStr+'T12:00:00').getDay();
-      const hDow=dow===0?6:dow-1;
-      const checked=h.days[hDow];
-      const hIdx=habits.indexOf(h);
-      return`<div class="cal-daily-item habit-item" data-habit-idx="${hIdx}">
-        <span style="font-size:.9em;color:${esc(h.color||'#8b9d83')}">${checked?'✅':'⬜'}</span>
-        <div class="item-title">${esc(h.name)}</div>
-        <span class="item-time">${esc(h.time||'')}</span>
-      </div>`;
-    }).join('');
+  const timedTasks=dayTasks.filter(t=>t.time);
+  const allDayTasks=dayTasks.filter(t=>!t.time);
+  const timedHabits=dayHabits.filter(h=>h.time);
+  const allDayHabits=dayHabits.filter(h=>!h.time);
 
-  panel.innerHTML=`<div class="cal-daily-container">
-    <div class="cal-daily-header">📅 ${esc(dateLabel)}</div>
-    <div class="cal-daily-section"><h4>Tasks (${dayTasks.length})</h4>${taskHTML}</div>
-    <div class="cal-daily-section"><h4>Habits (${dayHabits.length})</h4>${habitHTML}</div>
-    <button class="action-btn" data-add-task-date="${dateStr}" style="margin-top:8px;font-size:.85em;padding:8px 14px">+ Add Task for This Day</button>
+  let allDayHTML='';
+  allDayTasks.forEach(t=>{
+    const isDone=tasks.done.some(x=>x.id===t.id);
+    const isOverdue=!isDone&&dateStr<todayStr;
+    const colKey=isDone?'done':tasks.inprogress.some(x=>x.id===t.id)?'inprogress':'todo';
+    allDayHTML+=`<div class="outlook-allday-event task-ev${isDone?' done':isOverdue?' overdue':''}" 
+      data-task-id="${t.id}" data-col="${colKey}" style="margin-bottom:3px">📋 ${esc(t.title)}</div>`;
+  });
+  allDayHabits.forEach(h=>{
+    const checked=h.days[hDow]; const hIdx=habits.indexOf(h);
+    allDayHTML+=`<div class="outlook-allday-event habit-ev" data-habit-idx="${hIdx}" style="margin-bottom:3px">${checked?'✅':'⬜'} ${esc(h.name)}</div>`;
+  });
+
+  const evs=[];
+  timedTasks.forEach(t=>{
+    const [hr,mn]=t.time.split(':').map(Number);
+    const isDone=tasks.done.some(x=>x.id===t.id);
+    const isOverdue=!isDone&&dateStr<todayStr;
+    const colKey=isDone?'done':tasks.inprogress.some(x=>x.id===t.id)?'inprogress':'todo';
+    evs.push({type:'task',top:(hr+mn/60)*HR,height:HR*0.75,label:`📋 ${t.title}`,cls:`task-ev${isDone?' done':isOverdue?' overdue':''}`,taskId:t.id,col:colKey,title:t.title,time:t.time,left:0,width:1});
+  });
+  timedHabits.forEach(h=>{
+    const [hr,mn]=h.time.split(':').map(Number);
+    const checked=h.days[hDow]; const hIdx=habits.indexOf(h);
+    evs.push({type:'habit',top:(hr+mn/60)*HR,height:HR*0.75,label:`${checked?'✅':'⬜'} ${h.name}`,cls:'habit-ev',habitIdx:hIdx,title:h.name,time:h.time,left:0,width:1});
+  });
+  evs.sort((a,b)=>a.top-b.top);
+  evs.forEach((ev,i)=>{
+    for(let j=0;j<i;j++){
+      const ov=evs[j];
+      if(ev.top<ov.top+ov.height&&ev.top+ev.height>ov.top){ev.left=ov.left+ov.width/2;ev.width=0.5;ov.width=0.5;}
+    }
+  });
+
+  const nowTop=(today.getHours()+today.getMinutes()/60)*HR;
+  let eventsHTML='';
+  evs.forEach(ev=>{
+    let attrs=ev.type==='task'?`data-task-id="${ev.taskId}" data-col="${esc(ev.col)}"`:`data-habit-idx="${ev.habitIdx}"`;
+    eventsHTML+=`<div class="outlook-time-event ${ev.cls}" ${attrs}
+      style="top:${ev.top}px;height:${Math.max(ev.height-2,22)}px;left:calc(${ev.left*100}% + 3px);width:calc(${ev.width*100}% - 6px)" title="${esc(ev.title)}">
+      <div style="font-size:.78em;opacity:.75">${esc(ev.time)}</div>
+      <div style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(ev.label)}</div>
+    </div>`;
+  });
+  let hourCells=''; let hourLabels='';
+  for(let hr=0;hr<24;hr++){
+    const label=hr===0?'12 AM':hr<12?`${hr} AM`:hr===12?'12 PM':`${hr-12} PM`;
+    hourLabels+=`<div class="outlook-time-label" style="height:${HR}px">${label}</div>`;
+    hourCells+=`<div class="outlook-hour-cell${isToday?' today-bg':''}" data-date="${dateStr}" data-hour="${hr}" style="height:${HR}px"></div>`;
+  }
+
+  panel.innerHTML=`<div class="outlook-container">
+    <div class="outlook-header" style="grid-template-columns:${TIME_COL}px 1fr">
+      <div class="outlook-header-corner"></div>
+      <div class="outlook-day-col${isToday?' today-col':''}">
+        <div class="outlook-day-name">${new Date(year,month,day).toLocaleDateString(undefined,{weekday:'long'})}</div>
+        <div class="outlook-day-num">${day}</div>
+      </div>
+    </div>
+    ${allDayHTML?`<div class="outlook-allday-row" style="grid-template-columns:${TIME_COL}px 1fr">
+      <div class="outlook-allday-label">ALL DAY</div>
+      <div class="outlook-allday-cell">${allDayHTML}</div>
+    </div>`:''}
+    <div class="outlook-scroll" id="outlook-scroll-daily">
+      <div style="position:relative;display:grid;grid-template-columns:${TIME_COL}px 1fr">
+        <div>${hourLabels}</div>
+        <div style="position:relative;border-left:1px solid var(--border)">
+          ${hourCells}
+          ${isToday?`<div class="outlook-now-line" style="top:${nowTop}px"><div class="outlook-now-dot"></div></div>`:''}
+          ${eventsHTML}
+        </div>
+      </div>
+    </div>
+    <button class="action-btn" data-add-task-date="${dateStr}" style="margin:12px 0 0 0;font-size:.85em;padding:8px 14px">+ Add Task for This Day</button>
   </div>`;
 
-  // Event delegation — attach once per panel render (panel.innerHTML is reset each time so we re-attach)
+  const scrollEl=document.getElementById('outlook-scroll-daily');
+  if(scrollEl) scrollEl.scrollTop=(isToday?Math.max(0,today.getHours()-1):7)*HR;
+
   panel.addEventListener('click', e=>{
     const taskRow=e.target.closest('[data-task-id]');
-    if(taskRow){
-      const id=parseInt(taskRow.dataset.taskId);
-      const col=taskRow.dataset.col;
-      const task=tasks[col]?.find(t=>t.id===id);
-      if(task) openEditModal(task,col);
-      return;
-    }
+    if(taskRow){const id=parseInt(taskRow.dataset.taskId);const col=taskRow.dataset.col;const task=tasks[col]?.find(t=>t.id===id);if(task) openEditModal(task,col);return;}
     const habitRow=e.target.closest('[data-habit-idx]');
-    if(habitRow){ openEditHabitModal(parseInt(habitRow.dataset.habitIdx)); return; }
+    if(habitRow){openEditHabitModal(parseInt(habitRow.dataset.habitIdx));return;}
     const addBtn=e.target.closest('[data-add-task-date]');
-    if(addBtn){ openTaskModal(addBtn.dataset.addTaskDate); return; }
-  }, {once:true});
+    if(addBtn){openTaskModal(addBtn.dataset.addTaskDate);return;}
+    const slot=e.target.closest('.outlook-hour-cell');
+    if(slot){openTaskModal(dateStr);return;}
+  },{once:true});
 }
 
-function renderWeekView(isWorkweek, is7days){
+function renderWeekView(isWorkweek, is7days, is3days){
   const grid=document.getElementById('cal-grid');
   const panel=document.getElementById('cal-daily-panel');
   panel.style.display='none';
   const anchor=new Date(calYear,calMonth,calDay);
   let startOffset=0;
-  if(!is7days){
+  if(is3days){
+    startOffset=0;
+  } else if(!is7days){
     const dow=anchor.getDay();
     startOffset=isWorkweek?(dow===0?-6:1-dow):(0-dow);
   }
-  const days=isWorkweek?5:7;
+  const days=is3days?3:isWorkweek?5:7;
   const dates=[];
   for(let i=0;i<days;i++){
     const d=new Date(calYear,calMonth,calDay+startOffset+i);
     dates.push(d);
   }
   const today=new Date();
+  const todayStr=today.toISOString().slice(0,10);
   const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  // Handle cross-month label correctly
-  const startLabel=dates[0];
-  const endLabel=dates[days-1];
+  const startLabel=dates[0], endLabel=dates[days-1];
   const rangeLabel=startLabel.getMonth()===endLabel.getMonth()
     ?`${monthNames[startLabel.getMonth()]} ${startLabel.getDate()}–${endLabel.getDate()}, ${startLabel.getFullYear()}`
     :`${monthNames[startLabel.getMonth()]} ${startLabel.getDate()} – ${monthNames[endLabel.getMonth()]} ${endLabel.getDate()}, ${endLabel.getFullYear()}`;
   document.getElementById('cal-month-label').textContent=rangeLabel;
 
-  let html=`<div class="cal-week-grid${isWorkweek?' workweek':''}">`;
-  html+='<div class="cal-day-header cal-time-col"></div>';
-  const dayLabels=['Su','Mo','Tu','We','Th','Fr','Sa'];
-  dates.forEach(d=>{
-    const isToday=d.toDateString()===today.toDateString();
-    html+=`<div class="cal-week-day-header${isToday?' today-col':''}" 
-      data-open-day="${d.getFullYear()}-${d.getMonth()}-${d.getDate()}">
-      ${dayLabels[d.getDay()]} ${d.getDate()}</div>`;
-  });
-  html+='<div class="cal-time-col" style="min-height:60px"></div>';
-  dates.forEach(d=>{
+  const HR=60; // px per hour
+  const TIME_COL=52; // px
+  const cols=`${TIME_COL}px repeat(${days},1fr)`;
+
+  // ── Gather events per day ──
+  const dayData=dates.map(d=>{
     const dateStr=d.toISOString().slice(0,10);
     const {dayTasks,dayHabits}=getDayEvents(dateStr);
     const isToday=d.toDateString()===today.toDateString();
-    html+=`<div class="cal-week-cell" style="padding:4px;${isToday?'background:#fdf4ea':''}">`;
-    dayTasks.forEach(t=>{
+    return{d,dateStr,dayTasks,dayHabits,isToday};
+  });
+
+  // ── Header row ──
+  let headerHTML=`<div class="outlook-header" style="grid-template-columns:${cols}">`;
+  headerHTML+=`<div class="outlook-header-corner" style="width:${TIME_COL}px"></div>`;
+  dayData.forEach(({d,isToday})=>{
+    const dayNames=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const dayShort=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    headerHTML+=`<div class="outlook-day-col${isToday?' today-col':''}" 
+      data-open-day="${d.getFullYear()}-${d.getMonth()}-${d.getDate()}">
+      <div class="outlook-day-name">${dayShort[d.getDay()]}</div>
+      <div class="outlook-day-num">${d.getDate()}</div>
+    </div>`;
+  });
+  headerHTML+='</div>';
+
+  // ── All-day row (tasks with no time + habits) ──
+  let allDayHTML=`<div class="outlook-allday-row" style="grid-template-columns:${cols}">`;
+  allDayHTML+=`<div class="outlook-allday-label" style="width:${TIME_COL}px">ALL DAY</div>`;
+  dayData.forEach(({dayTasks,dayHabits,dateStr,d})=>{
+    const dow=d.getDay(); const hDow=dow===0?6:dow-1;
+    const noTimeTasks=dayTasks.filter(t=>!t.time);
+    const noTimeHabits=dayHabits.filter(h=>!h.time);
+    allDayHTML+=`<div class="outlook-allday-cell">`;
+    noTimeTasks.forEach(t=>{
       const isDone=tasks.done.some(x=>x.id===t.id);
-      const isOverdue=!isDone&&dateStr<today.toISOString().slice(0,10);
+      const isOverdue=!isDone&&dateStr<todayStr;
       const colKey=isDone?'done':tasks.inprogress.some(x=>x.id===t.id)?'inprogress':'todo';
-      html+=`<div class="cal-event task-event${isDone?' done':isOverdue?' overdue':''}" 
-        data-task-id="${t.id}" data-col="${colKey}"
-        title="${esc(t.title)}">${esc(t.title)}${t.time?` ⏰${esc(t.time)}`:''}</div>`;
+      allDayHTML+=`<div class="outlook-allday-event task-ev${isDone?' done':isOverdue?' overdue':''}" 
+        data-task-id="${t.id}" data-col="${colKey}" title="${esc(t.title)}">📋 ${esc(t.title)}</div>`;
     });
-    dayHabits.forEach(h=>{
-      const dow=d.getDay(); const hDow=dow===0?6:dow-1;
-      const checked=h.days[hDow];
-      const hIdx=habits.indexOf(h);
-      html+=`<div class="cal-event habit-event${!checked?' missed':''}" 
-        data-habit-idx="${hIdx}"
-        title="${esc(h.name)}">${checked?'✅':'⬜'} ${esc(h.name)}</div>`;
+    noTimeHabits.forEach(h=>{
+      const checked=h.days[hDow]; const hIdx=habits.indexOf(h);
+      allDayHTML+=`<div class="outlook-allday-event habit-ev" data-habit-idx="${hIdx}" title="${esc(h.name)}">${checked?'✅':'⬜'} ${esc(h.name)}</div>`;
+    });
+    allDayHTML+='</div>';
+  });
+  allDayHTML+='</div>';
+
+  // ── Time grid body ──
+  // Build a position map for events to handle overlaps within each column
+  function buildColumnEvents(dayTasks, dayHabits, dateStr, d){
+    const dow=d.getDay(); const hDow=dow===0?6:dow-1;
+    const evs=[];
+    dayTasks.filter(t=>t.time).forEach(t=>{
+      const [hr,mn]=t.time.split(':').map(Number);
+      const isDone=tasks.done.some(x=>x.id===t.id);
+      const isOverdue=!isDone&&dateStr<todayStr;
+      const colKey=isDone?'done':tasks.inprogress.some(x=>x.id===t.id)?'inprogress':'todo';
+      evs.push({type:'task',top:(hr+mn/60)*HR,height:Math.max(22,HR*0.5),label:`📋 ${t.title}`,cls:`task-ev${isDone?' done':isOverdue?' overdue':''}`,taskId:t.id,col:colKey,title:t.title,time:t.time});
+    });
+    dayHabits.filter(h=>h.time).forEach(h=>{
+      const [hr,mn]=h.time.split(':').map(Number);
+      const checked=h.days[hDow]; const hIdx=habits.indexOf(h);
+      evs.push({type:'habit',top:(hr+mn/60)*HR,height:Math.max(22,HR*0.5),label:`${checked?'✅':'⬜'} ${h.name}`,cls:'habit-ev',habitIdx:hIdx,title:h.name,time:h.time});
+    });
+    // Sort by start time
+    evs.sort((a,b)=>a.top-b.top);
+    // Simple overlap resolution: stack side-by-side within same slot
+    evs.forEach((ev,i)=>{
+      ev.left=0; ev.width=1; // fraction
+      for(let j=0;j<i;j++){
+        const ov=evs[j];
+        if(ev.top<ov.top+ov.height && ev.top+ev.height>ov.top){
+          ev.left=ov.left+ov.width/2; ev.width=0.5; ov.width=0.5;
+        }
+      }
+    });
+    return evs;
+  }
+
+  let gridHTML=`<div class="outlook-time-grid" style="grid-template-columns:${cols}; display:grid;">`;
+  for(let hr=0;hr<24;hr++){
+    const label=hr===0?'12 AM':hr<12?`${hr} AM`:hr===12?'12 PM':`${hr-12} PM`;
+    gridHTML+=`<div class="outlook-time-label">${label}</div>`;
+    dayData.forEach(({isToday,dateStr,d})=>{
+      gridHTML+=`<div class="outlook-hour-cell${isToday?' today-bg':''}" data-date="${dateStr}" data-hour="${hr}"></div>`;
+    });
+  }
+  gridHTML+='</div>';
+
+  // Build event overlay HTML (absolutely positioned over the grid)
+  let eventsHTML='';
+  dayData.forEach(({dayTasks,dayHabits,dateStr,d},di)=>{
+    const evs=buildColumnEvents(dayTasks,dayHabits,dateStr,d);
+    evs.forEach(ev=>{
+      const leftPx=ev.left*100;
+      const widthPx=ev.width*100;
+      let attrs='';
+      if(ev.type==='task') attrs=`data-task-id="${ev.taskId}" data-col="${esc(ev.col)}"`;
+      else attrs=`data-habit-idx="${ev.habitIdx}"`;
+      // Position: top is relative to grid start, left accounts for time col + day col offset
+      // We'll use a wrapper per column positioned absolutely
+      eventsHTML+=`<div class="outlook-time-event ${ev.cls}" ${attrs}
+        style="top:${ev.top}px;height:${ev.height-2}px;left:calc(${esc(String(leftPx))}%);width:calc(${esc(String(widthPx))}% - 6px)"
+        data-col-idx="${di}" title="${esc(ev.title)}">
+        <span style="font-size:.85em;opacity:.7">${esc(ev.time)}</span> ${esc(ev.label)}
+      </div>`;
+    });
+  });
+
+  // Now-line position
+  const nowMin=today.getHours()*60+today.getMinutes();
+  const nowTop=nowMin*(HR/60);
+  const isCurrentWeek=dayData.some(({isToday})=>isToday);
+
+  // ── Assemble using a wrapper with per-column event overlays ──
+  // We need to render events per-column with correct left offsets
+  // Use a relative positioned overlay grid on top of the time grid
+  let html=`<div class="outlook-container">
+    ${headerHTML}
+    ${allDayHTML}
+    <div class="outlook-scroll" id="outlook-scroll">
+      <div style="position:relative; display:grid; grid-template-columns:${cols};">
+        <!-- Time labels column -->
+        <div style="position:relative;">`;
+  for(let hr=0;hr<24;hr++){
+    const label=hr===0?'12 AM':hr<12?`${hr} AM`:hr===12?'12 PM':`${hr-12} PM`;
+    html+=`<div class="outlook-time-label" style="height:${HR}px">${label}</div>`;
+  }
+  html+='</div>';
+
+  // Per-day columns
+  dayData.forEach(({dayTasks,dayHabits,dateStr,d,isToday},di)=>{
+    const evs=buildColumnEvents(dayTasks,dayHabits,dateStr,d);
+    html+=`<div style="position:relative;border-right:1px solid var(--border);">`;
+    // Hour cells
+    for(let hr=0;hr<24;hr++){
+      html+=`<div class="outlook-hour-cell${isToday?' today-bg':''}" data-date="${dateStr}" data-hour="${hr}" style="height:${HR}px"></div>`;
+    }
+    // Now-line
+    if(isToday){
+      html+=`<div class="outlook-now-line" style="top:${nowTop}px"><div class="outlook-now-dot"></div></div>`;
+    }
+    // Events
+    evs.forEach(ev=>{
+      let attrs='';
+      if(ev.type==='task') attrs=`data-task-id="${ev.taskId}" data-col="${esc(ev.col)}"`;
+      else attrs=`data-habit-idx="${ev.habitIdx}"`;
+      const leftPct=ev.left*100;
+      const widthPct=ev.width*100;
+      html+=`<div class="outlook-time-event ${ev.cls}" ${attrs}
+        style="top:${ev.top}px;height:${Math.max(ev.height-2,20)}px;left:calc(${leftPct}% + 3px);width:calc(${widthPct}% - 6px)" 
+        title="${esc(ev.title)}">
+        <div style="font-size:.78em;opacity:.75;white-space:nowrap">${esc(ev.time)}</div>
+        <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(ev.label)}</div>
+      </div>`;
     });
     html+='</div>';
   });
-  html+='</div>';
+  html+='</div></div></div>'; // close grid wrapper, scroll, container
+
   grid.innerHTML=html;
   grid.style.display='block';
 
-  // Event delegation for week view
+  // Scroll to 7am (or current hour - 1) on load
+  const scrollEl=document.getElementById('outlook-scroll');
+  if(scrollEl){
+    const scrollHour=isCurrentWeek?Math.max(0,today.getHours()-1):7;
+    scrollEl.scrollTop=scrollHour*HR;
+  }
+
+  // Event delegation
   grid.addEventListener('click', e=>{
     const dayHdr=e.target.closest('[data-open-day]');
     if(dayHdr){ const [y,m,d]=dayHdr.dataset.openDay.split('-').map(Number); openDailyView(y,m,d); return; }
     const taskEl=e.target.closest('[data-task-id][data-col]');
     if(taskEl){
       e.stopPropagation();
-      const id=parseInt(taskEl.dataset.taskId);
-      const col=taskEl.dataset.col;
+      const id=parseInt(taskEl.dataset.taskId); const col=taskEl.dataset.col;
       const task=tasks[col]?.find(t=>t.id===id);
-      if(task) openEditModal(task,col);
-      return;
+      if(task) openEditModal(task,col); return;
     }
     const habitEl=e.target.closest('[data-habit-idx]');
     if(habitEl){ e.stopPropagation(); openEditHabitModal(parseInt(habitEl.dataset.habitIdx)); return; }
-  }, {once:true});
+    const hourCell=e.target.closest('[data-date][data-hour]');
+    if(hourCell){ openTaskModal(hourCell.dataset.date); return; }
+  },{once:true});
 }
 
-function renderCalendar(){
+function renderMultiMonthView(numMonths){
+  const grid=document.getElementById('cal-grid');
+  const panel=document.getElementById('cal-daily-panel');
+  panel.style.display='none';
   const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
-  if(calView==='daily'){
-    document.getElementById('cal-month-label').textContent=new Date(calYear,calMonth,calDay).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
-    document.getElementById('cal-grid').style.display='none';
-    renderDailyView(calYear,calMonth,calDay);
-    return;
-  }
-  document.getElementById('cal-daily-panel').style.display='none';
-  if(calView==='week'){renderWeekView(false,false);return;}
-  if(calView==='workweek'){renderWeekView(true,false);return;}
-  if(calView==='7days'){renderWeekView(false,true);return;}
-
-  // Month view
-  document.getElementById('cal-month-label').textContent=`${monthNames[calMonth]} ${calYear}`;
-  const firstDay=new Date(calYear,calMonth,1).getDay();
-  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
   const today=new Date();
   const allTasks=[...tasks.todo,...tasks.inprogress,...tasks.done];
-  let html=['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="cal-day-header">${d}</div>`).join('');
-  for(let i=0;i<firstDay;i++)html+=`<div class="cal-cell other-month"></div>`;
-  for(let d=1;d<=daysInMonth;d++){
-    const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const isToday=d===today.getDate()&&calMonth===today.getMonth()&&calYear===today.getFullYear();
-    let events='';
-    if(calFilter!=='habits'){
-      allTasks.filter(t=>t.dueDate===dateStr).forEach(t=>{
-        const isDone=tasks.done.some(x=>x.id===t.id);
-        const isOverdue=!isDone&&dateStr<today.toISOString().slice(0,10);
-        const colKey=isDone?'done':tasks.inprogress.some(x=>x.id===t.id)?'inprogress':'todo';
-        events+=`<div class="cal-event task-event${isDone?' done':isOverdue?' overdue':''}" 
-          data-task-id="${t.id}" data-col="${colKey}"
-          title="${esc(t.title)}">📋 ${esc(t.title)}${t.time?` ⏰${esc(t.time)}`:''}</div>`;
-      });
+  document.getElementById('cal-month-label').textContent=
+    numMonths===3?`${monthNames[calMonth]} – ${monthNames[(calMonth+2)%12]} ${calYear}`
+                 :`${monthNames[calMonth]} – ${monthNames[(calMonth+5)%12]} ${calYear}`;
+  let html=`<div class="cal-multi-month ${numMonths===3?'months-3':'months-6'}">`;
+  for(let mi=0;mi<numMonths;mi++){
+    let yr=calYear, mo=calMonth+mi;
+    while(mo>11){mo-=12;yr++;}
+    const firstDay=new Date(yr,mo,1).getDay();
+    const daysInMonth=new Date(yr,mo+1,0).getDate();
+    let cells='';
+    for(let i=0;i<firstDay;i++) cells+=`<div class="cal-mini-day other-m"></div>`;
+    for(let d=1;d<=daysInMonth;d++){
+      const ds=`${yr}-${String(mo+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const dayTasks=allTasks.filter(t=>t.dueDate===ds);
+      const doneTasks=dayTasks.filter(t=>tasks.done.some(x=>x.id===t.id));
+      const isToday=d===today.getDate()&&mo===today.getMonth()&&yr===today.getFullYear();
+      let cls='cal-mini-day';
+      if(isToday) cls+=' today';
+      else if(dayTasks.length>0&&doneTasks.length===dayTasks.length) cls+=' all-done-ev';
+      else if(dayTasks.length>0) cls+=' has-ev';
+      cells+=`<div class="${cls}" data-open-day="${yr}-${mo}-${d}" title="${dayTasks.length} tasks">${d}</div>`;
     }
-    if(calFilter!=='tasks'){
-      const dow=new Date(calYear,calMonth,d).getDay();
-      const habitDow=dow===0?6:dow-1;
-      habits.forEach(h=>{
-        if(freqActiveDays(h).includes(habitDow)){
-          const checked=h.days[habitDow];
-          const hIdx=habits.indexOf(h);
-          events+=`<div class="cal-event habit-event${!checked?' missed':''}" 
-            data-habit-idx="${hIdx}"
-            title="${esc(h.name)}">${checked?'✅':'⬜'} ${esc(h.name)}</div>`;
-        }
+    html+=`<div class="cal-mini-month">
+      <div class="cal-mini-month-title">${monthNames[mo]} ${yr}</div>
+      <div class="cal-mini-month-grid">
+        ${['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="cal-mini-hdr">${d}</div>`).join('')}
+        ${cells}
+      </div>
+    </div>`;
+  }
+  html+='</div>';
+  grid.innerHTML=html; grid.style.display='block';
+  grid.addEventListener('click', e=>{
+    const dayEl=e.target.closest('[data-open-day]');
+    if(dayEl){ const [y,m,d]=dayEl.dataset.openDay.split('-').map(Number); openDailyView(y,m,d); }
+  },{once:true});
+}
+
+function renderCalendar() {
+  const container = document.getElementById('calendar-grid');
+  if (!container) return;
+  container.innerHTML = '';
+  
+  // Reset grid layout styles
+  container.style.display = 'grid';
+  container.style.gridTemplateColumns = 'repeat(7, 1fr)';
+  container.style.background = 'var(--border)';
+  container.style.gap = '1px';
+
+  if (calView === 'month' || calView.includes('month')) {
+    let monthsToShow = 1;
+    if (calView === '3month') monthsToShow = 3;
+    if (calView === '6month') monthsToShow = 6;
+    
+    for (let i = 0; i < monthsToShow; i++) {
+      const targetDate = new Date(calYear, calMonth + i, 1);
+      renderMonthGrid(container, targetDate.getFullYear(), targetDate.getMonth());
+    }
+  } 
+  else if (calView === 'week' || calView === 'workweek') {
+    renderWeeklyView(container);
+  } 
+  else if (calView === 'daily') {
+    renderDailyView(container);
+  }
+}
+
+function renderWeeklyView(container) {
+  container.style.display = 'flex'; 
+  container.style.flexDirection = 'column';
+  container.style.gap = '12px';
+  container.style.background = 'transparent';
+
+  const startOfWeek = new Date(calYear, calMonth, calDay);
+  const dayOffset = startOfWeek.getDay(); 
+  startOfWeek.setDate(startOfWeek.getDate() - dayOffset);
+
+  const daysToRender = calView === 'workweek' ? 5 : 7;
+  const startAt = calView === 'workweek' ? 1 : 0; // Skip Sunday for work week
+
+  for (let i = startAt; i < startAt + daysToRender; i++) {
+    const d = new Date(startOfWeek);
+    d.setDate(d.getDate() + i);
+    const dateStr = d.toISOString().slice(0, 10);
+    const { dayTasks, dayHabits } = getDayEvents(dateStr); //
+    
+    const isToday = dateStr === new Date().toISOString().slice(0, 10);
+    
+    const dayHtml = `
+      <div style="background: white; border-radius: 8px; border: 1px solid ${isToday ? 'var(--accent)' : 'var(--border)'}; overflow: hidden;">
+        <div style="padding: 10px 15px; background: ${isToday ? '#fdf4ea' : 'var(--surface2)'}; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between;">
+          <span style="font-weight: 700; color: ${isToday ? 'var(--accent)' : 'var(--text)'}">
+            ${d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}
+          </span>
+          ${isToday ? '<span style="font-size:0.7em; background:var(--accent); color:white; padding:2px 6px; border-radius:4px;">TODAY</span>' : ''}
+        </div>
+        <div style="padding: 12px;">
+          ${renderEventsHtml(dayTasks, dayHabits, dateStr)}
+        </div>
+      </div>`;
+    container.insertAdjacentHTML('beforeend', dayHtml);
+  }
+}
+
+function renderDailyView(container) {
+  container.style.display = 'block';
+  container.style.background = 'transparent';
+  
+  const d = new Date(calYear, calMonth, calDay);
+  const dateStr = d.toISOString().slice(0, 10);
+  const { dayTasks, dayHabits } = getDayEvents(dateStr);
+
+  container.innerHTML = `
+    <div style="background: white; border-radius: 12px; border: 1px solid var(--border); padding: 24px;">
+      <h2 style="margin-bottom: 20px; font-size: 1.5em;">${d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</h2>
+      <div style="min-height: 200px;">
+        ${renderEventsHtml(dayTasks, dayHabits, dateStr)}
+      </div>
+    </div>
+  `;
+}
+
+// Helper to render the shared HTML for tasks and habits
+function renderEventsHtml(tasks, habits, dateStr) {
+  if (tasks.length === 0 && habits.length === 0) {
+    return `<div style="color:var(--muted); font-size:0.85em; font-style:italic;">No tasks or habits scheduled.</div>`;
+  }
+
+  let html = '<div style="display:flex; flex-direction:column; gap:6px;">';
+  
+  // Render Habits
+  habits.forEach(h => {
+    const history = habitHistory[h.name] || {};
+    const status = history[dateStr];
+    const isMissed = !status && new Date(dateStr) < new Date().setHours(0,0,0,0);
+    html += `<div class="cal-event habit-event ${isMissed ? 'missed' : ''}" style="border-left: 3px solid #8b9d83">
+      ${h.type === 'negative' ? '🚫' : '✓'} ${esc(h.name)}
+    </div>`;
+  });
+
+  // Render Tasks
+  tasks.forEach(t => {
+    const isDone = t.status === 'done';
+    const isOverdue = !isDone && t.date && new Date(t.date) < new Date().setHours(0,0,0,0);
+    html += `<div class="cal-event task-event ${isDone ? 'done' : ''} ${isOverdue ? 'overdue' : ''}" style="border-left: 3px solid var(--accent)">
+      ${esc(t.title)}
+    </div>`;
+  });
+
+  return html + '</div>';
+}
+
+function renderMonthGrid(container, year, month) {
+  const first = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const monthName = new Date(year, month).toLocaleString(undefined, { month: 'long', year: 'numeric' });
+
+  // Month Header Row (inside the grid)
+  container.insertAdjacentHTML('beforeend', `
+    <div style="grid-column: span 7; padding: 15px; background: white; font-weight: 700; border-bottom: 1px solid var(--border); font-size: 1.1em;">
+      ${monthName}
+    </div>
+  `);
+
+  // Day Headers
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => {
+    container.insertAdjacentHTML('beforeend', `<div class="cal-day-header">${d}</div>`);
+  });
+
+  // Empty cells for alignment
+  for (let i = 0; i < first; i++) {
+    container.insertAdjacentHTML('beforeend', `<div class="cal-cell other-month"></div>`);
+  }
+
+  // Actual days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const { dayTasks, dayHabits } = getDayEvents(dateStr);
+    const isToday = dateStr === new Date().toISOString().slice(0, 10);
+    
+    let cellHtml = `
+      <div class="cal-cell ${isToday ? 'today' : ''}" onclick="openDayView('${dateStr}')">
+        <div class="cal-date-num">${d}</div>
+        ${renderEventsHtml(dayTasks, dayHabits, dateStr)}
+      </div>`;
+    container.insertAdjacentHTML('beforeend', cellHtml);
+  }
+}function openDayView(dateStr) {
+  const d = new Date(dateStr);
+  calYear = d.getFullYear();
+  calMonth = d.getMonth();
+  calDay = d.getDate();
+  calView = 'daily';
+  document.getElementById('cal-view-select').value = 'daily';
+  renderCalendar();
+}
+
+    if (currentCalFilters.type !== 'tasks') {
+      const dow = new Date(calYear, calMonth, d).getDay();
+      const habitDow = dow === 0 ? 6 : dow - 1;
+      
+      let filteredHabits = habits.filter(h => freqActiveDays(h).includes(habitDow));
+      if (currentCalFilters.habitType !== 'all') filteredHabits = filteredHabits.filter(h => h.type === currentCalFilters.habitType);
+      if (currentCalFilters.category !== 'all') filteredHabits = filteredHabits.filter(h => (h.category || 'Other').toLowerCase() === currentCalFilters.category.toLowerCase());
+
+      filteredHabits.forEach(h => {
+        const checked = h.days[habitDow];
+        const hIdx = habits.indexOf(h);
+        events += `<div class="cal-event habit-event${!checked ? ' missed' : ''}" data-habit-idx="${hIdx}" title="${esc(h.name)}">${checked ? '✅' : '⬜'} ${esc(h.name)}</div>`;
       });
     }
     html+=`<div class="cal-cell${isToday?' today':''}" data-open-day="${calYear}-${calMonth}-${d}">
@@ -1781,6 +2422,26 @@ document.getElementById('install-btn').addEventListener('click',async()=>{docume
 document.getElementById('dismiss-btn').addEventListener('click',()=>{document.getElementById('install-banner').style.display='none';});
 window.addEventListener('appinstalled',()=>{document.getElementById('install-banner').style.display='none';});
 if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js').catch(console.error);
+
+// ════════════════════════════════════════════════
+//  SWIPE GESTURES — calendar navigation on touch
+// ════════════════════════════════════════════════
+(function(){
+  let swipeStartX=0, swipeStartY=0;
+  const calEl=document.getElementById('page-calendar');
+  calEl.addEventListener('touchstart',e=>{
+    swipeStartX=e.touches[0].clientX;
+    swipeStartY=e.touches[0].clientY;
+  },{passive:true});
+  calEl.addEventListener('touchend',e=>{
+    if(!e.changedTouches.length) return;
+    const dx=e.changedTouches[0].clientX-swipeStartX;
+    const dy=e.changedTouches[0].clientY-swipeStartY;
+    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
+      calMove(dx<0?1:-1);
+    }
+  },{passive:true});
+})();
 
 // ════════════════════════════════════════════════
 //  SETTINGS
