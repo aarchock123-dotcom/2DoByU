@@ -23,32 +23,13 @@
 body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--text); overflow-x:hidden; letter-spacing:-0.01em; }
 h1,h2,h3,strong { letter-spacing:-0.02em; }
 
-/* ══════════════════════════════════════════
-   PIN SCREEN
-══════════════════════════════════════════ */
-#pin-screen { position:fixed; inset:0; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:10000; gap:28px; }
-#pin-screen.hidden { display:none; }
-.pin-logo { font-size:3em; }
-.pin-title { font-size:1.4em; font-weight:700; text-align:center; }
-.pin-subtitle { font-size:0.9em; color:var(--muted); text-align:center; margin-top:-16px; }
-.pin-dots { display:flex; gap:18px; }
-.pin-dot { width:16px; height:16px; border-radius:50%; border:2px solid var(--accent); background:transparent; transition:background .15s; }
-.pin-dot.filled { background:var(--accent); }
-.pin-dot.error { border-color:#e74c3c!important; background:#e74c3c!important; }
-.pin-error { color:#e74c3c; font-size:.85em; font-weight:600; min-height:1.2em; text-align:center; }
-.numpad { display:grid; grid-template-columns:repeat(3,72px); gap:14px; }
-.numpad-btn { width:72px; height:72px; border-radius:50%; border:none; background:white; font-size:1.5em; font-weight:500; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.08); transition:background .1s,transform .1s; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1; }
-.numpad-btn:active { background:var(--border); transform:scale(.94); }
-.numpad-btn.action { background:transparent; box-shadow:none; font-size:1em; color:var(--accent); font-weight:600; }
-.numpad-btn.action:active { background:#f0e8de; }
-.numpad-btn .sub { font-size:.38em; letter-spacing:.08em; color:var(--muted); text-transform:uppercase; }
-.pin-back-btn { background:none; border:none; color:var(--muted); cursor:pointer; font-size:.85em; text-decoration:underline; }
+
 
 /* ══════════════════════════════════════════
    APP SHELL
 ══════════════════════════════════════════ */
-#app { display:none; min-height:100vh; }
-#app.visible { display:flex; }
+#app { display:flex; min-height:100vh; }
+
 
 /* ── SIDEBAR ── */
 #sidebar {
@@ -197,7 +178,6 @@ h1,h2,h3,strong { letter-spacing:-0.02em; }
 .cal-event { font-size:.68em; padding:2px 5px; border-radius:3px; margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:500; }
 .cal-event.habit-event { background:#e8f5e9; color:#2d6a2d; }
 .cal-event.habit-event.missed { background:#f5f5f5; color:#999; }
-.numpad-btn { -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .cal-event.task-event { background:#fff3cd; color:#856404; }
 .cal-event.task-event.done { background:#d4edda; color:#155724; text-decoration:line-through; }
 .cal-event.task-event.overdue { background:#f8d7da; color:#721c24; }
@@ -360,12 +340,10 @@ body.dark .outlook-day-col:hover, body.dark .outlook-hour-cell:hover { backgroun
 .version-tag { font-size:.75em; color:var(--muted); background:var(--bg); padding:3px 8px; border-radius:4px; }
 body.dark { --bg:#1a1a1a; --surface:#242424; --surface2:#2a2a2a; --border:#333; --text:#f0f0f0; --muted:#777; }
 body.dark #sidebar, body.dark #topbar, body.dark .column, body.dark .card, body.dark .habit-card,
-body.dark .modal, body.dark .numpad-btn, body.dark .analytics-section, body.dark .stat-card,
+body.dark .modal, body.dark .analytics-section, body.dark .stat-card,
 body.dark .tree-container, body.dark .cal-cell, body.dark .settings-group, body.dark .theme-card,
 body.dark .settings-btn { background:var(--surface); border-color:var(--border); }
 body.dark .column, body.dark .surface2 { background:var(--surface2); }
-body.dark #pin-screen { background:var(--bg); }
-body.dark .numpad-btn { color:var(--text); box-shadow:0 2px 8px rgba(0,0,0,.3); }
 body.dark .cal-day-header { background:var(--surface2); }
 body.dark .nav-item.active { background:#2a2218; }
 .card { 
@@ -405,37 +383,101 @@ body.dark .nav-item.active { background:#2a2218; }
 .touch-dragging {
   opacity: 0.3 !important;
 }
+/* ── QUICK ADD BAR ── */
+#quick-add-bar { position:fixed; bottom:0; left:50%; transform:translateX(-50%) translateY(120%); width:min(600px,96vw); background:white; border-radius:16px 16px 0 0; box-shadow:0 -4px 32px rgba(0,0,0,.15); padding:14px 18px 18px; z-index:5000; transition:transform .28s cubic-bezier(.34,1.2,.64,1); border-top:3px solid var(--accent); }
+#quick-add-bar.visible { transform:translateX(-50%) translateY(0); }
+#quick-add-bar .qa-row { display:flex; align-items:center; gap:10px; }
+#quick-add-input { flex:1; border:none; outline:none; font-size:1em; background:transparent; color:var(--text); }
+#quick-add-preview { font-size:.75em; color:var(--muted); margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; min-height:1.1em; }
+.qa-chip { background:var(--bg); border:1px solid var(--border); border-radius:20px; padding:2px 10px; font-size:.82em; color:var(--text); }
+.qa-chip.date { border-color:#3498db; color:#3498db; }
+.qa-chip.tag { border-color:#8b9d83; color:#2d6a2d; }
+.qa-chip.priority { border-color:#e74c3c; color:#e74c3c; }
+.qa-hint { font-size:.68em; color:var(--muted); white-space:nowrap; }
+
+/* ── FOCUS TIMER ── */
+#focus-timer { position:fixed; bottom:24px; right:24px; background:white; border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,.18); padding:16px 20px; z-index:4500; min-width:210px; border:2px solid var(--border); display:none; }
+#focus-timer.visible { display:block; }
+#focus-timer.running { border-color:var(--accent); }
+#focus-timer.break-phase { border-color:#8b9d83; }
+.timer-task-name { font-size:.72em; color:var(--muted); margin-bottom:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:190px; }
+.timer-display { font-size:2.4em; font-weight:700; letter-spacing:-.04em; color:var(--text); font-variant-numeric:tabular-nums; line-height:1; }
+.timer-phase { font-size:.72em; color:var(--muted); margin:2px 0 10px; }
+.timer-controls { display:flex; gap:6px; }
+.timer-btn { flex:1; padding:6px; border-radius:8px; border:1px solid var(--border); background:white; cursor:pointer; font-size:.8em; font-weight:600; transition:.15s; color:var(--text); }
+.timer-btn.primary { background:var(--accent); color:white; border-color:var(--accent); }
+.timer-btn:hover { opacity:.8; }
+.card-focus-btn { font-size:.7em; padding:2px 7px; border-radius:4px; border:1px solid var(--border); background:transparent; cursor:pointer; color:var(--muted); margin-left:4px; transition:.15s; vertical-align:middle; }
+.card-focus-btn:hover { border-color:var(--accent); color:var(--accent); background:#fdf4ea; }
+
+/* ── STAR / TOP PRIORITY ── */
+.card-star { position:absolute; top:10px; right:10px; font-size:.9em; cursor:pointer; opacity:.28; transition:.15s; background:none; border:none; padding:2px 4px; line-height:1; }
+.card-star:hover { opacity:.7; transform:scale(1.2); }
+.card-star.starred { opacity:1; filter:drop-shadow(0 0 3px #f59e0b88); }
+.card.starred-card { box-shadow:0 0 0 2px #f59e0b33,0 1px 4px rgba(0,0,0,.05); }
+.task-board-filters { display:flex; gap:8px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+.filter-chip { padding:5px 13px; border-radius:20px; border:1px solid var(--border); background:white; cursor:pointer; font-size:.78em; font-weight:500; transition:.15s; color:var(--muted); }
+.filter-chip.active { background:var(--accent); color:white; border-color:var(--accent); }
+.filter-chip:hover:not(.active) { background:var(--bg); color:var(--text); }
+.quick-add-fab { background:var(--accent); color:white; border:none; border-radius:20px; padding:6px 14px; font-size:.78em; font-weight:600; cursor:pointer; margin-left:auto; transition:.2s; }
+.quick-add-fab:hover { background:var(--accent-dark); transform:translateY(-1px); }
+
+/* ── HEATMAP ── */
+.heatmap-outer { display:flex; gap:3px; overflow-x:auto; padding-bottom:6px; }
+.heatmap-week-col { display:flex; flex-direction:column; gap:3px; }
+.heatmap-day { width:13px; height:13px; border-radius:2px; flex-shrink:0; }
+.hm-0 { background:var(--border); }
+.hm-1 { background:#c6e6c6; }
+.hm-2 { background:#8bc18b; }
+.hm-3 { background:#4a9d4a; }
+.hm-4 { background:#2d6a2d; }
+body.dark .hm-0 { background:var(--border); }
+body.dark .hm-1 { background:#1a3a1a; }
+body.dark .hm-2 { background:#1e5c1e; }
+body.dark .hm-3 { background:#267a26; }
+body.dark .hm-4 { background:#2d9e2d; }
+.heatmap-legend { display:flex; align-items:center; gap:4px; margin-top:8px; font-size:.65em; color:var(--muted); }
+
+/* ── COST / SAVINGS TRACKER ── */
+.habit-savings { font-size:.76em; color:#2d6a2d; font-weight:600; margin-top:7px; padding:4px 9px; background:#e8f5e9; border-radius:5px; display:inline-flex; align-items:center; gap:5px; }
+.habit-slips { font-size:.76em; color:#c62828; font-weight:600; margin-top:7px; padding:4px 9px; background:#fce4e4; border-radius:5px; display:inline-flex; align-items:center; gap:5px; }
+body.dark .white-surface { background:var(--surface); }
+
+/* ══════════════════════════════════════════
+   NOTES (Google Keep style)
+══════════════════════════════════════════ */
+.notes-masonry { column-count:3; column-gap:14px; }
+@media(max-width:900px){ .notes-masonry { column-count:2; } }
+@media(max-width:560px){ .notes-masonry { column-count:1; } }
+.note-card { break-inside:avoid; border-radius:10px; border:1px solid var(--border); padding:16px; margin-bottom:14px; cursor:pointer; transition:box-shadow .15s,transform .15s; position:relative; display:block; }
+.note-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.1); transform:translateY(-2px); }
+.note-card-title { font-weight:700; font-size:.95em; margin-bottom:7px; word-break:break-word; }
+.note-card-body { font-size:.83em; color:var(--text); line-height:1.55; display:-webkit-box; -webkit-line-clamp:7; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; white-space:pre-wrap; }
+.note-card-footer { display:flex; justify-content:flex-end; margin-top:10px; }
+.note-pin-btn { background:none; border:none; cursor:pointer; font-size:.85em; opacity:.35; transition:.15s; padding:2px 5px; border-radius:4px; }
+.note-pin-btn:hover { opacity:.85; background:rgba(0,0,0,.06); }
+.note-pin-btn.pinned { opacity:1; }
+.notes-section-label { font-size:.72em; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); margin-bottom:10px; padding-left:2px; }
+.note-editor { max-width:520px; padding:20px 24px 16px; gap:0; }
+.note-editor-title { border:none; outline:none; font-size:1.1em; font-weight:700; background:transparent; color:var(--text); width:100%; padding:0 0 10px; border-bottom:1px solid var(--border); margin-bottom:12px; }
+.note-editor-body { border:none; outline:none; background:transparent; color:var(--text); width:100%; resize:vertical; font-size:.92em; line-height:1.65; min-height:140px; padding:0; margin-bottom:14px; font-family:inherit; }
+.note-color-picker { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px; }
+.note-color-swatch { width:26px; height:26px; border-radius:50%; cursor:pointer; border:2px solid transparent; transition:.12s; flex-shrink:0; }
+.note-color-swatch:hover { transform:scale(1.18); }
+.note-color-swatch.selected { border-color:var(--text); transform:scale(1.12); }
+.note-pin-label { display:flex; align-items:center; gap:5px; font-size:.82em; color:var(--muted); cursor:pointer; user-select:none; }
+body.dark .note-card { filter:brightness(.88); }
+body.dark .note-editor-title, body.dark .note-editor-body { color:var(--text); }
+
+/* ── WITHIN-COLUMN DRAG INDICATORS ── */
+.card.drag-target-before { box-shadow:0 -3px 0 0 var(--accent), 0 1px 4px rgba(0,0,0,.05); }
+.card.drag-target-after  { box-shadow:0 3px 0 0 var(--accent), 0 1px 4px rgba(0,0,0,.05); }
+
 </style>
 </head>
 <body>
 
 <canvas id="fireworks"></canvas>
-
-<div id="pin-screen">
-  <div class="pin-logo" style="font-size:2em;font-weight:800;letter-spacing:-1px;color:var(--accent)">2DoByU</div>
-  <div class="pin-title" id="pin-title">Welcome Back</div>
-  <div class="pin-subtitle" id="pin-subtitle">Enter your PIN to unlock</div>
-  <div class="pin-dots">
-    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
-    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
-  </div>
-  <div class="pin-error" id="pin-error"></div>
-  <div class="numpad">
-    <button class="numpad-btn" onclick="pinPress('1')">1<span class="sub"></span></button>
-    <button class="numpad-btn" onclick="pinPress('2')">2<span class="sub">ABC</span></button>
-    <button class="numpad-btn" onclick="pinPress('3')">3<span class="sub">DEF</span></button>
-    <button class="numpad-btn" onclick="pinPress('4')">4<span class="sub">GHI</span></button>
-    <button class="numpad-btn" onclick="pinPress('5')">5<span class="sub">JKL</span></button>
-    <button class="numpad-btn" onclick="pinPress('6')">6<span class="sub">MNO</span></button>
-    <button class="numpad-btn" onclick="pinPress('7')">7<span class="sub">PQRS</span></button>
-    <button class="numpad-btn" onclick="pinPress('8')">8<span class="sub">TUV</span></button>
-    <button class="numpad-btn" onclick="pinPress('9')">9<span class="sub">WXYZ</span></button>
-    <button class="numpad-btn action" id="pin-left-action"></button>
-    <button class="numpad-btn" onclick="pinPress('0')">0</button>
-    <button class="numpad-btn action" onclick="pinDelete()">⌫</button>
-  </div>
-  <button class="pin-back-btn" id="pin-back-btn" style="display:none"></button>
-</div>
 
 <div id="app">
 
@@ -446,9 +488,10 @@ body.dark .nav-item.active { background:#2a2218; }
     </div>
     
     <ul class="nav-list">
-      <li class="nav-item active" data-page="tasks"><span class="nav-icon">📋</span>Task Board</li>
-      <li class="nav-item" data-page="habits"><span class="nav-icon">✅</span>Habits</li>
+      <li class="nav-item active" data-page="tasks"><span class="nav-icon">☑️</span>Task Board</li>
+      <li class="nav-item" data-page="habits"><span class="nav-icon">✓</span>Habits</li>
       <li class="nav-item" data-page="analytics"><span class="nav-icon">📊</span>Analytics</li>
+      <li class="nav-item" data-page="notes"><span class="nav-icon">📝</span>Notes</li>
       <li class="nav-item" data-page="calendar"><span class="nav-icon">📅</span>Calendar</li>
     </ul>
 
@@ -456,9 +499,7 @@ body.dark .nav-item.active { background:#2a2218; }
       <li class="nav-item" data-page="settings"><span class="nav-icon">⚙️</span>Settings</li>
     </ul>
 
-    <div class="sidebar-bottom">
-      <button id="btn-lock-app" class="sidebar-btn" onclick="lockApp()">🔒 Lock App</button>
-    </div>
+
   </nav>
 
   <div id="topbar">
@@ -473,6 +514,13 @@ body.dark .nav-item.active { background:#2a2218; }
       <div class="page-header">
         <h1 class="page-title">Task Board</h1>
         <button class="action-btn" onclick="openTaskModal()">+ New Task</button>
+      </div>
+      <div class="task-board-filters" id="task-board-filters">
+        <button class="filter-chip active" id="chip-all" onclick="setTaskFilter('all')">All</button>
+        <button class="filter-chip" id="chip-starred" onclick="setTaskFilter('starred')">⭐ Starred</button>
+        <button class="filter-chip" id="chip-today" onclick="setTaskFilter('today')">📅 Due Today</button>
+        <button class="filter-chip" id="chip-overdue" onclick="setTaskFilter('overdue')">⚠️ Overdue</button>
+        <button class="quick-add-fab" onclick="openQuickAdd()">⚡ Quick Add</button>
       </div>
       <div class="columns-container">
         <div class="column">
@@ -542,6 +590,14 @@ body.dark .nav-item.active { background:#2a2218; }
         <div id="habit-perf-list"></div>
       </div>
       <div class="analytics-section">
+        <h3>Consistency Heatmap — Last 13 Weeks</h3>
+        <div id="habit-heatmap-grid" style="overflow:hidden"></div>
+      </div>
+      <div class="analytics-section" id="savings-section" style="display:none">
+        <h3>💰 Savings Tracker</h3>
+        <div id="savings-list"></div>
+      </div>
+      <div class="analytics-section">
         <h3>This Month — Habit Calendar</h3>
         <div class="mini-cal-header" id="mini-cal-header"></div>
         <div class="mini-cal" id="mini-cal"></div>
@@ -549,6 +605,27 @@ body.dark .nav-item.active { background:#2a2218; }
       <div class="analytics-section">
         <h3>All Completed Tasks</h3>
         <div id="all-done-list"></div>
+      </div>
+    </div>
+
+
+    <div class="page" id="page-notes">
+      <div class="page-header">
+        <h1 class="page-title">Notes</h1>
+        <button class="action-btn" onclick="openNoteModal()">+ New Note</button>
+      </div>
+      <div style="margin-bottom:20px">
+        <input type="text" id="notes-search" class="input-field" placeholder="🔍 Search notes…" oninput="renderNotes()" style="max-width:340px">
+      </div>
+      <div id="pinned-notes-section" style="display:none">
+        <div class="notes-section-label">📌 Pinned</div>
+        <div class="notes-masonry" id="pinned-notes-grid"></div>
+      </div>
+      <div id="other-notes-section">
+        <div class="notes-section-label" id="other-notes-label" style="display:none">Other notes</div>
+        <div class="notes-masonry" id="notes-grid">
+          <div class="empty-state"><div class="empty-icon">📜</div>No notes yet — tap + to start</div>
+        </div>
       </div>
     </div>
 
@@ -631,49 +708,7 @@ body.dark .nav-item.active { background:#2a2218; }
         <h1 class="page-title">Settings</h1>
       </div>
 
-      <div class="settings-group-title">Account & Security</div>
-      <div class="settings-group">
-        <div class="settings-row" id="row-add-pin" style="display:none">
-          <div class="settings-row-left">
-            <div class="settings-row-label">Add PIN</div>
-            <div class="settings-row-desc">Protect your data with a 4-digit code</div>
-          </div>
-          <div class="settings-row-right">
-            <button class="settings-btn primary" onclick="startAddPin()">Add PIN</button>
-          </div>
-        </div>
-        <div class="settings-row" id="row-change-pin">
-          <div class="settings-row-left">
-            <div class="settings-row-label">Change PIN</div>
-            <div class="settings-row-desc">Update your 4-digit unlock code</div>
-          </div>
-          <div class="settings-row-right">
-            <button class="settings-btn primary" onclick="startChangePin()">Change PIN</button>
-          </div>
-        </div>
-        <div class="settings-row" id="row-remove-pin">
-          <div class="settings-row-left">
-            <div class="settings-row-label">Remove PIN</div>
-            <div class="settings-row-desc">Disable PIN lock — data remains encrypted</div>
-          </div>
-          <div class="settings-row-right">
-            <button class="settings-btn danger" onclick="startRemovePin()">Remove PIN</button>
-          </div>
-        </div>
-        <div class="settings-row">
-          <div class="settings-row-left">
-            <div class="settings-row-label">Auto-lock</div>
-            <div class="settings-row-desc">Lock when you switch away from the app</div>
-          </div>
-          <div class="settings-row-right">
-            <label class="toggle">
-              <input type="checkbox" id="setting-autolock" checked onchange="saveSetting('autolock',this.checked)">
-              <div class="toggle-track"></div>
-              <div class="toggle-thumb"></div>
-            </label>
-          </div>
-        </div>
-      </div>
+
 
       <div class="settings-group-title">Appearance</div>
       <div class="settings-group">
@@ -807,7 +842,7 @@ body.dark .nav-item.active { background:#2a2218; }
             <div class="settings-row-label">2DoByU</div>
             <div class="settings-row-desc">Your personal task & habit tracker</div>
           </div>
-          <div class="settings-row-right"><span class="version-tag">v2.3.0</span></div>
+          <div class="settings-row-right"><span class="version-tag">v2.6.0</span></div>
         </div>
         <div class="settings-row">
           <div class="settings-row-left">
@@ -905,6 +940,10 @@ body.dark .nav-item.active { background:#2a2218; }
         <option value="negative">🚫 Break (negative)</option>
       </select>
     </div>
+    <div class="form-group" id="h-cost-group" style="display:none">
+      <label>Cost per slip ($ optional)</label>
+      <input type="number" id="h-cost" class="input-field" min="0" step="0.01" placeholder="e.g. 5.00" title="Each time you give in to this habit, it costs you this much">
+    </div>
     <div class="form-group">
       <label>Frequency</label>
       <select id="h-freq" class="input-field">
@@ -977,153 +1016,11 @@ function parseLocalDate(dateStr){
 document.addEventListener('keydown', e => {
   if(e.key === 'Escape') closeModals();
 });
-// ════════════════════════════════════════════════
-//  CRYPTO
-// ════════════════════════════════════════════════
-const STORAGE_KEY='ht_enc_v2', SALT_KEY='ht_salt_v2', VERIFY_KEY='ht_verify_v2';
-function getOrCreateSalt(){let s=localStorage.getItem(SALT_KEY);if(!s){const a=crypto.getRandomValues(new Uint8Array(16));s=btoa(String.fromCharCode(...a));localStorage.setItem(SALT_KEY,s);}return Uint8Array.from(atob(s),c=>c.charCodeAt(0));}
-async function deriveKey(pin,salt){const km=await crypto.subtle.importKey('raw',new TextEncoder().encode(pin),{name:'PBKDF2'},false,['deriveKey']);return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:200000,hash:'SHA-256'},km,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);}
-async function encrypt(pin,obj){const salt=getOrCreateSalt(),key=await deriveKey(pin,salt),iv=crypto.getRandomValues(new Uint8Array(12)),ct=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,new TextEncoder().encode(JSON.stringify(obj))),out=new Uint8Array(iv.byteLength+ct.byteLength);out.set(iv);out.set(new Uint8Array(ct),iv.byteLength);return btoa(String.fromCharCode(...out));}
-async function decrypt(pin,b64){const salt=getOrCreateSalt(),key=await deriveKey(pin,salt),raw=Uint8Array.from(atob(b64),c=>c.charCodeAt(0)),pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:raw.slice(0,12)},key,raw.slice(12));return JSON.parse(new TextDecoder().decode(pt));}
-async function storePinVerifier(pin){localStorage.setItem(VERIFY_KEY,await encrypt(pin,{ok:true}));}
-async function verifyPin(pin){try{const r=await decrypt(pin,localStorage.getItem(VERIFY_KEY));return r&&r.ok===true;}catch{return false;}}
-const pinIsSet=()=>!!localStorage.getItem(VERIFY_KEY);
-
-// ════════════════════════════════════════════════
-//  PIN UI & LOGIC
-// ════════════════════════════════════════════════
-let pinBuffer='', pinMode='unlock', pinFirstPass='', currentPin=null, isSettingsAction=false;
-
-function updateDots(){for(let i=0;i<4;i++){const d=document.getElementById('d'+i);d.classList.toggle('filled',i<pinBuffer.length);d.classList.remove('error');}}
-function flashError(msg){document.getElementById('pin-error').textContent=msg;for(let i=0;i<4;i++)document.getElementById('d'+i).classList.add('error');setTimeout(()=>{pinBuffer='';updateDots();document.getElementById('pin-error').textContent='';},900);}
-function pinPress(d){if(pinBuffer.length>=4)return;pinBuffer+=d;updateDots();if(pinBuffer.length===4)setTimeout(handleComplete,120);}
-function pinDelete(){pinBuffer=pinBuffer.slice(0,-1);updateDots();}
-
-function showPinScreen(mode){
-  pinMode=mode; pinBuffer=''; pinFirstPass=''; updateDots();
-  document.getElementById('pin-error').textContent='';
-  const backBtn = document.getElementById('pin-back-btn');
-  
-  if (mode === 'setup') {
-    document.getElementById('pin-title').textContent = 'Create a PIN';
-    document.getElementById('pin-subtitle').textContent = 'Choose a 4-digit PIN';
-    backBtn.style.display = isSettingsAction ? 'block' : 'none';
-    backBtn.textContent = isSettingsAction ? '← Cancel' : '';
-    backBtn.onclick = isSettingsAction ? cancelPinAction : null;
-  } else if (mode === 'verify_change') {
-    document.getElementById('pin-title').textContent = 'Current PIN';
-    document.getElementById('pin-subtitle').textContent = 'Verify to change PIN';
-    backBtn.style.display = 'block'; backBtn.textContent = '← Cancel'; backBtn.onclick = cancelPinAction;
-  } else if (mode === 'verify_remove') {
-    document.getElementById('pin-title').textContent = 'Current PIN';
-    document.getElementById('pin-subtitle').textContent = 'Verify to remove PIN';
-    backBtn.style.display = 'block'; backBtn.textContent = '← Cancel'; backBtn.onclick = cancelPinAction;
-  } else {
-    document.getElementById('pin-title').textContent = 'Welcome Back';
-    document.getElementById('pin-subtitle').textContent = 'Enter your PIN to unlock';
-    backBtn.style.display = 'none';
-  }
-  document.getElementById('pin-screen').classList.remove('hidden');
-  document.getElementById('app').classList.remove('visible');
-}
-
-function cancelPinAction() {
-  isSettingsAction = false;
-  openApp(); 
-}
-
-async function handleComplete(){
-  if(pinMode==='setup'){
-    pinFirstPass=pinBuffer; pinBuffer=''; updateDots();
-    pinMode='confirm';
-    document.getElementById('pin-title').textContent='Confirm Your PIN';
-    document.getElementById('pin-subtitle').textContent='Enter the same PIN again';
-    const backBtn = document.getElementById('pin-back-btn');
-    backBtn.style.display = 'block';
-    backBtn.textContent = '← Start over';
-    backBtn.onclick = () => {
-      pinMode='setup'; pinBuffer=''; pinFirstPass=''; updateDots();
-      document.getElementById('pin-title').textContent='Create a PIN';
-      document.getElementById('pin-subtitle').textContent='Choose a 4-digit PIN';
-      backBtn.textContent = isSettingsAction ? '← Cancel' : '';
-      backBtn.style.display = isSettingsAction ? 'block' : 'none';
-      backBtn.onclick = isSettingsAction ? cancelPinAction : null;
-    };
-    return;
-  }
-  if(pinMode==='confirm'){
-    if(pinBuffer===pinFirstPass){
-      const newPin = pinBuffer;
-      pinBuffer = '';
-      await storePinVerifier(newPin);
-      currentPin = newPin;
-      await saveAndRender(); // Re-encrypt all data with new PIN
-      isSettingsAction = false;
-      openApp();
-      showToast("PIN saved securely.");
-    } else{
-      flashError("PINs don't match");
-      setTimeout(()=>{
-        pinMode='setup'; pinFirstPass=''; 
-        document.getElementById('pin-title').textContent='Create a PIN';
-        document.getElementById('pin-subtitle').textContent='Choose a 4-digit PIN';
-        const backBtn = document.getElementById('pin-back-btn');
-        backBtn.style.display = isSettingsAction ? 'block' : 'none';
-        backBtn.textContent = isSettingsAction ? '← Cancel' : '';
-        backBtn.onclick = isSettingsAction ? cancelPinAction : null;
-      }, 950);
-    }
-    return;
-  }
-  if (pinMode === 'verify_change') {
-    if (await verifyPin(pinBuffer)) {
-      pinMode = 'setup'; pinBuffer = ''; pinFirstPass = ''; updateDots();
-      document.getElementById('pin-title').textContent = 'New PIN';
-      document.getElementById('pin-subtitle').textContent = 'Choose a 4-digit PIN';
-      const backBtn = document.getElementById('pin-back-btn');
-      backBtn.style.display = 'block'; backBtn.textContent = '← Cancel'; backBtn.onclick = cancelPinAction;
-    } else { flashError('Incorrect PIN'); }
-    return;
-  }
-  if (pinMode === 'verify_remove') {
-    if (await verifyPin(pinBuffer)) {
-      localStorage.removeItem(VERIFY_KEY);
-      currentPin = ""; // Empty string used for keyless encryption
-      await saveAndRender(); 
-      isSettingsAction = false;
-      openApp();
-      showToast('PIN removed successfully.');
-    } else { flashError('Incorrect PIN'); }
-    return;
-  }
-  if(pinMode==='unlock'){
-    if(await verifyPin(pinBuffer)){
-      currentPin=pinBuffer; pinBuffer=''; await loadData(); openApp();
-    } else { flashError('Incorrect PIN'); }
-  }
-}
-
-function openApp(){
-  document.getElementById('pin-screen').classList.add('hidden');
-  document.getElementById('app').classList.add('visible');
-  if(currentPage === 'settings') renderSettingsUI(); // Ensure settings reflect new PIN state
-  navigateTo(currentPage);
-}
-
-function lockApp(){
-  if(!pinIsSet()) { showToast("No PIN is set. Lock is disabled."); return; }
-  currentPin=null; tasks={todo:[],inprogress:[],done:[]}; habits=[];
-  showPinScreen('unlock');
-}
-
-document.addEventListener('visibilitychange',()=>{ 
-  if(document.hidden && currentPin && pinIsSet() && appSettings.autolock!==false) lockApp(); 
-});
 
 // ════════════════════════════════════════════════
 //  NAVIGATION
 // ════════════════════════════════════════════════
-const PAGE_TITLES={tasks:'Task Board',habits:'Habits',analytics:'Analytics',calendar:'Calendar',settings:'Settings'};
+const PAGE_TITLES={tasks:'Task Board',habits:'Habits',analytics:'Analytics',calendar:'Calendar',notes:'Notes',settings:'Settings'};
 let currentPage='tasks';
 function navigateTo(page){
   currentPage=page;
@@ -1133,14 +1030,19 @@ function navigateTo(page){
   const actionBtn=document.getElementById('topbar-action');
   if(page==='tasks'){actionBtn.textContent='+ New Task';actionBtn.style.display='block';}
   else if(page==='habits'){actionBtn.textContent='+ New Habit';actionBtn.style.display='block';}
+  else if(page==='notes'){actionBtn.textContent='+ New Note';actionBtn.style.display='block';}
   else actionBtn.style.display='none';
-  if(page==='analytics')renderAnalytics();
-  if(page==='calendar')renderCalendar();
-  if(page==='settings')renderSettingsUI();
+  // ── RENDER PAGE CONTENT (this is what was missing — caused empty app after unlock) ──
+  if(page==='tasks') renderTasks();
+  if(page==='habits') renderHabits();
+  if(page==='notes') renderNotes();
+  if(page==='analytics') renderAnalytics();
+  if(page==='calendar') renderCalendar();
+  if(page==='settings') renderSettingsUI();
   closeSidebar();
 }
 document.querySelectorAll('.nav-item').forEach(n=>n.addEventListener('click',()=>navigateTo(n.dataset.page)));
-function topbarAction(){if(currentPage==='tasks')openTaskModal();else if(currentPage==='habits')openHabitModal();}
+function topbarAction(){if(currentPage==='tasks')openTaskModal();else if(currentPage==='habits')openHabitModal();else if(currentPage==='notes')openNoteModal();}
 function openSidebar(){document.getElementById('sidebar').classList.add('open');document.getElementById('sidebar-overlay').classList.add('show');}
 function closeSidebar(){document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');}
 
@@ -1150,33 +1052,34 @@ function closeSidebar(){document.getElementById('sidebar').classList.remove('ope
 let taskIdCounter=Date.now();
 let tasks={todo:[],inprogress:[],done:[]};
 let habits=[];
-let editingTask=null,editingHabitIdx=null,draggedTaskId=null,celebratedThisSession=false;
+let editingTask=null,editingHabitIdx=null,draggedTaskId=null,dragOverCardId=null,dragOverPosition=null,celebratedThisSession=false;
+let notes=[];
 
-async function loadData(){
-  const enc=localStorage.getItem(STORAGE_KEY);
-  if(!enc) return;
+function loadData(){
   try{
-    const d=await decrypt(currentPin,enc);
+    const raw=localStorage.getItem('2dobyu_data');
+    if(!raw) return;
+    const d=JSON.parse(raw);
     tasks=d.tasks||tasks;
     habits=d.habits||habits;
+    notes=d.notes||notes;
     taskIdCounter=d.taskIdCounter||taskIdCounter;
-    // Ensure taskIdCounter is always ahead of any existing IDs
     const allIds=[...tasks.todo,...tasks.inprogress,...tasks.done].map(t=>t.id||0);
     if(allIds.length) taskIdCounter=Math.max(taskIdCounter,...allIds)+1;
   } catch(err){
-    console.error('[2DoByU] loadData failed — possible wrong PIN or corrupt data:', err);
+    console.error('[2DoByU] loadData failed:', err);
   }
 }
-async function saveAndRender(){
-  if(currentPin===null) return;
+function saveAndRender(){
   try{
-    localStorage.setItem(STORAGE_KEY, await encrypt(currentPin,{tasks,habits,taskIdCounter}));
+    localStorage.setItem('2dobyu_data', JSON.stringify({tasks,habits,notes,taskIdCounter}));
   } catch(err){
-    console.error('[2DoByU] saveAndRender encrypt failed:', err);
+    console.error('[2DoByU] save failed:', err);
     showToast('⚠️ Save failed — data may not be persisted.');
   }
   renderTasks();
   renderHabits();
+  if(currentPage==='notes') renderNotes();
   if(currentPage==='analytics') renderAnalytics();
   if(currentPage==='calendar') renderCalendar();
 }
@@ -1187,6 +1090,33 @@ async function saveAndRender(){
 const TAG_COLORS=['#d4a373','#8b9d83','#3498db','#9b59b6','#e74c3c','#f39c12','#1abc9c','#e67e22'];
 function tagColor(tag){if(!tag)return null;let h=0;for(let i=0;i<tag.length;i++)h=(h*31+tag.charCodeAt(i))%TAG_COLORS.length;return TAG_COLORS[h];}
 
+// ════════════════════════════════════════════════
+//  TASK BOARD FILTERS
+// ════════════════════════════════════════════════
+let taskFilter = 'all';
+function setTaskFilter(f) {
+  taskFilter = f;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.id === 'chip-'+f));
+  renderTasks();
+}
+function applyTaskFilter(list, col) {
+  const today = new Date().toISOString().slice(0,10);
+  if (taskFilter === 'starred') return list.filter(t => t.starred);
+  if (taskFilter === 'today') return list.filter(t => t.dueDate === today);
+  if (taskFilter === 'overdue') return col !== 'done' ? list.filter(t => t.dueDate && t.dueDate < today) : [];
+  return list;
+}
+
+function toggleStar(taskId, e) {
+  e.stopPropagation();
+  const allCols = Object.keys(tasks);
+  for (const col of allCols) {
+    const idx = tasks[col].findIndex(t => t.id === taskId);
+    if (idx !== -1) { tasks[col][idx].starred = !tasks[col][idx].starred; break; }
+  }
+  saveAndRender();
+}
+
 function renderTasks(){
   Object.keys(tasks).forEach(col=>{
     const el=document.querySelector(`.cards[data-column="${col}"]`);if(!el)return;
@@ -1196,36 +1126,67 @@ function renderTasks(){
       hiddenCount=list.length-10;
       list=[...list].slice(-10);
     }
+    // Apply filter
+    const filtered = applyTaskFilter(list, col);
     document.getElementById(`count-${col}`).textContent=tasks[col].length;
     el.innerHTML='';
-    if(tasks[col].length===0){el.innerHTML='<div class="empty-state"><div class="empty-icon">📭</div>No tasks yet</div>';return;}
+    if(filtered.length===0){
+      el.innerHTML=tasks[col].length===0
+        ?'<div class="empty-state"><div class="empty-icon">📭</div>No tasks yet</div>'
+        :`<div class="empty-state" style="font-size:.85em">No ${taskFilter} tasks here</div>`;
+      return;
+    }
     if(hiddenCount>0){
       const info=document.createElement('div');
       info.innerHTML=`<div class="cal-done-preview">+${hiddenCount} older completed tasks — <span class="done-show-more" onclick="navigateTo('analytics')">view all in Analytics</span></div>`;
       el.appendChild(info);
     }
-    list.forEach(task=>{
+    filtered.forEach(task=>{
       const card=document.createElement('div');
-      card.className=`card priority-${task.priority}`;card.draggable=true;card.dataset.id=task.id;
+      card.className=`card priority-${task.priority}${task.starred?' starred-card':''}`;card.draggable=true;card.dataset.id=task.id;
       const overdue=col!=='done'&&task.dueDate&&parseLocalDate(task.dueDate)<new Date().setHours(0,0,0,0);
       const tc=tagColor(task.tag);
       const timeStr=task.time?`<span class="card-time">⏰ ${esc(task.time)}</span>`:'';
-      card.innerHTML=`<div class="card-title">${esc(task.title)}</div>
+      card.innerHTML=`
+        <button class="card-star${task.starred?' starred':''}" data-star-id="${task.id}" title="${task.starred?'Unstar':'Star'}">★</button>
+        <div class="card-title">${esc(task.title)}</div>
         <div class="card-meta">
           <span class="date-text">📅 ${esc(task.dueDate||'No date')}</span>
           ${timeStr}
           ${overdue?'<span class="overdue-badge">⚠️ Overdue</span>':''}
           ${task.tag?`<span class="tag-badge" style="background:${esc(tagColor(task.tag))}22;color:${esc(tagColor(task.tag))}">${esc(task.tag)}</span>`:''}
+          <button class="card-focus-btn" data-focus-id="${task.id}" data-focus-title="${esc(task.title)}" title="Start focus timer">▶ Focus</button>
         </div>
         ${task.notes?`<div class="card-notes">${esc(task.notes)}</div>`:''}`;
-      card.addEventListener('dragstart',e=>{draggedTaskId=task.id;e.target.classList.add('dragging');});
-      card.addEventListener('dragend',e=>e.target.classList.remove('dragging'));
-      // Touch drag — use a moved flag to distinguish tap from drag
+      card.addEventListener('dragstart',e=>{draggedTaskId=task.id;e.dataTransfer.effectAllowed='move';e.target.classList.add('dragging');});
+      card.addEventListener('dragend',e=>{
+        e.target.classList.remove('dragging');
+        dragOverCardId=null; dragOverPosition=null;
+        document.querySelectorAll('.card.drag-target-before,.card.drag-target-after').forEach(c=>c.classList.remove('drag-target-before','drag-target-after'));
+      });
+      card.addEventListener('dragover',e=>{
+        e.preventDefault(); e.stopPropagation();
+        if(String(task.id)===String(draggedTaskId)) return;
+        const rect=card.getBoundingClientRect();
+        const pos=e.clientY<rect.top+rect.height/2?'before':'after';
+        dragOverCardId=task.id; dragOverPosition=pos;
+        document.querySelectorAll('.card.drag-target-before,.card.drag-target-after').forEach(c=>c.classList.remove('drag-target-before','drag-target-after'));
+        card.classList.add(pos==='before'?'drag-target-before':'drag-target-after');
+      });
+      card.addEventListener('dragleave',e=>{
+        if(!card.contains(e.relatedTarget)){card.classList.remove('drag-target-before','drag-target-after');}
+      });
       card.addEventListener('touchstart',touchDragStart,{passive:true});
       card.addEventListener('touchmove',touchDragMove,{passive:false});
       card.addEventListener('touchend',touchDragEnd,{passive:true});
-      // Only open edit modal on a genuine tap (not after a drag)
-      card.addEventListener('click',()=>{ if(!touchWasDragged) openEditModal(task,col); });
+      card.addEventListener('click', e => {
+        if (touchWasDragged) return;
+        const starBtn = e.target.closest('[data-star-id]');
+        if (starBtn) { toggleStar(parseInt(starBtn.dataset.starId), e); return; }
+        const focusBtn = e.target.closest('[data-focus-id]');
+        if (focusBtn) { e.stopPropagation(); openFocusTimer(parseInt(focusBtn.dataset.focusId), focusBtn.dataset.focusTitle); return; }
+        openTaskPreview(task, col);
+      });
       el.appendChild(card);
     });
   });
@@ -1361,8 +1322,33 @@ function touchDragEnd(e){
   setTimeout(()=>{ touchWasDragged=false; }, 50);
 }
 
-function handleDragOver(e){e.preventDefault();}
-function handleDrop(e){e.preventDefault();const col=e.currentTarget.dataset.column;let moved=null;Object.keys(tasks).forEach(c=>{const i=tasks[c].findIndex(t=>t.id==draggedTaskId);if(i!==-1)moved=tasks[c].splice(i,1)[0];});if(moved){tasks[col].push(moved);saveAndRender();}}
+function handleDragOver(e){
+  e.preventDefault();
+  // If cursor is directly over the column container (not a card) — clear card indicator
+  if(e.target===e.currentTarget||e.target.classList.contains('empty-state')){
+    document.querySelectorAll('.card.drag-target-before,.card.drag-target-after').forEach(c=>{
+      c.classList.remove('drag-target-before','drag-target-after');
+    });
+    dragOverCardId=null; dragOverPosition=null;
+  }
+}
+function handleDrop(e){
+  e.preventDefault();
+  const col=e.currentTarget.dataset.column;
+  document.querySelectorAll('.card.drag-target-before,.card.drag-target-after').forEach(c=>c.classList.remove('drag-target-before','drag-target-after'));
+  let moved=null;
+  Object.keys(tasks).forEach(c=>{const i=tasks[c].findIndex(t=>t.id==draggedTaskId);if(i!==-1)moved=tasks[c].splice(i,1)[0];});
+  if(!moved) return;
+  if(dragOverCardId!==null && String(dragOverCardId)!==String(draggedTaskId)){
+    const ti=tasks[col].findIndex(t=>String(t.id)===String(dragOverCardId));
+    if(ti!==-1){ tasks[col].splice(dragOverPosition==='before'?ti:ti+1,0,moved); }
+    else tasks[col].push(moved);
+  } else {
+    tasks[col].push(moved);
+  }
+  dragOverCardId=null; dragOverPosition=null;
+  saveAndRender();
+}
 
 function toggleRecurCount(){
   const v=document.getElementById('t-recur-type').value;
@@ -1402,6 +1388,44 @@ function openEditModal(task,col){
   document.getElementById('t-recurrence-group').style.display='none';
   document.getElementById('task-modal').style.display='flex';
 }
+
+// Preview panel for tasks/habits: shows details and an Edit button that opens the edit modal
+function openTaskPreview(task,col){
+  const modal=document.getElementById('preview-modal');
+  const content=document.getElementById('preview-content');
+  if(!modal||!content){ openEditModal(task,col); return; }
+  content.innerHTML = `
+    <h3 style="margin:0 0 8px">${esc(task.title)}</h3>
+    <div style="color:var(--muted);margin-bottom:8px">Status: ${esc(col)}${task.priority? ' · '+esc(task.priority):''}</div>
+    <div style="margin-bottom:8px">📅 ${esc(task.dueDate||'No date')}${task.time? ' · ⏰ '+esc(task.time):''}</div>
+    ${task.tag?`<div style="margin-bottom:8px"><span class="tag-badge" style="background:${esc(tagColor(task.tag))}22;color:${esc(tagColor(task.tag))}">${esc(task.tag)}</span></div>`:''}
+    ${task.notes?`<div class="card-notes" style="margin-bottom:10px">${esc(task.notes)}</div>`:''}
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-save" id="preview-edit-btn">Edit</button>
+      <button class="btn btn-cancel" id="preview-close-btn">Close</button>
+    </div>`;
+  modal.style.display='flex';
+  document.getElementById('preview-edit-btn').addEventListener('click', ()=>{ modal.style.display='none'; openEditModal(task,col); });
+  document.getElementById('preview-close-btn').addEventListener('click', ()=>{ modal.style.display='none'; });
+}
+
+function openHabitPreview(idx){
+  const h=habits[idx]; if(!h) return; const modal=document.getElementById('preview-modal'); const content=document.getElementById('preview-content');
+  if(!modal||!content){ openEditHabitModal(idx); return; }
+  content.innerHTML = `
+    <h3 style="margin:0 0 8px">${h.type==='negative'?'🚫 ':''}${esc(h.name)}</h3>
+    <div style="color:var(--muted);margin-bottom:8px">${esc(h.category||'Other')} · ${esc(FREQ_LABELS[h.freq||'daily'])}${h.time? ' · ⏰ '+esc(h.time):''}</div>
+    <div style="margin-bottom:8px">Colour: <span style="display:inline-block;width:14px;height:14px;border-radius:3px;background:${esc(h.color||'#d4a373')};vertical-align:middle;margin-left:6px"></span></div>
+    <div style="display:flex;gap:8px;margin-top:6px">
+      <button class="btn btn-save" id="preview-edit-h-btn">Edit</button>
+      <button class="btn btn-cancel" id="preview-close-h-btn">Close</button>
+    </div>`;
+  modal.style.display='flex';
+  document.getElementById('preview-edit-h-btn').addEventListener('click', ()=>{ modal.style.display='none'; openEditHabitModal(idx); });
+  document.getElementById('preview-close-h-btn').addEventListener('click', ()=>{ modal.style.display='none'; });
+}
+
+function closePreview(){ const modal=document.getElementById('preview-modal'); if(modal) modal.style.display='none'; }
 function saveTask(){
   const title=document.getElementById('t-title').value.trim();
   if(!title){ document.getElementById('t-title').focus(); return; }
@@ -1452,6 +1476,18 @@ function deleteCurrentTask(){
   closeModals();
   saveAndRender();
 }
+
+// Safe helper to move a task by id into a new status column (todo/inprogress/done)
+function moveTask(taskId, newStatus){
+  try{
+    if(!tasks[newStatus]){ console.warn('[2DoByU] moveTask: invalid status', newStatus); return; }
+    let moved=null;
+    Object.keys(tasks).forEach(col=>{const idx=tasks[col].findIndex(t=>String(t.id)===String(taskId));if(idx!==-1)moved=tasks[col].splice(idx,1)[0];});
+    if(!moved) return;
+    tasks[newStatus].push(moved);
+    saveAndRender();
+  }catch(err){console.error('[2DoByU] moveTask error',err);}
+}
 function closeModals(){document.querySelectorAll('.modal-overlay').forEach(m=>m.style.display='none');}
 
 // ════════════════════════════════════════════════
@@ -1468,6 +1504,21 @@ function freqActiveDays(h){
   if(freq==='3x')return[0,2,4];
   if(freq==='custom')return h.customDays||[];
   return[0,1,2,3,4,5,6];
+}
+
+function getHabitStats(h){
+  const history=h.history||{};
+  const today=new Date(); today.setHours(0,0,0,0);
+  let slips=0, resisted=0;
+  Object.entries(history).forEach(([ds,done])=>{
+    const d=new Date(ds+'T00:00:00');
+    if(d>=today) return; // skip today/future
+    const habitDow=d.getDay()===0?6:d.getDay()-1;
+    if(!freqActiveDays(h).includes(habitDow)) return;
+    if(done) slips++;
+    else resisted++;
+  });
+  return {slips,resisted};
 }
 
 function renderHabits(){
@@ -1503,12 +1554,18 @@ function renderHabits(){
       }).join('')}</div>
       <button class="btn-delete" style="font-size:.75em;cursor:pointer;" data-edit-habit="${hIdx}">Edit</button>
       <button class="btn-delete" style="font-size:.75em;cursor:pointer;margin-left:8px;" data-del-habit="${hIdx}">Remove</button>`;
+    if(h.type==='negative'&&h.costPerSlip){
+      const {slips,resisted}=getHabitStats(h);
+      const saved=(resisted*(h.costPerSlip||0)).toFixed(2);
+      const spent=(slips*(h.costPerSlip||0)).toFixed(2);
+      card.insertAdjacentHTML('beforeend',`<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><span class="habit-savings">💰 $${saved} saved (${resisted} resisted)</span><span class="habit-slips">💸 $${spent} spent (${slips} slips)</span></div>`);
+    }
     grid.appendChild(card);
   });
   // Event delegation for habit grid — attach only once to avoid accumulating listeners
   if(!grid._delegationAttached){
     grid._delegationAttached = true;
-    grid.addEventListener('click', e => {
+    grid.addEventListener('click', e=>{
       const dayEl = e.target.closest('.day-checkbox');
       if(dayEl && dayEl.dataset.active === 'true'){
         toggleHabit(parseInt(dayEl.dataset.hidx), parseInt(dayEl.dataset.didx));
@@ -1523,7 +1580,24 @@ function renderHabits(){
   updateTree();
 }
 
-function toggleHabit(h,d){habits[h].days[d]=!habits[h].days[d];saveAndRender();}
+function getThisWeekDate(dIdx){
+  // dIdx: 0=Mon...6=Sun. Returns the Date for that weekday in the current week.
+  const today=new Date(); today.setHours(0,0,0,0);
+  const dow=today.getDay(); // 0=Sun...6=Sat
+  const daysSinceMon=dow===0?6:dow-1;
+  const mon=new Date(today); mon.setDate(today.getDate()-daysSinceMon);
+  const d=new Date(mon); d.setDate(mon.getDate()+dIdx);
+  return d;
+}
+function toggleHabit(h,d){
+  habits[h].days[d]=!habits[h].days[d];
+  // Record to date-keyed history for heatmap
+  if(!habits[h].history) habits[h].history={};
+  const dateForDay=getThisWeekDate(d);
+  const ds=dateForDay.toISOString().slice(0,10);
+  habits[h].history[ds]=habits[h].days[d];
+  saveAndRender();
+}
 function deleteHabitConfirm(i){if(confirm('Delete habit?')){habits.splice(i,1);saveAndRender();}}
 
 let selectedHabitColor='#d4a373';
@@ -1533,12 +1607,17 @@ document.querySelectorAll('.color-swatch').forEach(s=>{
 document.getElementById('h-freq').onchange=function(){
   document.getElementById('h-custom-days-group').style.display=this.value==='custom'?'block':'none';
 };
+document.getElementById('h-type').onchange=function(){
+  document.getElementById('h-cost-group').style.display=this.value==='negative'?'flex':'none';
+};
 
 function openHabitModal(){
   editingHabitIdx=null;
   document.getElementById('habit-modal-title').textContent='New Habit';
   document.getElementById('h-name').value='';document.getElementById('h-category').value='Health';document.getElementById('h-type').value='positive';document.getElementById('h-freq').value='daily';
   document.getElementById('h-time').value='';
+  document.getElementById('h-cost').value='';
+  document.getElementById('h-cost-group').style.display='none';
   document.getElementById('h-custom-days-group').style.display='none';
   document.querySelectorAll('#h-custom-days-group input[type=checkbox]').forEach(c=>c.checked=false);
   selectedHabitColor='#d4a373';document.querySelectorAll('.color-swatch').forEach(s=>{s.classList.toggle('selected',s.dataset.color==='#d4a373');});
@@ -1551,6 +1630,8 @@ function openEditHabitModal(idx){
   document.getElementById('habit-modal-title').textContent='Edit Habit';
   document.getElementById('h-name').value=h.name;document.getElementById('h-category').value=h.category||'Health';document.getElementById('h-type').value=h.type||'positive';document.getElementById('h-freq').value=h.freq||'daily';
   document.getElementById('h-time').value=h.time||'';
+  document.getElementById('h-cost').value=h.costPerSlip||'';
+  document.getElementById('h-cost-group').style.display=(h.type==='negative')?'flex':'none';
   const isCustom=(h.freq||'daily')==='custom';
   document.getElementById('h-custom-days-group').style.display=isCustom?'block':'none';
   document.querySelectorAll('#h-custom-days-group input[type=checkbox]').forEach(c=>{c.checked=(h.customDays||[]).includes(parseInt(c.value));});
@@ -1563,10 +1644,12 @@ function saveHabit(){
   const name=document.getElementById('h-name').value.trim();
   if(!name){ document.getElementById('h-name').focus(); return; }
   const freq=document.getElementById('h-freq').value;
+  const type=document.getElementById('h-type').value;
   const customDays=freq==='custom'?[...document.querySelectorAll('#h-custom-days-group input[type=checkbox]:checked')].map(c=>parseInt(c.value)):[];
-  const data={name,category:document.getElementById('h-category').value,type:document.getElementById('h-type').value,freq,customDays,color:selectedHabitColor,time:document.getElementById('h-time').value};
+  const costRaw=parseFloat(document.getElementById('h-cost').value)||0;
+  const data={name,category:document.getElementById('h-category').value,type,freq,customDays,color:selectedHabitColor,time:document.getElementById('h-time').value,costPerSlip:type==='negative'&&costRaw>0?costRaw:0};
   if(editingHabitIdx!==null){habits[editingHabitIdx]={...habits[editingHabitIdx],...data};}
-  else{habits.push({...data,days:Array(7).fill(false)});}
+  else{habits.push({...data,days:Array(7).fill(false),history:{}});}
   closeModals();saveAndRender();
 }
 function deleteCurrentHabit(){if(editingHabitIdx!==null){habits.splice(editingHabitIdx,1);}closeModals();saveAndRender();}
@@ -1628,6 +1711,8 @@ function renderAnalytics(){
     </div>`;
   }).join('');
   renderMiniCal();
+  renderHeatmap();
+  renderSavingsTracker();
   // All completed tasks — use data-id attribute for click, no JSON in onclick
   const doneList=document.getElementById('all-done-list');
   if(tasks.done.length===0){doneList.innerHTML='<div class="empty-state">No completed tasks yet</div>';return;}
@@ -1650,7 +1735,7 @@ function renderAnalytics(){
       if(!row) return;
       const id=parseInt(row.dataset.doneTaskId);
       const task=tasks.done.find(t=>t.id===id);
-      if(task) openEditModal(task,'done');
+      if(task) openTaskPreview(task,'done');
     });
   }
 }
@@ -1679,8 +1764,395 @@ function renderMiniCal(){
   cal.innerHTML=cells;
 }
 
-let calYear = new Date().getFullYear(), calMonth = new Date().getMonth(), calDay = new Date().getDate();
+// ════════════════════════════════════════════════
+//  NOTES
+// ════════════════════════════════════════════════
+let noteIdCounter = Date.now() + 100000;
+let editingNoteId = null;
+let selectedNoteColor = '#ffffff';
+
+const NOTE_COLORS = [
+  { bg:'#ffffff', label:'White' },
+  { bg:'#fdf4ea', label:'Warm' },
+  { bg:'#e8f0e8', label:'Sage' },
+  { bg:'#fff9c4', label:'Honey' },
+  { bg:'#fce8e8', label:'Rose' },
+  { bg:'#e8f0fe', label:'Sky' },
+  { bg:'#f3e8ff', label:'Lavender' },
+  { bg:'#fbe9e7', label:'Peach' },
+  { bg:'#f1f0ee', label:'Stone' },
+];
+
+function buildNoteColorPicker(currentColor){
+  const el = document.getElementById('n-color-picker');
+  el.innerHTML = NOTE_COLORS.map(c =>
+    '<div class="note-color-swatch' + (c.bg===currentColor?' selected':'') + '"' +
+    ' data-nbg="' + c.bg + '" title="' + c.label + '"' +
+    ' style="background:' + c.bg + ';border-color:' + (c.bg===currentColor?'#666':'transparent') + '"' +
+    ' onclick="selectNoteColor(\'' + c.bg + '\')"></div>'
+  ).join('');
+}
+
+function selectNoteColor(bg){
+  selectedNoteColor = bg;
+  document.getElementById('note-editor-inner').style.background = bg;
+  document.querySelectorAll('.note-color-swatch').forEach(s=>{
+    const match = s.dataset.nbg === bg;
+    s.classList.toggle('selected', match);
+    s.style.borderColor = match ? '#666' : 'transparent';
+  });
+}
+
+function openNoteModal(noteId){
+  if(noteId !== undefined){
+    const note = notes.find(n => n.id === noteId);
+    if(!note) return;
+    editingNoteId = noteId;
+    document.getElementById('n-title').value = note.title || '';
+    document.getElementById('n-body').value = note.body || '';
+    document.getElementById('n-pinned').checked = !!note.pinned;
+    document.getElementById('n-delete-btn').style.display = 'block';
+    selectedNoteColor = note.color || '#ffffff';
+  } else {
+    editingNoteId = null;
+    document.getElementById('n-title').value = '';
+    document.getElementById('n-body').value = '';
+    document.getElementById('n-pinned').checked = false;
+    document.getElementById('n-delete-btn').style.display = 'none';
+    selectedNoteColor = '#ffffff';
+  }
+  document.getElementById('note-editor-inner').style.background = selectedNoteColor;
+  buildNoteColorPicker(selectedNoteColor);
+  document.getElementById('note-modal').style.display = 'flex';
+  setTimeout(() => document.getElementById(document.getElementById('n-title').value?'n-body':'n-title').focus(), 80);
+}
+
+function closeNoteModal(){
+  const title = document.getElementById('n-title').value.trim();
+  const body  = document.getElementById('n-body').value.trim();
+  const pinned = document.getElementById('n-pinned').checked;
+  if(editingNoteId !== null){
+    const idx = notes.findIndex(n => n.id === editingNoteId);
+    if(idx !== -1){
+      if(!title && !body){ notes.splice(idx, 1); }
+      else { notes[idx] = { ...notes[idx], title, body, color: selectedNoteColor, pinned, updatedAt: Date.now() }; }
+    }
+  } else {
+    if(title || body){
+      notes.push({ id:noteIdCounter++, title, body, color:selectedNoteColor, pinned, createdAt:Date.now(), updatedAt:Date.now() });
+    }
+  }
+  document.getElementById('note-modal').style.display = 'none';
+  editingNoteId = null;
+  saveAndRender();
+}
+
+function deleteCurrentNote(){
+  if(editingNoteId === null) return;
+  if(!confirm('Delete this note?')) return;
+  notes = notes.filter(n => n.id !== editingNoteId);
+  document.getElementById('note-modal').style.display = 'none';
+  editingNoteId = null;
+  saveAndRender();
+}
+
+function toggleNotePin(noteId, e){
+  e.stopPropagation();
+  const note = notes.find(n => n.id === noteId);
+  if(note){ note.pinned = !note.pinned; note.updatedAt = Date.now(); saveAndRender(); }
+}
+
+function buildNoteCard(note){
+  const bg = note.color || '#ffffff';
+  const safeTitle = esc(note.title || '');
+  const rawBody = (note.body || '');
+  const safeBody  = esc(rawBody);
+  return '<div class="note-card" data-note-id="' + note.id + '" style="background:' + bg + '">' +
+    (safeTitle ? '<div class="note-card-title">' + safeTitle + '</div>' : '') +
+    (safeBody  ? '<div class="note-card-body" style="white-space:pre-wrap">' + safeBody + '</div>' : '') +
+    '<div class="note-card-footer">' +
+    '<button class="note-pin-btn' + (note.pinned?' pinned':'') + '" data-pin-note="' + note.id + '" title="' + (note.pinned?'Unpin':'Pin') + '">' + (note.pinned?'📌':'📍') + '</button>' +
+    '</div></div>';
+}
+
+function renderNotes(){
+  const searchEl = document.getElementById('notes-search');
+  const query = searchEl ? searchEl.value.toLowerCase().trim() : '';
+  let filtered = query
+    ? notes.filter(n => (n.title||'').toLowerCase().includes(query)||(n.body||'').toLowerCase().includes(query))
+    : notes;
+  const pinned = filtered.filter(n => n.pinned).sort((a,b) => b.updatedAt - a.updatedAt);
+  const others = filtered.filter(n => !n.pinned).sort((a,b) => b.updatedAt - a.updatedAt);
+  const pinnedSection = document.getElementById('pinned-notes-section');
+  const otherLabel    = document.getElementById('other-notes-label');
+  const pinnedGrid    = document.getElementById('pinned-notes-grid');
+  const otherGrid     = document.getElementById('notes-grid');
+  if(!pinnedGrid || !otherGrid) return;
+  if(pinned.length > 0){
+    pinnedSection.style.display = 'block';
+    otherLabel.style.display = others.length > 0 ? 'block' : 'none';
+    pinnedGrid.innerHTML = pinned.map(n => buildNoteCard(n)).join('');
+  } else {
+    pinnedSection.style.display = 'none';
+    otherLabel.style.display = 'none';
+    pinnedGrid.innerHTML = '';
+  }
+  if(others.length === 0 && pinned.length === 0){
+    otherGrid.innerHTML = query
+      ? '<div class="empty-state">No notes match your search</div>'
+      : '<div class="empty-state"><div class="empty-icon">📜</div>No notes yet<br><small style="color:var(--muted)">Tap + to start writing</small></div>';
+  } else {
+    otherGrid.innerHTML = others.map(n => buildNoteCard(n)).join('');
+  }
+  [pinnedGrid, otherGrid].forEach(grid => {
+    if(grid._noteDelegated) return;
+    grid._noteDelegated = true;
+    grid.addEventListener('click', e => {
+      const pinBtn = e.target.closest('[data-pin-note]');
+      if(pinBtn){ toggleNotePin(parseInt(pinBtn.dataset.pinNote), e); return; }
+      const card = e.target.closest('[data-note-id]');
+      if(card){ openNoteModal(parseInt(card.dataset.noteId)); }
+    });
+  });
+}
+
+// note-modal overlay-click handled in openNoteModal via document click
+
+// ════════════════════════════════════════════════
+//  HEATMAP
+// ════════════════════════════════════════════════
+function renderHeatmap(){
+  const el=document.getElementById('habit-heatmap-grid');
+  if(!el) return;
+  if(habits.length===0){el.innerHTML='<div style="color:var(--muted);font-size:.85em;padding:8px 0">Track habits daily to build your heatmap.</div>';return;}
+  const WEEKS=13;
+  const today=new Date(); today.setHours(0,0,0,0);
+  // Align start to the nearest Sunday going back WEEKS weeks
+  const startDate=new Date(today);
+  startDate.setDate(today.getDate()-(WEEKS*7-1));
+  while(startDate.getDay()!==0) startDate.setDate(startDate.getDate()-1);
+
+  const DAY_LABELS=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  let html=`<div style="display:flex;gap:2px;overflow-x:auto;padding-bottom:4px">
+    <div style="display:flex;flex-direction:column;gap:2px;margin-right:2px">
+      <div style="height:16px"></div>
+      ${DAY_LABELS.map(l=>`<div style="height:13px;font-size:.55em;color:var(--muted);line-height:13px;white-space:nowrap;text-align:right;padding-right:2px">${l}</div>`).join('')}
+    </div>`;
+
+  const cur=new Date(startDate);
+  let prevMonth=-1;
+  while(cur<=today){
+    html+=`<div style="display:flex;flex-direction:column;gap:2px">`;
+    const mo=cur.getMonth();
+    const monthLabel=(mo!==prevMonth&&cur.getDate()<=7)?['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][mo]:'';
+    prevMonth=mo;
+    html+=`<div style="height:16px;font-size:.55em;color:var(--muted);white-space:nowrap">${monthLabel}</div>`;
+    for(let dow=0;dow<7;dow++){
+      const d=new Date(cur); d.setDate(cur.getDate()+dow);
+      if(d>today){html+=`<div style="width:13px;height:13px"></div>`;continue;}
+      const ds=d.toISOString().slice(0,10);
+      const habitDow=d.getDay()===0?6:d.getDay()-1;
+      const active=habits.filter(h=>freqActiveDays(h).includes(habitDow));
+      if(active.length===0){html+=`<div class="heatmap-day hm-0" title="${ds}"></div>`;continue;}
+      const done=active.filter(h=>(h.history||{})[ds]===true).length;
+      const pct=done/active.length;
+      const lvl=done===0?0:pct<0.26?1:pct<0.51?2:pct<0.76?3:4;
+      html+=`<div class="heatmap-day hm-${lvl}" title="${ds}: ${done}/${active.length} habits (${Math.round(pct*100)}%)"></div>`;
+    }
+    html+='</div>';
+    cur.setDate(cur.getDate()+7);
+  }
+  html+=`</div>
+  <div class="heatmap-legend">
+    <span>Less</span>
+    ${[0,1,2,3,4].map(i=>`<div class="heatmap-day hm-${i}" style="width:12px;height:12px"></div>`).join('')}
+    <span>More</span>
+  </div>`;
+  el.innerHTML=html;
+}
+
+function renderSavingsTracker(){
+  const section=document.getElementById('savings-section');
+  const list=document.getElementById('savings-list');
+  if(!section||!list) return;
+  const negHabits=habits.filter(h=>h.type==='negative'&&h.costPerSlip>0);
+  if(negHabits.length===0){section.style.display='none';return;}
+  section.style.display='block';
+  let totalSaved=0, totalSpent=0;
+  list.innerHTML=negHabits.map(h=>{
+    const {slips,resisted}=getHabitStats(h);
+    const saved=resisted*(h.costPerSlip||0);
+    const spent=slips*(h.costPerSlip||0);
+    totalSaved+=saved; totalSpent+=spent;
+    return`<div class="habit-analytics-row">
+      <div class="hab-name"><span class="cat-dot" style="background:#e74c3c"></span>${esc(h.name)} <span style="font-size:.75em;color:var(--muted)">($${h.costPerSlip}/slip)</span></div>
+      <span class="habit-savings" style="margin:0">💰 $${saved.toFixed(2)} saved</span>
+      <span class="habit-slips" style="margin:0">💸 $${spent.toFixed(2)} spent</span>
+    </div>`;
+  }).join('');
+  list.insertAdjacentHTML('beforeend',`<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;gap:16px;flex-wrap:wrap">
+    <span style="font-weight:700;font-size:.9em">Total: <span style="color:#2d6a2d">💰 $${totalSaved.toFixed(2)} saved</span> &nbsp; <span style="color:#c62828">💸 $${totalSpent.toFixed(2)} spent</span></span>
+  </div>`);
+}
+
+// ════════════════════════════════════════════════
+//  FOCUS TIMER
+// ════════════════════════════════════════════════
+let timerInterval=null, timerSeconds=25*60, timerPhase='focus', timerRunning=false, timerTaskId=null;
+const TIMER_WORK=25*60, TIMER_BREAK=5*60;
+
+function openFocusTimer(taskId, taskTitle){
+  timerTaskId=taskId;
+  document.getElementById('timer-task-name').textContent='▶ '+taskTitle;
+  document.getElementById('focus-timer').classList.add('visible');
+  if(!timerRunning) timerReset();
+}
+function timerClose(){
+  timerPause();
+  document.getElementById('focus-timer').classList.remove('visible','running','break-phase');
+}
+function timerToggle(){
+  timerRunning ? timerPause() : timerStart();
+}
+function timerStart(){
+  timerRunning=true;
+  document.getElementById('focus-timer').classList.add('running');
+  document.getElementById('timer-toggle-btn').textContent='Pause';
+  timerInterval=setInterval(()=>{
+    timerSeconds--;
+    updateTimerDisplay();
+    if(timerSeconds<=0){
+      clearInterval(timerInterval);
+      timerRunning=false;
+      if(timerPhase==='focus'){
+        timerPhase='break'; timerSeconds=TIMER_BREAK;
+        document.getElementById('focus-timer').classList.remove('running');
+        document.getElementById('focus-timer').classList.add('break-phase');
+        document.getElementById('timer-phase').textContent='☕ Break time!';
+        document.getElementById('timer-toggle-btn').textContent='Start Break';
+        showToast('🍅 Focus session done! Take a 5-min break.');
+        try{new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAA').play().catch(()=>{});}catch{}
+      } else {
+        timerPhase='focus'; timerSeconds=TIMER_WORK;
+        document.getElementById('focus-timer').classList.remove('break-phase');
+        document.getElementById('timer-phase').textContent='🍅 Focus session';
+        document.getElementById('timer-toggle-btn').textContent='Start Focus';
+        showToast('☕ Break over — ready for another session!');
+      }
+      updateTimerDisplay();
+    }
+  },1000);
+}
+function timerPause(){
+  timerRunning=false;
+  clearInterval(timerInterval);
+  document.getElementById('focus-timer').classList.remove('running');
+  document.getElementById('timer-toggle-btn').textContent='Resume';
+}
+function timerReset(){
+  timerPause();
+  timerPhase='focus'; timerSeconds=TIMER_WORK;
+  document.getElementById('focus-timer').classList.remove('break-phase');
+  document.getElementById('timer-phase').textContent='🍅 Focus session';
+  document.getElementById('timer-toggle-btn').textContent='Start';
+  updateTimerDisplay();
+}
+function updateTimerDisplay(){
+  const m=Math.floor(timerSeconds/60), s=timerSeconds%60;
+  document.getElementById('timer-display').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+// ════════════════════════════════════════════════
+//  QUICK ADD
+// ════════════════════════════════════════════════
+let quickAddOpen=false;
+let _qaAttached=false;
+function openQuickAdd(){
+  quickAddOpen=true;
+  const bar=document.getElementById('quick-add-bar'); if(bar) bar.classList.add('visible');
+  const inp=document.getElementById('quick-add-input'); if(inp) inp.value='';
+  const preview=document.getElementById('quick-add-preview'); if(preview) preview.innerHTML='';
+  // attach listeners in case script ran before markup
+  attachQuickAdd();
+  setTimeout(()=>{ const i=document.getElementById('quick-add-input'); if(i) i.focus(); },100);
+}
+function closeQuickAdd(){
+  quickAddOpen=false;
+  const bar=document.getElementById('quick-add-bar'); if(bar) bar.classList.remove('visible');
+}
+
+function parseQuickAdd(text){
+  let title=text, dueDate='', tag='', priority='medium';
+  // Extract date: @today @tomorrow @monday etc
+  const dateMatch=text.match(/@(today|tomorrow|monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tue|wed|thu|fri|sat|sun)\b/i);
+  if(dateMatch){
+    const kw=dateMatch[1].toLowerCase();
+    const now=new Date(); now.setHours(0,0,0,0);
+    if(kw==='today') dueDate=now.toISOString().slice(0,10);
+    else if(kw==='tomorrow'){now.setDate(now.getDate()+1);dueDate=now.toISOString().slice(0,10);}
+    else {
+      const DAYS={monday:1,tuesday:2,wednesday:3,thursday:4,friday:5,saturday:6,sunday:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6,sun:0};
+      const target=DAYS[kw]; let d=new Date(now);
+      do{d.setDate(d.getDate()+1);}while(d.getDay()!==target);
+      dueDate=d.toISOString().slice(0,10);
+    }
+    title=title.replace(dateMatch[0],'');
+  }
+  // Extract tag: #word
+  const tagMatch=text.match(/#(\w+)/);
+  if(tagMatch){tag=tagMatch[1];title=title.replace(tagMatch[0],'');}
+  // Extract priority: !high !medium !low
+  const priMatch=text.match(/!(high|medium|low|h|m|l)\b/i);
+  if(priMatch){
+    const p=priMatch[1].toLowerCase();
+    priority=p==='h'?'high':p==='l'?'low':p==='m'?'medium':p;
+    title=title.replace(priMatch[0],'');
+  }
+  title=title.replace(/\s+/g,' ').trim();
+  return{title,dueDate,tag,priority};
+}
+
+function attachQuickAdd(){
+  if(_qaAttached) return;
+  const _qaInput = document.getElementById('quick-add-input');
+  if(!_qaInput) return;
+  _qaInput.addEventListener('input', function(){
+    const {title,dueDate,tag,priority}=parseQuickAdd(this.value);
+    const chips=[];
+    if(dueDate) chips.push(`<span class="qa-chip date">📅 ${dueDate}</span>`);
+    if(tag) chips.push(`<span class="qa-chip tag">#${esc(tag)}</span>`);
+    if(priority!=='medium') chips.push(`<span class="qa-chip priority">!${priority}</span>`);
+    if(title) chips.push(`<span class="qa-chip">📋 ${esc(title)}</span>`);
+    const preview = document.getElementById('quick-add-preview'); if(preview) preview.innerHTML=chips.join('');
+  });
+
+  _qaInput.addEventListener('keydown', function(e){
+    if(e.key==='Enter'){ quickAddSubmit(); }
+    if(e.key==='Escape') closeQuickAdd();
+  });
+  _qaAttached=true;
+}
+
+// Attach now if element already exists
+attachQuickAdd();
+
+function quickAddSubmit(){
+  const inp=document.getElementById('quick-add-input'); if(!inp) return;
+  const {title,dueDate,tag,priority}=parseQuickAdd(inp.value);
+  if(!title){ showToast('Add a task name first!'); return; }
+  tasks.todo.push({id:taskIdCounter++,title,dueDate,time:'',priority,tag,notes:'',starred:false});
+  closeQuickAdd(); saveAndRender(); showToast(`✅ Added: "${title}"`);
+}
+
+// Global "/" shortcut to open quick add
+document.addEventListener('keydown',e=>{
+  if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)&&!e.ctrlKey&&!e.metaKey){
+    e.preventDefault();
+    openQuickAdd();
+  }
+});
 let calView = 'month';
+let navDate = new Date(); // Dedicated object for calendar navigation
 
 // New Filter State Object
 let currentCalFilters = { type: 'all', priority: 'all', habitType: 'all', category: 'all' };
@@ -1875,9 +2347,9 @@ function renderDailyView(year,month,day){
 
   panel.addEventListener('click', e=>{
     const taskRow=e.target.closest('[data-task-id]');
-    if(taskRow){const id=parseInt(taskRow.dataset.taskId);const col=taskRow.dataset.col;const task=tasks[col]?.find(t=>t.id===id);if(task) openEditModal(task,col);return;}
+    if(taskRow){const id=parseInt(taskRow.dataset.taskId);const col=taskRow.dataset.col;const task=tasks[col]?.find(t=>t.id===id);if(task) openTaskPreview(task,col);return;}
     const habitRow=e.target.closest('[data-habit-idx]');
-    if(habitRow){openEditHabitModal(parseInt(habitRow.dataset.habitIdx));return;}
+    if(habitRow){openHabitPreview(parseInt(habitRow.dataset.habitIdx));return;}
     const addBtn=e.target.closest('[data-add-task-date]');
     if(addBtn){openTaskModal(addBtn.dataset.addTaskDate);return;}
     const slot=e.target.closest('.outlook-hour-cell');
@@ -1889,7 +2361,7 @@ function renderWeekView(isWorkweek, is7days, is3days){
   const grid=document.getElementById('cal-grid');
   const panel=document.getElementById('cal-daily-panel');
   panel.style.display='none';
-  const anchor=new Date(calYear,calMonth,calDay);
+  const anchor=new Date(navDate);
   let startOffset=0;
   if(is3days){
     startOffset=0;
@@ -1900,7 +2372,7 @@ function renderWeekView(isWorkweek, is7days, is3days){
   const days=is3days?3:isWorkweek?5:7;
   const dates=[];
   for(let i=0;i<days;i++){
-    const d=new Date(calYear,calMonth,calDay+startOffset+i);
+    const d=new Date(navDate.getFullYear(),navDate.getMonth(),navDate.getDate()+startOffset+i);
     dates.push(d);
   }
   const today=new Date();
@@ -2093,10 +2565,10 @@ function renderWeekView(isWorkweek, is7days, is3days){
       e.stopPropagation();
       const id=parseInt(taskEl.dataset.taskId); const col=taskEl.dataset.col;
       const task=tasks[col]?.find(t=>t.id===id);
-      if(task) openEditModal(task,col); return;
+      if(task) openTaskPreview(task,col); return;
     }
     const habitEl=e.target.closest('[data-habit-idx]');
-    if(habitEl){ e.stopPropagation(); openEditHabitModal(parseInt(habitEl.dataset.habitIdx)); return; }
+    if(habitEl){ e.stopPropagation(); openHabitPreview(parseInt(habitEl.dataset.habitIdx)); return; }
     const hourCell=e.target.closest('[data-date][data-hour]');
     if(hourCell){ openTaskModal(hourCell.dataset.date); return; }
   },{once:true});
@@ -2110,11 +2582,11 @@ function renderMultiMonthView(numMonths){
   const today=new Date();
   const allTasks=[...tasks.todo,...tasks.inprogress,...tasks.done];
   document.getElementById('cal-month-label').textContent=
-    numMonths===3?`${monthNames[calMonth]} – ${monthNames[(calMonth+2)%12]} ${calYear}`
-                 :`${monthNames[calMonth]} – ${monthNames[(calMonth+5)%12]} ${calYear}`;
+    numMonths===3?`${monthNames[navDate.getMonth()]} – ${monthNames[(navDate.getMonth()+2)%12]} ${navDate.getFullYear()}`
+                 :`${monthNames[navDate.getMonth()]} – ${monthNames[(navDate.getMonth()+5)%12]} ${navDate.getFullYear()}`;
   let html=`<div class="cal-multi-month ${numMonths===3?'months-3':'months-6'}">`;
   for(let mi=0;mi<numMonths;mi++){
-    let yr=calYear, mo=calMonth+mi;
+    let yr=navDate.getFullYear(), mo=navDate.getMonth()+mi;
     while(mo>11){mo-=12;yr++;}
     const firstDay=new Date(yr,mo,1).getDay();
     const daysInMonth=new Date(yr,mo+1,0).getDate();
@@ -2148,23 +2620,26 @@ function renderMultiMonthView(numMonths){
 }
 
 function calMove(dir){
-  if(calView==='daily'){calDay+=dir;const d=new Date(calYear,calMonth,calDay);calYear=d.getFullYear();calMonth=d.getMonth();calDay=d.getDate();}
-  else if(calView==='3days'){calDay+=dir*3;const d=new Date(calYear,calMonth,calDay);calYear=d.getFullYear();calMonth=d.getMonth();calDay=d.getDate();}
-  else if(calView==='week'||calView==='workweek'){calDay+=dir*7;const d=new Date(calYear,calMonth,calDay);calYear=d.getFullYear();calMonth=d.getMonth();calDay=d.getDate();}
-  else if(calView==='3month'){calMonth+=dir*3;if(calMonth>11){calYear+=Math.floor(calMonth/12);calMonth=calMonth%12;}else if(calMonth<0){calMonth+=12;calYear--;}}
-  else if(calView==='6month'){calMonth+=dir*6;if(calMonth>11){calYear+=Math.floor(calMonth/12);calMonth=calMonth%12;}else if(calMonth<0){calMonth+=12;calYear--;}}
-  else{calMonth+=dir;if(calMonth>11){calMonth=0;calYear++;}if(calMonth<0){calMonth=11;calYear--;}}
+  if(calView==='daily'){navDate.setDate(navDate.getDate()+dir);}
+  else if(calView==='3days'){navDate.setDate(navDate.getDate()+dir*3);}
+  else if(calView==='week'||calView==='workweek'){navDate.setDate(navDate.getDate()+dir*7);}
+  else if(calView==='3month'){navDate.setMonth(navDate.getMonth()+dir*3);}
+  else if(calView==='6month'){navDate.setMonth(navDate.getMonth()+dir*6);}
+  else{navDate.setMonth(navDate.getMonth()+dir);}
   renderCalendar();
 }
-function calGoToday(){const n=new Date();calYear=n.getFullYear();calMonth=n.getMonth();calDay=n.getDate();renderCalendar();}
-function openDailyView(year,month,day){calYear=year;calMonth=month;calDay=day;calView='daily';document.getElementById('cal-view-select').value='daily';renderCalendar();}
+function calGoToday(){navDate=new Date();renderCalendar();}
+function openDailyView(year,month,day){navDate=new Date(year,month,day);calView='daily';document.getElementById('cal-view-select').value='daily';renderCalendar();}
 
 function renderCalendar(){
   const monthNames=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const year=navDate.getFullYear();
+  const month=navDate.getMonth();
+  const day=navDate.getDate();
   if(calView==='daily'){
-    document.getElementById('cal-month-label').textContent=new Date(calYear,calMonth,calDay).toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
+    document.getElementById('cal-month-label').textContent=navDate.toLocaleDateString(undefined,{month:'long',day:'numeric',year:'numeric'});
     document.getElementById('cal-grid').style.display='none';
-    renderDailyView(calYear,calMonth,calDay);
+    renderDailyView(year,month,day);
     return;
   }
   document.getElementById('cal-daily-panel').style.display='none';
@@ -2175,16 +2650,23 @@ function renderCalendar(){
   if(calView==='6month'){renderMultiMonthView(6);return;}
 
   // Month view
-  document.getElementById('cal-month-label').textContent=`${monthNames[calMonth]} ${calYear}`;
-  const firstDay=new Date(calYear,calMonth,1).getDay();
-  const daysInMonth=new Date(calYear,calMonth+1,0).getDate();
+  document.getElementById('cal-month-label').textContent=`${monthNames[month]} ${year}`;
+  const firstDay=new Date(year,month,1).getDay();
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const prevMonthLastDay=new Date(year,month,0).getDate();
   const today=new Date();
   const todayStr=today.toISOString().slice(0,10);
   const allTasks=[...tasks.todo,...tasks.inprogress,...tasks.done];
   let html=['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>`<div class="cal-day-header">${d}</div>`).join('');
-  for(let i=0;i<firstDay;i++)html+=`<div class="cal-cell other-month"></div>`;
+  
+  // Fill previous month's trailing days
+  for(let x=firstDay;x>0;x--){
+    html+=`<div class="cal-cell other-month"><div class="cal-date-num">${prevMonthLastDay-x+1}</div></div>`;
+  }
+  
+  // Fill current month's days
   for(let d=1;d<=daysInMonth;d++){
-    const dateStr=`${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dateStr=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const isToday=dateStr===todayStr;
     const {dayTasks,dayHabits}=getDayEvents(dateStr);
     let events='';
@@ -2194,16 +2676,18 @@ function renderCalendar(){
       const colKey=isDone?'done':tasks.inprogress.some(x=>x.id===t.id)?'inprogress':'todo';
       events+=`<div class="cal-event task-event${isDone?' done':isOverdue?' overdue':''}" data-task-id="${t.id}" data-col="${colKey}" title="${esc(t.title)}">📋 ${esc(t.title)}${t.time?` ⏰${esc(t.time)}`:''}</div>`;
     });
-    const dow=new Date(calYear,calMonth,d).getDay();
+    const dow=new Date(year,month,d).getDay();
     const habitDow=dow===0?6:dow-1;
     dayHabits.forEach(h=>{
       const checked=h.days[habitDow];
       const hIdx=habits.indexOf(h);
       events+=`<div class="cal-event habit-event${!checked?' missed':''}" data-habit-idx="${hIdx}" title="${esc(h.name)}">${checked?'✅':'⬜'} ${esc(h.name)}</div>`;
     });
-    html+=`<div class="cal-cell${isToday?' today':''}" data-open-day="${calYear}-${calMonth}-${d}"><div class="cal-date-num">${d}</div>${events}</div>`;
+    html+=`<div class="cal-cell${isToday?' today':''}" data-open-day="${year}-${month}-${d}"><div class="cal-date-num">${d}</div>${events}</div>`;
   }
+  
   const grid=document.getElementById('cal-grid');
+  grid.innerHTML=''; // Clear previous view - essential for proper rendering
   grid.className='cal-grid';
   grid.innerHTML=html;
   grid.style.display='grid';
@@ -2212,7 +2696,7 @@ function renderCalendar(){
     const taskEl=e.target.closest('[data-task-id][data-col]');
     if(taskEl){e.stopPropagation();const id=parseInt(taskEl.dataset.taskId);const col=taskEl.dataset.col;const task=tasks[col]?.find(t=>t.id===id);if(task) openEditModal(task,col);return;}
     const habitEl=e.target.closest('[data-habit-idx]');
-    if(habitEl){e.stopPropagation();openEditHabitModal(parseInt(habitEl.dataset.habitIdx));return;}
+    if(habitEl){e.stopPropagation();openHabitPreview(parseInt(habitEl.dataset.habitIdx));return;}
     const dayCell=e.target.closest('[data-open-day]');
     if(dayCell){const [y,m,d]=dayCell.dataset.openDay.split('-').map(Number);openDailyView(y,m,d);}
   },{once:true});
@@ -2259,10 +2743,11 @@ function parseCSVLine(line) {
 // ════════════════════════════════════════════════
 //  FIREWORKS
 // ════════════════════════════════════════════════
-const canvas=document.getElementById('fireworks'),ctx=canvas.getContext('2d');
-let particles=[], fireworksAnimating=false;
-function resizeCanvas(){canvas.width=window.innerWidth;canvas.height=window.innerHeight;}
-window.addEventListener('resize',resizeCanvas);resizeCanvas();
+const canvas = document.getElementById('fireworks');
+const ctx = canvas ? canvas.getContext('2d') : null;
+let particles = [], fireworksAnimating = false;
+function resizeCanvas(){ if(!canvas) return; canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+if(typeof window !== 'undefined'){ window.addEventListener('resize', resizeCanvas); resizeCanvas(); }
 function triggerFireworks(){for(let i=0;i<5;i++)setTimeout(()=>createFirework(Math.random()*canvas.width,Math.random()*(canvas.height/2)),i*400);}
 function createFirework(x,y){
   const colors=['#ff0055','#00ffcc','#ffcc00','#ff00ff','#d4a373'],color=colors[Math.floor(Math.random()*colors.length)];
@@ -2294,10 +2779,15 @@ function animateFireworks(){
 //  PWA INSTALL
 // ════════════════════════════════════════════════
 let deferredPrompt;
-window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('install-banner').style.display='flex';});
-document.getElementById('install-btn').addEventListener('click',async()=>{document.getElementById('install-banner').style.display='none';if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;}});
-document.getElementById('dismiss-btn').addEventListener('click',()=>{document.getElementById('install-banner').style.display='none';});
-window.addEventListener('appinstalled',()=>{document.getElementById('install-banner').style.display='none';});
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  const banner = document.getElementById('install-banner'); if(banner) banner.style.display = 'flex';
+});
+const _installBtn = document.getElementById('install-btn');
+if(_installBtn){ _installBtn.addEventListener('click', async () => { const banner = document.getElementById('install-banner'); if(banner) banner.style.display = 'none'; if(deferredPrompt){ deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; } }); }
+const _dismissBtn = document.getElementById('dismiss-btn');
+if(_dismissBtn){ _dismissBtn.addEventListener('click', ()=>{ const banner = document.getElementById('install-banner'); if(banner) banner.style.display = 'none'; }); }
+window.addEventListener('appinstalled', ()=>{ const banner = document.getElementById('install-banner'); if(banner) banner.style.display = 'none'; });
 if('serviceWorker' in navigator && !['claudeusercontent.com','localhost'].some(h=>location.hostname.includes(h))){
   navigator.serviceWorker.register('sw.js').catch(e=>console.warn('[2DoByU] SW not registered:',e));
 }
@@ -2307,19 +2797,18 @@ if('serviceWorker' in navigator && !['claudeusercontent.com','localhost'].some(h
 // ════════════════════════════════════════════════
 (function(){
   let swipeStartX=0, swipeStartY=0;
-  const calEl=document.getElementById('page-calendar');
-  calEl.addEventListener('touchstart',e=>{
-    swipeStartX=e.touches[0].clientX;
-    swipeStartY=e.touches[0].clientY;
-  },{passive:true});
-  calEl.addEventListener('touchend',e=>{
+  const calEl = document.getElementById('page-calendar');
+  if(!calEl) return;
+  calEl.addEventListener('touchstart', e => {
+    swipeStartX = e.touches[0].clientX;
+    swipeStartY = e.touches[0].clientY;
+  }, {passive:true});
+  calEl.addEventListener('touchend', e => {
     if(!e.changedTouches.length) return;
-    const dx=e.changedTouches[0].clientX-swipeStartX;
-    const dy=e.changedTouches[0].clientY-swipeStartY;
-    if(Math.abs(dx)>60 && Math.abs(dx)>Math.abs(dy)*1.5){
-      calMove(dx<0?1:-1);
-    }
-  },{passive:true});
+    const dx = e.changedTouches[0].clientX - swipeStartX;
+    const dy = e.changedTouches[0].clientY - swipeStartY;
+    if(Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5){ calMove(dx < 0 ? 1 : -1); }
+  }, {passive:true});
 })();
 
 // ════════════════════════════════════════════════
@@ -2341,23 +2830,12 @@ function saveSetting(key,val){
 }
 
 function renderSettingsUI(){
-  const hasPin = pinIsSet();
-  document.getElementById('row-add-pin').style.display = hasPin ? 'none' : 'flex';
-  document.getElementById('row-change-pin').style.display = hasPin ? 'flex' : 'none';
-  document.getElementById('row-remove-pin').style.display = hasPin ? 'flex' : 'none';
-  document.getElementById('btn-lock-app').style.display = hasPin ? 'flex' : 'none';
-
-  const al=document.getElementById('setting-autolock'); if(al) al.checked=appSettings.autolock!==false;
   const cp=document.getElementById('setting-compact'); if(cp) cp.checked=!!appSettings.compact;
   const fd=document.getElementById('setting-firstday'); if(fd) fd.value=appSettings.firstday||'mon';
   const fw=document.getElementById('setting-fireworks'); if(fw) fw.checked=appSettings.fireworks!==false;
   document.querySelectorAll('.theme-card').forEach(c=>c.classList.toggle('selected',c.dataset.theme===appSettings.theme));
   document.querySelectorAll('.accent-swatch').forEach(s=>s.classList.toggle('selected',s.dataset.accent===appSettings.accent));
 }
-
-function startAddPin() { isSettingsAction = true; showPinScreen('setup'); }
-function startChangePin() { isSettingsAction = true; showPinScreen('verify_change'); }
-function startRemovePin() { isSettingsAction = true; showPinScreen('verify_remove'); }
 
 function setTheme(theme){ appSettings.theme=theme; saveSetting('theme',theme); applyTheme(theme); document.querySelectorAll('.theme-card').forEach(c=>c.classList.toggle('selected',c.dataset.theme===theme)); }
 function applyTheme(theme){ const prefersDark=window.matchMedia('(prefers-color-scheme:dark)').matches; const isDark=theme==='dark'||(theme==='system'&&prefersDark); document.body.classList.toggle('dark',isDark); }
@@ -2370,7 +2848,7 @@ const compactStyle=document.createElement('style'); compactStyle.textContent=`bo
 function confirmClearData(){
   if(!confirm('This will permanently delete ALL tasks and habits. This cannot be undone. Are you sure?')) return;
   if(!confirm('Last chance — delete everything?')) return;
-  tasks={todo:[],inprogress:[],done:[]}; habits=[];
+  tasks={todo:[],inprogress:[],done:[]}; habits=[]; notes=[];
   saveAndRender(); showToast('All data cleared.');
 }
 
@@ -2417,16 +2895,65 @@ function showToast(msg){
 // ════════════════════════════════════════════════
 //  BOOT
 // ════════════════════════════════════════════════
-(async function boot() {
-  loadSettings();
-  if (pinIsSet()) {
-    showPinScreen('unlock');
-  } else {
-    currentPin = ""; // Fallback empty pin for background encryption
-    await loadData();
-    openApp();
-  }
+(function openApp(){
+  // Initialize app UI and render the current page.
+  try{
+    // Respect URL hash if present
+    const hash=location.hash.replace('#','');
+    if(hash && document.getElementById('page-'+hash)) currentPage=hash;
+    // Ensure cal view select matches state
+    const cv=document.getElementById('cal-view-select'); if(cv) cv.value=calView;
+    // Render the active page
+    navigateTo(currentPage);
+  }catch(err){console.warn('[2DoByU] openApp error',err);}
+  // Keep a small boot wrapper for backward compat
+  (function boot(){ loadSettings(); loadData(); })();
 })();
 </script>
+<div id="focus-timer">
+  <div class="timer-task-name" id="timer-task-name">No task selected</div>
+  <div class="timer-display" id="timer-display">25:00</div>
+  <div class="timer-phase" id="timer-phase">🍅 Focus session</div>
+  <div class="timer-controls">
+    <button class="timer-btn primary" id="timer-toggle-btn" onclick="timerToggle()">Start</button>
+    <button class="timer-btn" onclick="timerReset()">Reset</button>
+    <button class="timer-btn" onclick="timerClose()">✕</button>
+  </div>
+</div>
+
+<div id="quick-add-bar">
+  <div class="qa-row">
+    <span style="font-size:1.1em;flex-shrink:0">⚡</span>
+    <input id="quick-add-input" placeholder="Task name @tomorrow #tag !high" autocomplete="off" spellcheck="false">
+    <button class="action-btn" id="quick-add-submit" style="padding:8px 12px;font-size:.9em;margin-left:8px" onclick="quickAddSubmit()">Add</button>
+    <span class="qa-hint">↵ save · Esc close</span>
+  </div>
+  <div id="quick-add-preview"></div>
+</div>
+
+<!-- Preview modal used for quick view before editing -->
+<div class="modal-overlay" id="preview-modal" role="dialog" aria-modal="true" style="display:none" onclick="if(event.target===this)closePreview()">
+  <div class="modal" id="preview-modal-inner">
+    <div id="preview-content"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="note-modal" role="dialog" aria-modal="true" onclick="if(event.target===this)closeNoteModal()">
+  <div class="modal note-editor" id="note-editor-inner">
+    <input type="text" id="n-title" class="note-editor-title" placeholder="Title">
+    <textarea id="n-body" class="note-editor-body" placeholder="Take a note…" rows="8"></textarea>
+    <div class="note-color-picker" id="n-color-picker"></div>
+    <div class="modal-footer" style="padding-top:10px;border-top:1px solid rgba(0,0,0,.07)">
+      <button class="btn btn-delete" id="n-delete-btn" style="display:none" onclick="deleteCurrentNote()">Delete</button>
+      <label class="note-pin-label" id="n-pin-label">
+        <input type="checkbox" id="n-pinned"> Pin
+      </label>
+      <div style="flex:1"></div>
+      <button class="btn btn-cancel" onclick="closeNoteModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+
 </body>
 </html>
