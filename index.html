@@ -473,6 +473,90 @@ body.dark .note-editor-title, body.dark .note-editor-body { color:var(--text); }
 .card.drag-target-before { box-shadow:0 -3px 0 0 var(--accent), 0 1px 4px rgba(0,0,0,.05); }
 .card.drag-target-after  { box-shadow:0 3px 0 0 var(--accent), 0 1px 4px rgba(0,0,0,.05); }
 
+/* ══════════════════════════════════════════
+   SORT / FILTER / VIEW TOOLBAR
+══════════════════════════════════════════ */
+.tb-toolbar { display:flex; align-items:center; gap:8px; margin-bottom:16px; flex-wrap:wrap; }
+.tb-btn { display:flex; align-items:center; gap:5px; padding:6px 12px; border-radius:8px; border:1px solid var(--border); background:white; cursor:pointer; font-size:.78em; font-weight:600; color:var(--text); transition:.15s; white-space:nowrap; }
+.tb-btn:hover { background:var(--bg); border-color:#bbb; }
+.tb-btn.active-filter { border-color:var(--accent); color:var(--accent); background:#fdf4ea; }
+.tb-btn svg { flex-shrink:0; }
+.tb-chevron { font-size:.6em; opacity:.5; margin-left:1px; }
+.tb-sep { flex:1; }
+
+/* Dropdown wrapper */
+.tb-dropdown-wrap { position:relative; }
+.tb-dropdown { position:absolute; top:calc(100% + 6px); left:0; background:white; border:1px solid var(--border); border-radius:10px; box-shadow:0 8px 32px rgba(0,0,0,.14); z-index:600; min-width:210px; padding:8px; display:none; }
+.tb-dropdown.open { display:block; }
+.tb-dropdown-section { font-size:.65em; font-weight:700; text-transform:uppercase; letter-spacing:.8px; color:var(--muted); padding:6px 8px 3px; }
+.tb-dropdown-item { display:flex; align-items:center; gap:9px; padding:7px 9px; border-radius:6px; cursor:pointer; font-size:.82em; color:var(--text); transition:.1s; }
+.tb-dropdown-item:hover { background:var(--bg); }
+.tb-dropdown-item.selected { background:#fdf4ea; color:var(--accent); font-weight:600; }
+.tb-dropdown-item .item-icon { font-size:.9em; width:16px; text-align:center; }
+.tb-dropdown hr { border:none; border-top:1px solid var(--border); margin:5px 0; }
+
+/* View picker buttons */
+.view-picker { display:flex; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.view-pick-btn { padding:6px 11px; border:none; background:white; cursor:pointer; font-size:.8em; color:var(--muted); transition:.15s; display:flex; align-items:center; gap:4px; border-right:1px solid var(--border); }
+.view-pick-btn:last-child { border-right:none; }
+.view-pick-btn:hover { background:var(--bg); color:var(--text); }
+.view-pick-btn.active { background:var(--accent); color:white; }
+
+body.dark .tb-btn { background:var(--surface); border-color:var(--border); }
+body.dark .tb-dropdown { background:var(--surface); border-color:var(--border); }
+body.dark .tb-dropdown-item:hover { background:var(--surface2); }
+body.dark .view-pick-btn { background:var(--surface); }
+body.dark .view-pick-btn:hover { background:var(--surface2); }
+
+/* ══════════════════════════════════════════
+   TASK LIST VIEW
+══════════════════════════════════════════ */
+.task-list-view { display:flex; flex-direction:column; gap:0; }
+.task-list-group { margin-bottom:18px; }
+.task-list-group-header { font-size:.7em; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:var(--muted); padding:6px 0 8px; display:flex; align-items:center; gap:8px; }
+.task-list-group-header .tlg-count { background:var(--border); border-radius:10px; padding:1px 7px; font-size:.9em; color:#666; }
+.task-list-row { display:flex; align-items:center; gap:12px; background:white; border-radius:8px; padding:11px 14px; margin-bottom:6px; border:1px solid var(--border); border-left:4px solid var(--accent); cursor:pointer; transition:.15s; }
+.task-list-row:hover { box-shadow:0 2px 10px rgba(0,0,0,.07); transform:translateX(2px); }
+.task-list-row.priority-high { border-left-color:#e74c3c; }
+.task-list-row.priority-medium { border-left-color:#f39c12; }
+.task-list-row.priority-low { border-left-color:#3498db; }
+.task-list-row.starred-card { box-shadow:0 0 0 1px #f59e0b44; }
+.tl-check { width:18px; height:18px; border-radius:50%; border:2px solid var(--border); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:.7em; }
+.tl-check.done { background:var(--accent); border-color:var(--accent); color:white; }
+.tl-title { font-weight:600; font-size:.9em; flex:1; }
+.tl-title.done-title { text-decoration:line-through; opacity:.55; }
+.tl-meta { display:flex; align-items:center; gap:6px; flex-shrink:0; flex-wrap:wrap; justify-content:flex-end; }
+.tl-date { font-size:.72em; color:var(--muted); }
+.tl-star { background:none; border:none; cursor:pointer; font-size:.85em; opacity:.3; padding:2px; transition:.15s; }
+.tl-star.starred { opacity:1; }
+body.dark .task-list-row { background:var(--surface); border-color:var(--border); }
+body.dark .task-list-group-header .tlg-count { background:var(--surface2); color:var(--muted); }
+
+/* ══════════════════════════════════════════
+   COMPACT BOARD
+══════════════════════════════════════════ */
+.compact-board .card { padding:9px 11px; margin-bottom:6px; }
+.compact-board .card-title { font-size:.88em; margin-bottom:2px; }
+.compact-board .card-meta { margin-top:4px; gap:4px; }
+.compact-board .card-notes { display:none; }
+.compact-board .card-star { top:7px; right:7px; }
+
+/* ══════════════════════════════════════════
+   HABIT LIST VIEW
+══════════════════════════════════════════ */
+.habit-list-view { display:flex; flex-direction:column; gap:8px; }
+.habit-list-row { display:flex; align-items:center; gap:14px; background:white; border-radius:8px; padding:13px 16px; border:1px solid var(--border); border-left:4px solid var(--accent); cursor:pointer; transition:.15s; }
+.habit-list-row:hover { box-shadow:0 2px 10px rgba(0,0,0,.07); }
+.habit-list-row.negative { border-left-color:#e74c3c; }
+.hl-name { font-weight:600; font-size:.9em; flex:1; }
+.hl-cat { font-size:.72em; color:var(--muted); }
+.hl-streak { font-size:.78em; font-weight:600; color:var(--accent); background:#fdf4ea; padding:3px 8px; border-radius:10px; white-space:nowrap; }
+.hl-days { display:flex; gap:3px; }
+.hl-day { width:22px; height:22px; border-radius:5px; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:.6em; font-weight:700; cursor:pointer; transition:.1s; }
+.hl-day.checked { background:var(--accent); color:white; border-color:var(--accent); }
+.hl-day.inactive { opacity:.25; cursor:default; }
+body.dark .habit-list-row { background:var(--surface); border-color:var(--border); }
+
 </style>
 </head>
 <body>
@@ -522,7 +606,70 @@ body.dark .note-editor-title, body.dark .note-editor-body { color:var(--text); }
         <button class="filter-chip" id="chip-overdue" onclick="setTaskFilter('overdue')">⚠️ Overdue</button>
         <button class="quick-add-fab" onclick="openQuickAdd()">⚡ Quick Add</button>
       </div>
-      <div class="columns-container">
+      <div class="tb-toolbar" id="task-toolbar">
+        <!-- Sort -->
+        <div class="tb-dropdown-wrap" id="task-sort-wrap">
+          <button class="tb-btn" id="task-sort-btn" onclick="toggleDropdown('task-sort-drop')">
+            <span>⇅</span> <span id="task-sort-label">Sort</span> <span class="tb-chevron">▼</span>
+          </button>
+          <div class="tb-dropdown" id="task-sort-drop">
+            <div class="tb-dropdown-section">Sort by</div>
+            <div class="tb-dropdown-item selected" data-tsort="manual" onclick="setTaskSort('manual','asc')"><span class="item-icon">☰</span>Manual order</div>
+            <div class="tb-dropdown-item" data-tsort="dueDate-asc" onclick="setTaskSort('dueDate','asc')"><span class="item-icon">📅</span>Due date — earliest first</div>
+            <div class="tb-dropdown-item" data-tsort="dueDate-desc" onclick="setTaskSort('dueDate','desc')"><span class="item-icon">📅</span>Due date — latest first</div>
+            <div class="tb-dropdown-item" data-tsort="priority-desc" onclick="setTaskSort('priority','desc')"><span class="item-icon">🔴</span>Priority — high first</div>
+            <div class="tb-dropdown-item" data-tsort="priority-asc" onclick="setTaskSort('priority','asc')"><span class="item-icon">🔵</span>Priority — low first</div>
+            <div class="tb-dropdown-item" data-tsort="title-asc" onclick="setTaskSort('title','asc')"><span class="item-icon">🔤</span>Title A → Z</div>
+            <div class="tb-dropdown-item" data-tsort="title-desc" onclick="setTaskSort('title','desc')"><span class="item-icon">🔤</span>Title Z → A</div>
+            <div class="tb-dropdown-item" data-tsort="created-desc" onclick="setTaskSort('created','desc')"><span class="item-icon">🆕</span>Newest first</div>
+            <div class="tb-dropdown-item" data-tsort="created-asc" onclick="setTaskSort('created','asc')"><span class="item-icon">🕰</span>Oldest first</div>
+          </div>
+        </div>
+        <!-- Filter -->
+        <div class="tb-dropdown-wrap" id="task-filter-wrap">
+          <button class="tb-btn" id="task-adv-filter-btn" onclick="toggleDropdown('task-filter-drop')">
+            <span>⊟</span> <span id="task-filter-label">Filter</span> <span class="tb-chevron">▼</span>
+          </button>
+          <div class="tb-dropdown" id="task-filter-drop" style="min-width:230px">
+            <div class="tb-dropdown-section">Priority</div>
+            <div style="display:flex;gap:5px;padding:0 6px 6px;flex-wrap:wrap">
+              <button class="filter-chip active" id="pchip-all" onclick="setTaskPriorityFilter('all')">All</button>
+              <button class="filter-chip" id="pchip-high" onclick="setTaskPriorityFilter('high')">🔴 High</button>
+              <button class="filter-chip" id="pchip-medium" onclick="setTaskPriorityFilter('medium')">🟡 Med</button>
+              <button class="filter-chip" id="pchip-low" onclick="setTaskPriorityFilter('low')">🔵 Low</button>
+            </div>
+            <hr>
+            <div class="tb-dropdown-section">Tag</div>
+            <div id="task-tag-filters" style="padding:0 6px 6px;display:flex;gap:5px;flex-wrap:wrap">
+              <button class="filter-chip active" id="tchip-all" onclick="setTaskTagFilter('all')">All</button>
+            </div>
+            <hr>
+            <div class="tb-dropdown-section">Content</div>
+            <div class="tb-dropdown-item selected" data-cnote="any" onclick="setTaskNotesFilter('any')"><span class="item-icon">📝</span>Any notes</div>
+            <div class="tb-dropdown-item" data-cnote="has" onclick="setTaskNotesFilter('has')"><span class="item-icon">✅</span>Has notes</div>
+            <div class="tb-dropdown-item" data-cnote="none" onclick="setTaskNotesFilter('none')"><span class="item-icon">○</span>No notes</div>
+          </div>
+        </div>
+        <div class="tb-sep"></div>
+        <!-- View picker -->
+        <div class="view-picker">
+          <button class="view-pick-btn active" id="vbtn-board" onclick="setTaskView('board')" title="Kanban board">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="4" height="14" rx="1"/><rect x="5" y="0" width="4" height="14" rx="1"/><rect x="10" y="0" width="4" height="14" rx="1"/></svg>
+            Board
+          </button>
+          <button class="view-pick-btn" id="vbtn-list" onclick="setTaskView('list')" title="List view">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="14" height="2.5" rx="1"/><rect x="0" y="4" width="14" height="2.5" rx="1"/><rect x="0" y="8" width="14" height="2.5" rx="1"/><rect x="0" y="12" width="14" height="2.5" rx="1"/></svg>
+            List
+          </button>
+          <button class="view-pick-btn" id="vbtn-compact" onclick="setTaskView('compact')" title="Compact board">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="4" height="8" rx="1"/><rect x="5" y="0" width="4" height="11" rx="1"/><rect x="10" y="0" width="4" height="6" rx="1"/></svg>
+            Compact
+          </button>
+        </div>
+      </div>
+      <!-- List view container (hidden unless list view active) -->
+      <div id="task-list-container" style="display:none"></div>
+      <div class="columns-container" id="task-columns-container">
         <div class="column">
           <div class="column-header">To Do <span class="task-count" id="count-todo">0</span></div>
           <div class="cards" data-column="todo" ondragover="handleDragOver(event)" ondrop="handleDrop(event)"></div>
@@ -570,6 +717,62 @@ body.dark .note-editor-title, body.dark .note-editor-body { color:var(--text); }
         </svg>
         <div style="margin-top:8px;color:var(--muted);font-weight:bold;font-size:1.1em;">
           Weekly Completion: <span id="comp-rate">0%</span>
+        </div>
+      </div>
+      <div class="tb-toolbar" id="habit-toolbar">
+        <!-- Sort -->
+        <div class="tb-dropdown-wrap" id="habit-sort-wrap">
+          <button class="tb-btn" id="habit-sort-btn" onclick="toggleDropdown('habit-sort-drop')">
+            <span>⇅</span> <span id="habit-sort-label">Sort</span> <span class="tb-chevron">▼</span>
+          </button>
+          <div class="tb-dropdown" id="habit-sort-drop">
+            <div class="tb-dropdown-section">Sort by</div>
+            <div class="tb-dropdown-item selected" data-hsort="manual" onclick="setHabitSort('manual')"><span class="item-icon">☰</span>Manual order</div>
+            <div class="tb-dropdown-item" data-hsort="name" onclick="setHabitSort('name')"><span class="item-icon">🔤</span>Name A → Z</div>
+            <div class="tb-dropdown-item" data-hsort="category" onclick="setHabitSort('category')"><span class="item-icon">🏷</span>Category</div>
+            <div class="tb-dropdown-item" data-hsort="streak" onclick="setHabitSort('streak')"><span class="item-icon">🔥</span>Streak — highest first</div>
+            <div class="tb-dropdown-item" data-hsort="type" onclick="setHabitSort('type')"><span class="item-icon">✅</span>Type (build first)</div>
+          </div>
+        </div>
+        <!-- Filter -->
+        <div class="tb-dropdown-wrap" id="habit-filter-wrap">
+          <button class="tb-btn" id="habit-adv-filter-btn" onclick="toggleDropdown('habit-filter-drop')">
+            <span>⊟</span> <span id="habit-filter-label">Filter</span> <span class="tb-chevron">▼</span>
+          </button>
+          <div class="tb-dropdown" id="habit-filter-drop">
+            <div class="tb-dropdown-section">Type</div>
+            <div class="tb-dropdown-item selected" data-htype="all" onclick="setHabitTypeFilter('all')"><span class="item-icon">◉</span>All habits</div>
+            <div class="tb-dropdown-item" data-htype="positive" onclick="setHabitTypeFilter('positive')"><span class="item-icon">✅</span>Build habits</div>
+            <div class="tb-dropdown-item" data-htype="negative" onclick="setHabitTypeFilter('negative')"><span class="item-icon">🚫</span>Break habits</div>
+            <hr>
+            <div class="tb-dropdown-section">Category</div>
+            <div class="tb-dropdown-item selected" data-hcat="all" onclick="setHabitCatFilter('all')"><span class="item-icon">◉</span>All categories</div>
+            <div class="tb-dropdown-item" data-hcat="Health" onclick="setHabitCatFilter('Health')"><span class="item-icon">❤️</span>Health</div>
+            <div class="tb-dropdown-item" data-hcat="Mind" onclick="setHabitCatFilter('Mind')"><span class="item-icon">🧠</span>Mind</div>
+            <div class="tb-dropdown-item" data-hcat="Work" onclick="setHabitCatFilter('Work')"><span class="item-icon">💼</span>Work</div>
+            <div class="tb-dropdown-item" data-hcat="Personal" onclick="setHabitCatFilter('Personal')"><span class="item-icon">🌟</span>Personal</div>
+            <div class="tb-dropdown-item" data-hcat="Social" onclick="setHabitCatFilter('Social')"><span class="item-icon">👥</span>Social</div>
+            <div class="tb-dropdown-item" data-hcat="Other" onclick="setHabitCatFilter('Other')"><span class="item-icon">☁️</span>Other</div>
+            <hr>
+            <div class="tb-dropdown-section">Frequency</div>
+            <div class="tb-dropdown-item selected" data-hfreq="all" onclick="setHabitFreqFilter('all')"><span class="item-icon">◉</span>All frequencies</div>
+            <div class="tb-dropdown-item" data-hfreq="daily" onclick="setHabitFreqFilter('daily')"><span class="item-icon">📆</span>Daily</div>
+            <div class="tb-dropdown-item" data-hfreq="weekdays" onclick="setHabitFreqFilter('weekdays')"><span class="item-icon">🗓</span>Weekdays</div>
+            <div class="tb-dropdown-item" data-hfreq="weekends" onclick="setHabitFreqFilter('weekends')"><span class="item-icon">🏖</span>Weekends</div>
+            <div class="tb-dropdown-item" data-hfreq="3x" onclick="setHabitFreqFilter('3x')"><span class="item-icon">🔁</span>3× per week</div>
+          </div>
+        </div>
+        <div class="tb-sep"></div>
+        <!-- View picker -->
+        <div class="view-picker">
+          <button class="view-pick-btn active" id="hvbtn-grid" onclick="setHabitView('grid')" title="Grid view">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="6" height="6" rx="1"/><rect x="8" y="0" width="6" height="6" rx="1"/><rect x="0" y="8" width="6" height="6" rx="1"/><rect x="8" y="8" width="6" height="6" rx="1"/></svg>
+            Grid
+          </button>
+          <button class="view-pick-btn" id="hvbtn-list" onclick="setHabitView('list')" title="List view">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="14" height="2.5" rx="1"/><rect x="0" y="4" width="14" height="2.5" rx="1"/><rect x="0" y="8" width="14" height="2.5" rx="1"/><rect x="0" y="12" width="14" height="2.5" rx="1"/></svg>
+            List
+          </button>
         </div>
       </div>
       <div class="habits-grid" id="habits-grid"></div>
@@ -842,7 +1045,7 @@ body.dark .note-editor-title, body.dark .note-editor-body { color:var(--text); }
             <div class="settings-row-label">2DoByU</div>
             <div class="settings-row-desc">Your personal task & habit tracker</div>
           </div>
-          <div class="settings-row-right"><span class="version-tag">v2.6.0</span></div>
+          <div class="settings-row-right"><span class="version-tag">v2.7.0</span></div>
         </div>
         <div class="settings-row">
           <div class="settings-row-left">
@@ -1091,20 +1294,148 @@ const TAG_COLORS=['#d4a373','#8b9d83','#3498db','#9b59b6','#e74c3c','#f39c12','#
 function tagColor(tag){if(!tag)return null;let h=0;for(let i=0;i<tag.length;i++)h=(h*31+tag.charCodeAt(i))%TAG_COLORS.length;return TAG_COLORS[h];}
 
 // ════════════════════════════════════════════════
-//  TASK BOARD FILTERS
+//  TASK BOARD FILTERS, SORT & VIEW
 // ════════════════════════════════════════════════
-let taskFilter = 'all';
+let taskFilter = 'all';          // quick filter chips
+let taskSort = 'manual';         // sort field
+let taskSortDir = 'asc';         // asc | desc
+let taskFilterPriority = 'all';  // all | high | medium | low
+let taskFilterTag = 'all';       // all | <tag>
+let taskFilterNotes = 'any';     // any | has | none
+let taskView = 'board';          // board | list | compact
+
+// ── Dropdown toggle (close others) ──
+function toggleDropdown(id) {
+  const target = document.getElementById(id);
+  const isOpen = target.classList.contains('open');
+  document.querySelectorAll('.tb-dropdown.open').forEach(d => d.classList.remove('open'));
+  if (!isOpen) target.classList.add('open');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.tb-dropdown-wrap')) {
+    document.querySelectorAll('.tb-dropdown.open').forEach(d => d.classList.remove('open'));
+  }
+});
+
+// ── Quick filter chips ──
 function setTaskFilter(f) {
   taskFilter = f;
-  document.querySelectorAll('.filter-chip').forEach(c => c.classList.toggle('active', c.id === 'chip-'+f));
+  document.querySelectorAll('#task-board-filters .filter-chip').forEach(c => c.classList.toggle('active', c.id === 'chip-'+f));
   renderTasks();
 }
+
+// ── Sort ──
+const PRIORITY_RANK = { high: 3, medium: 2, low: 1 };
+function setTaskSort(field, dir) {
+  taskSort = field; taskSortDir = dir;
+  const key = field + (field !== 'manual' ? '-' + dir : '');
+  document.querySelectorAll('[data-tsort]').forEach(el => el.classList.toggle('selected', el.dataset.tsort === key || (field === 'manual' && el.dataset.tsort === 'manual')));
+  const labels = { manual:'Sort', 'dueDate-asc':'Date ↑', 'dueDate-desc':'Date ↓', 'priority-desc':'Priority ↓', 'priority-asc':'Priority ↑', 'title-asc':'A→Z', 'title-desc':'Z→A', 'created-desc':'Newest', 'created-asc':'Oldest' };
+  const lbl = labels[key] || labels[field + '-' + dir] || 'Sort';
+  document.getElementById('task-sort-label').textContent = lbl;
+  document.getElementById('task-sort-btn').classList.toggle('active-filter', field !== 'manual');
+  document.querySelector('#task-sort-drop').classList.remove('open');
+  renderTasks();
+}
+function applySortToList(list) {
+  if (taskSort === 'manual') return list;
+  return [...list].sort((a, b) => {
+    let va, vb;
+    if (taskSort === 'dueDate') { va = a.dueDate || 'zzzz'; vb = b.dueDate || 'zzzz'; }
+    else if (taskSort === 'priority') { va = PRIORITY_RANK[a.priority] || 0; vb = PRIORITY_RANK[b.priority] || 0; }
+    else if (taskSort === 'title') { va = (a.title || '').toLowerCase(); vb = (b.title || '').toLowerCase(); }
+    else if (taskSort === 'created') { va = a.id || 0; vb = b.id || 0; }
+    if (va < vb) return taskSortDir === 'asc' ? -1 : 1;
+    if (va > vb) return taskSortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+// ── Priority filter ──
+function setTaskPriorityFilter(p) {
+  taskFilterPriority = p;
+  document.querySelectorAll('[id^="pchip-"]').forEach(c => c.classList.toggle('active', c.id === 'pchip-' + p));
+  const isActive = p !== 'all';
+  updateFilterBtnState();
+  renderTasks();
+}
+
+// ── Tag filter ──
+function setTaskTagFilter(tag) {
+  taskFilterTag = tag;
+  document.querySelectorAll('[id^="tchip-"]').forEach(c => c.classList.toggle('active', c.id === 'tchip-' + tag));
+  updateFilterBtnState();
+  renderTasks();
+}
+
+// ── Notes filter ──
+function setTaskNotesFilter(val) {
+  taskFilterNotes = val;
+  document.querySelectorAll('[data-cnote]').forEach(el => el.classList.toggle('selected', el.dataset.cnote === val));
+  updateFilterBtnState();
+  renderTasks();
+}
+
+function updateFilterBtnState() {
+  const active = taskFilterPriority !== 'all' || taskFilterTag !== 'all' || taskFilterNotes !== 'any';
+  const btn = document.getElementById('task-adv-filter-btn');
+  if (btn) btn.classList.toggle('active-filter', active);
+  const lbl = document.getElementById('task-filter-label');
+  if (lbl) {
+    const parts = [];
+    if (taskFilterPriority !== 'all') parts.push(taskFilterPriority);
+    if (taskFilterTag !== 'all') parts.push('#' + taskFilterTag);
+    if (taskFilterNotes !== 'any') parts.push(taskFilterNotes + ' notes');
+    lbl.textContent = parts.length ? parts.join(', ') : 'Filter';
+  }
+}
+
+// ── Refresh tag filter chips from current data ──
+function refreshTagFilterChips() {
+  const tags = new Set();
+  Object.values(tasks).forEach(col => col.forEach(t => { if (t.tag) tags.add(t.tag); }));
+  const container = document.getElementById('task-tag-filters');
+  if (!container) return;
+  container.innerHTML = '<button class="filter-chip' + (taskFilterTag === 'all' ? ' active' : '') + '" id="tchip-all" onclick="setTaskTagFilter(\'all\')">All</button>';
+  tags.forEach(tag => {
+    const btn = document.createElement('button');
+    btn.className = 'filter-chip' + (taskFilterTag === tag ? ' active' : '');
+    btn.id = 'tchip-' + tag;
+    btn.textContent = '#' + tag;
+    btn.onclick = () => setTaskTagFilter(tag);
+    container.appendChild(btn);
+  });
+}
+
+// ── Combined apply (quick + advanced + sort) ──
 function applyTaskFilter(list, col) {
   const today = new Date().toISOString().slice(0,10);
-  if (taskFilter === 'starred') return list.filter(t => t.starred);
-  if (taskFilter === 'today') return list.filter(t => t.dueDate === today);
-  if (taskFilter === 'overdue') return col !== 'done' ? list.filter(t => t.dueDate && t.dueDate < today) : [];
-  return list;
+  let out = list;
+  // Quick chip filter
+  if (taskFilter === 'starred') out = out.filter(t => t.starred);
+  else if (taskFilter === 'today') out = out.filter(t => t.dueDate === today);
+  else if (taskFilter === 'overdue') out = col !== 'done' ? out.filter(t => t.dueDate && t.dueDate < today) : [];
+  // Advanced filters
+  if (taskFilterPriority !== 'all') out = out.filter(t => t.priority === taskFilterPriority);
+  if (taskFilterTag !== 'all') out = out.filter(t => t.tag === taskFilterTag);
+  if (taskFilterNotes === 'has') out = out.filter(t => t.notes && t.notes.trim());
+  if (taskFilterNotes === 'none') out = out.filter(t => !t.notes || !t.notes.trim());
+  return applySortToList(out);
+}
+
+// ── View picker ──
+function setTaskView(v) {
+  taskView = v;
+  document.querySelectorAll('[id^="vbtn-"]').forEach(b => b.classList.toggle('active', b.id === 'vbtn-' + v));
+  const cols = document.getElementById('task-columns-container');
+  const listEl = document.getElementById('task-list-container');
+  if (v === 'list') {
+    cols.style.display = 'none'; listEl.style.display = 'block';
+  } else {
+    cols.style.display = ''; listEl.style.display = 'none';
+    cols.classList.toggle('compact-board', v === 'compact');
+  }
+  renderTasks();
 }
 
 function toggleStar(taskId, e) {
@@ -1117,79 +1448,135 @@ function toggleStar(taskId, e) {
   saveAndRender();
 }
 
+// ── Card builder (shared between board & compact) ──
+function buildTaskCard(task, col) {
+  const card = document.createElement('div');
+  card.className = `card priority-${task.priority}${task.starred?' starred-card':''}`;
+  card.draggable = true; card.dataset.id = task.id;
+  const overdue = col !== 'done' && task.dueDate && parseLocalDate(task.dueDate) < new Date().setHours(0,0,0,0);
+  const timeStr = task.time ? `<span class="card-time">⏰ ${esc(task.time)}</span>` : '';
+  card.innerHTML = `
+    <button class="card-star${task.starred?' starred':''}" data-star-id="${task.id}" title="${task.starred?'Unstar':'Star'}">★</button>
+    <div class="card-title">${esc(task.title)}</div>
+    <div class="card-meta">
+      <span class="date-text">📅 ${esc(task.dueDate||'No date')}</span>
+      ${timeStr}
+      ${overdue?'<span class="overdue-badge">⚠️ Overdue</span>':''}
+      ${task.tag?`<span class="tag-badge" style="background:${esc(tagColor(task.tag))}22;color:${esc(tagColor(task.tag))}">${esc(task.tag)}</span>`:''}
+      <button class="card-focus-btn" data-focus-id="${task.id}" data-focus-title="${esc(task.title)}" title="Start focus timer">▶ Focus</button>
+    </div>
+    ${task.notes?`<div class="card-notes">${esc(task.notes)}</div>`:''}`;
+  card.addEventListener('dragstart',e=>{draggedTaskId=task.id;e.dataTransfer.effectAllowed='move';e.target.classList.add('dragging');});
+  card.addEventListener('dragend',e=>{
+    e.target.classList.remove('dragging'); dragOverCardId=null; dragOverPosition=null;
+    document.querySelectorAll('.card.drag-target-before,.card.drag-target-after').forEach(c=>c.classList.remove('drag-target-before','drag-target-after'));
+  });
+  card.addEventListener('dragover',e=>{
+    e.preventDefault(); e.stopPropagation();
+    if(String(task.id)===String(draggedTaskId)) return;
+    const rect=card.getBoundingClientRect(); const pos=e.clientY<rect.top+rect.height/2?'before':'after';
+    dragOverCardId=task.id; dragOverPosition=pos;
+    document.querySelectorAll('.card.drag-target-before,.card.drag-target-after').forEach(c=>c.classList.remove('drag-target-before','drag-target-after'));
+    card.classList.add(pos==='before'?'drag-target-before':'drag-target-after');
+  });
+  card.addEventListener('dragleave',e=>{ if(!card.contains(e.relatedTarget)) card.classList.remove('drag-target-before','drag-target-after'); });
+  card.addEventListener('touchstart',touchDragStart,{passive:true});
+  card.addEventListener('touchmove',touchDragMove,{passive:false});
+  card.addEventListener('touchend',touchDragEnd,{passive:true});
+  card.addEventListener('click', e => {
+    if (touchWasDragged) return;
+    const starBtn = e.target.closest('[data-star-id]');
+    if (starBtn) { toggleStar(parseInt(starBtn.dataset.starId), e); return; }
+    const focusBtn = e.target.closest('[data-focus-id]');
+    if (focusBtn) { e.stopPropagation(); openFocusTimer(parseInt(focusBtn.dataset.focusId), focusBtn.dataset.focusTitle); return; }
+    openTaskPreview(task, col);
+  });
+  return card;
+}
+
 function renderTasks(){
+  refreshTagFilterChips();
+  if (taskView === 'list') {
+    renderTaskListView();
+  } else {
+    renderTaskBoardView();
+  }
+}
+
+function renderTaskBoardView(){
   Object.keys(tasks).forEach(col=>{
-    const el=document.querySelector(`.cards[data-column="${col}"]`);if(!el)return;
-    let list=tasks[col];
-    let hiddenCount=0;
-    if(col==='done' && list.length>10){
-      hiddenCount=list.length-10;
-      list=[...list].slice(-10);
-    }
-    // Apply filter
+    const el=document.querySelector(`.cards[data-column="${col}"]`); if(!el) return;
+    let list = tasks[col];
+    let hiddenCount = 0;
+    if(col==='done' && list.length>10){ hiddenCount=list.length-10; list=[...list].slice(-10); }
     const filtered = applyTaskFilter(list, col);
-    document.getElementById(`count-${col}`).textContent=tasks[col].length;
-    el.innerHTML='';
+    document.getElementById(`count-${col}`).textContent = tasks[col].length;
+    el.innerHTML = '';
     if(filtered.length===0){
-      el.innerHTML=tasks[col].length===0
-        ?'<div class="empty-state"><div class="empty-icon">📭</div>No tasks yet</div>'
-        :`<div class="empty-state" style="font-size:.85em">No ${taskFilter} tasks here</div>`;
+      el.innerHTML = tasks[col].length===0
+        ? '<div class="empty-state"><div class="empty-icon">📭</div>No tasks yet</div>'
+        : `<div class="empty-state" style="font-size:.85em">No matching tasks</div>`;
       return;
     }
     if(hiddenCount>0){
       const info=document.createElement('div');
-      info.innerHTML=`<div class="cal-done-preview">+${hiddenCount} older completed tasks — <span class="done-show-more" onclick="navigateTo('analytics')">view all in Analytics</span></div>`;
+      info.innerHTML=`<div class="cal-done-preview">+${hiddenCount} older — <span class="done-show-more" onclick="navigateTo('analytics')">view all</span></div>`;
       el.appendChild(info);
     }
-    filtered.forEach(task=>{
-      const card=document.createElement('div');
-      card.className=`card priority-${task.priority}${task.starred?' starred-card':''}`;card.draggable=true;card.dataset.id=task.id;
-      const overdue=col!=='done'&&task.dueDate&&parseLocalDate(task.dueDate)<new Date().setHours(0,0,0,0);
-      const tc=tagColor(task.tag);
-      const timeStr=task.time?`<span class="card-time">⏰ ${esc(task.time)}</span>`:'';
-      card.innerHTML=`
-        <button class="card-star${task.starred?' starred':''}" data-star-id="${task.id}" title="${task.starred?'Unstar':'Star'}">★</button>
-        <div class="card-title">${esc(task.title)}</div>
-        <div class="card-meta">
-          <span class="date-text">📅 ${esc(task.dueDate||'No date')}</span>
-          ${timeStr}
-          ${overdue?'<span class="overdue-badge">⚠️ Overdue</span>':''}
+    filtered.forEach(task => el.appendChild(buildTaskCard(task, col)));
+  });
+}
+
+function renderTaskListView(){
+  const container = document.getElementById('task-list-container');
+  if (!container) return;
+  container.innerHTML = '';
+  const today = new Date().toISOString().slice(0,10);
+  const groups = [
+    { col:'todo', label:'To Do', icon:'○' },
+    { col:'inprogress', label:'In Progress', icon:'◑' },
+    { col:'done', label:'Done', icon:'●' },
+  ];
+  // Also update board column counts
+  Object.keys(tasks).forEach(col => {
+    const el = document.getElementById(`count-${col}`);
+    if (el) el.textContent = tasks[col].length;
+  });
+  let anyVisible = false;
+  groups.forEach(({ col, label, icon }) => {
+    let list = tasks[col];
+    if (col === 'done' && list.length > 20) list = [...list].slice(-20);
+    const filtered = applyTaskFilter(list, col);
+    if (filtered.length === 0) return;
+    anyVisible = true;
+    const overdue = col !== 'done';
+    const section = document.createElement('div');
+    section.className = 'task-list-group';
+    section.innerHTML = `<div class="task-list-group-header"><span style="font-size:1.1em">${icon}</span> ${label} <span class="tlg-count">${filtered.length}</span></div>`;
+    filtered.forEach(task => {
+      const row = document.createElement('div');
+      const isOverdue = overdue && task.dueDate && task.dueDate < today;
+      row.className = `task-list-row priority-${task.priority}${task.starred?' starred-card':''}`;
+      row.innerHTML = `
+        <div class="tl-check${col==='done'?' done':''}">${col==='done'?'✓':''}</div>
+        <div class="tl-title${col==='done'?' done-title':''}">${esc(task.title)}</div>
+        <div class="tl-meta">
           ${task.tag?`<span class="tag-badge" style="background:${esc(tagColor(task.tag))}22;color:${esc(tagColor(task.tag))}">${esc(task.tag)}</span>`:''}
-          <button class="card-focus-btn" data-focus-id="${task.id}" data-focus-title="${esc(task.title)}" title="Start focus timer">▶ Focus</button>
-        </div>
-        ${task.notes?`<div class="card-notes">${esc(task.notes)}</div>`:''}`;
-      card.addEventListener('dragstart',e=>{draggedTaskId=task.id;e.dataTransfer.effectAllowed='move';e.target.classList.add('dragging');});
-      card.addEventListener('dragend',e=>{
-        e.target.classList.remove('dragging');
-        dragOverCardId=null; dragOverPosition=null;
-        document.querySelectorAll('.card.drag-target-before,.card.drag-target-after').forEach(c=>c.classList.remove('drag-target-before','drag-target-after'));
-      });
-      card.addEventListener('dragover',e=>{
-        e.preventDefault(); e.stopPropagation();
-        if(String(task.id)===String(draggedTaskId)) return;
-        const rect=card.getBoundingClientRect();
-        const pos=e.clientY<rect.top+rect.height/2?'before':'after';
-        dragOverCardId=task.id; dragOverPosition=pos;
-        document.querySelectorAll('.card.drag-target-before,.card.drag-target-after').forEach(c=>c.classList.remove('drag-target-before','drag-target-after'));
-        card.classList.add(pos==='before'?'drag-target-before':'drag-target-after');
-      });
-      card.addEventListener('dragleave',e=>{
-        if(!card.contains(e.relatedTarget)){card.classList.remove('drag-target-before','drag-target-after');}
-      });
-      card.addEventListener('touchstart',touchDragStart,{passive:true});
-      card.addEventListener('touchmove',touchDragMove,{passive:false});
-      card.addEventListener('touchend',touchDragEnd,{passive:true});
-      card.addEventListener('click', e => {
-        if (touchWasDragged) return;
-        const starBtn = e.target.closest('[data-star-id]');
-        if (starBtn) { toggleStar(parseInt(starBtn.dataset.starId), e); return; }
-        const focusBtn = e.target.closest('[data-focus-id]');
-        if (focusBtn) { e.stopPropagation(); openFocusTimer(parseInt(focusBtn.dataset.focusId), focusBtn.dataset.focusTitle); return; }
+          ${isOverdue?'<span class="overdue-badge">⚠️</span>':''}
+          <span class="tl-date">${task.dueDate||''}</span>
+          <button class="tl-star${task.starred?' starred':''}" data-star-id="${task.id}" onclick="event.stopPropagation();toggleStar(${task.id},event)">★</button>
+        </div>`;
+      row.addEventListener('click', e => {
+        if (e.target.closest('[data-star-id]')) return;
         openTaskPreview(task, col);
       });
-      el.appendChild(card);
+      section.appendChild(row);
     });
+    container.appendChild(section);
   });
+  if (!anyVisible) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>No tasks match your filters</div>';
+  }
 }
 
 // ════════════════════════════════════════════════
@@ -1521,61 +1908,209 @@ function getHabitStats(h){
   return {slips,resisted};
 }
 
-function renderHabits(){
-  const grid=document.getElementById('habits-grid');if(!grid)return;
-  grid.innerHTML='';
-  if(habits.length===0){grid.innerHTML='<div class="empty-state"><div class="empty-icon">🌱</div>Add your first habit!</div>';updateTree();return;}
-  habits.forEach((h,hIdx)=>{
-    const active=freqActiveDays(h);
-    const streak=h.days.filter((d,i)=>active.includes(i)&&d).length;
-    const total=active.length;
-    const catColor=CAT_COLORS[h.category]||'#8a8a8a';
-    const card=document.createElement('div');
-    card.className='habit-card'+(h.type==='negative'?' negative':'');
-    card.style.borderTopColor=h.color||catColor;
-    card.innerHTML=`
-      <div class="habit-header">
-        <div class="habit-name-area">
-          <div class="habit-name">${h.type==='negative'?'🚫 ':''}${esc(h.name)}</div>
-          <div class="habit-category"><span class="cat-dot" style="background:${esc(catColor)}"></span>${esc(h.category||'Other')}</div>
-        </div>
-        <div class="habit-badges">
-          ${h.type==='negative'?'<span class="habit-type-badge">Break habit</span>':''}
-          <span class="habit-streak">🔥 ${streak}/${total}</span>
-        </div>
-      </div>
-      <div class="habit-freq">${esc(FREQ_LABELS[h.freq||'daily'])}${h.time?` · ⏰ ${esc(h.time)}`:''}</div>
-      <div class="days-grid">${['M','T','W','T','F','S','S'].map((label,dIdx)=>{
-        const isActive=active.includes(dIdx);
-        return`<div class="day-checkbox ${h.days[dIdx]?'checked':''}" 
-          data-hidx="${hIdx}" data-didx="${dIdx}" data-active="${isActive}"
-          style="${!isActive?'opacity:.3;cursor:default':''}">
-          ${label}</div>`;
-      }).join('')}</div>
-      <button class="btn-delete" style="font-size:.75em;cursor:pointer;" data-edit-habit="${hIdx}">Edit</button>
-      <button class="btn-delete" style="font-size:.75em;cursor:pointer;margin-left:8px;" data-del-habit="${hIdx}">Remove</button>`;
-    if(h.type==='negative'&&h.costPerSlip){
-      const {slips,resisted}=getHabitStats(h);
-      const saved=(resisted*(h.costPerSlip||0)).toFixed(2);
-      const spent=(slips*(h.costPerSlip||0)).toFixed(2);
-      card.insertAdjacentHTML('beforeend',`<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><span class="habit-savings">💰 $${saved} saved (${resisted} resisted)</span><span class="habit-slips">💸 $${spent} spent (${slips} slips)</span></div>`);
-    }
-    grid.appendChild(card);
-  });
-  // Event delegation for habit grid — attach only once to avoid accumulating listeners
-  if(!grid._delegationAttached){
-    grid._delegationAttached = true;
-    grid.addEventListener('click', e=>{
-      const dayEl = e.target.closest('.day-checkbox');
-      if(dayEl && dayEl.dataset.active === 'true'){
-        toggleHabit(parseInt(dayEl.dataset.hidx), parseInt(dayEl.dataset.didx));
-        return;
+// ════════════════════════════════════════════════
+//  HABIT SORT, FILTER & VIEW
+// ════════════════════════════════════════════════
+let habitSort = 'manual';
+let habitFilterType = 'all';   // all | positive | negative
+let habitFilterCat = 'all';    // all | Health | Mind | ...
+let habitFilterFreq = 'all';   // all | daily | weekdays | ...
+let habitView = 'grid';        // grid | list
+
+function setHabitSort(s) {
+  habitSort = s;
+  document.querySelectorAll('[data-hsort]').forEach(el => el.classList.toggle('selected', el.dataset.hsort === s));
+  const labels = { manual:'Sort', name:'Name A→Z', category:'Category', streak:'Streak ↓', type:'Type' };
+  const lbl = document.getElementById('habit-sort-label');
+  if (lbl) lbl.textContent = labels[s] || 'Sort';
+  const btn = document.getElementById('habit-sort-btn');
+  if (btn) btn.classList.toggle('active-filter', s !== 'manual');
+  document.getElementById('habit-sort-drop').classList.remove('open');
+  renderHabits();
+}
+function setHabitTypeFilter(t) {
+  habitFilterType = t;
+  document.querySelectorAll('[data-htype]').forEach(el => el.classList.toggle('selected', el.dataset.htype === t));
+  updateHabitFilterBtn();
+  renderHabits();
+}
+function setHabitCatFilter(c) {
+  habitFilterCat = c;
+  document.querySelectorAll('[data-hcat]').forEach(el => el.classList.toggle('selected', el.dataset.hcat === c));
+  updateHabitFilterBtn();
+  renderHabits();
+}
+function setHabitFreqFilter(f) {
+  habitFilterFreq = f;
+  document.querySelectorAll('[data-hfreq]').forEach(el => el.classList.toggle('selected', el.dataset.hfreq === f));
+  updateHabitFilterBtn();
+  renderHabits();
+}
+function updateHabitFilterBtn() {
+  const active = habitFilterType !== 'all' || habitFilterCat !== 'all' || habitFilterFreq !== 'all';
+  const btn = document.getElementById('habit-adv-filter-btn');
+  if (btn) btn.classList.toggle('active-filter', active);
+  const lbl = document.getElementById('habit-filter-label');
+  if (lbl) {
+    const parts = [];
+    if (habitFilterType !== 'all') parts.push(habitFilterType);
+    if (habitFilterCat !== 'all') parts.push(habitFilterCat);
+    if (habitFilterFreq !== 'all') parts.push(habitFilterFreq);
+    lbl.textContent = parts.length ? parts.join(', ') : 'Filter';
+  }
+}
+function setHabitView(v) {
+  habitView = v;
+  document.querySelectorAll('[id^="hvbtn-"]').forEach(b => b.classList.toggle('active', b.id === 'hvbtn-' + v));
+  const grid = document.getElementById('habits-grid');
+  if (grid) grid.style.display = v === 'list' ? 'none' : '';
+  renderHabits();
+}
+
+function getFilteredSortedHabits() {
+  let list = habits.map((h, i) => ({ h, i }));
+  // Filters
+  if (habitFilterType !== 'all') list = list.filter(({ h }) => (h.type || 'positive') === habitFilterType);
+  if (habitFilterCat !== 'all') list = list.filter(({ h }) => (h.category || 'Other') === habitFilterCat);
+  if (habitFilterFreq !== 'all') list = list.filter(({ h }) => (h.freq || 'daily') === habitFilterFreq);
+  // Sort
+  if (habitSort !== 'manual') {
+    list.sort((a, b) => {
+      const ha = a.h, hb = b.h;
+      if (habitSort === 'name') return (ha.name || '').localeCompare(hb.name || '');
+      if (habitSort === 'category') return (ha.category || '').localeCompare(hb.category || '');
+      if (habitSort === 'streak') {
+        const streakOf = h => { const act = freqActiveDays(h); return h.days.filter((d,i) => act.includes(i) && d).length; };
+        return streakOf(hb) - streakOf(ha);
       }
-      const editBtn = e.target.closest('[data-edit-habit]');
-      if(editBtn){ openEditHabitModal(parseInt(editBtn.dataset.editHabit)); return; }
-      const delBtn = e.target.closest('[data-del-habit]');
-      if(delBtn){ deleteHabitConfirm(parseInt(delBtn.dataset.delHabit)); return; }
+      if (habitSort === 'type') return (ha.type || 'positive').localeCompare(hb.type || 'positive');
+      return 0;
     });
+  }
+  return list;
+}
+
+function renderHabits(){
+  const grid = document.getElementById('habits-grid');
+  let listContainer = document.getElementById('habit-list-container');
+  if (!listContainer) {
+    listContainer = document.createElement('div');
+    listContainer.id = 'habit-list-container';
+    listContainer.className = 'habit-list-view';
+    grid.parentNode.insertBefore(listContainer, grid.nextSibling);
+  }
+
+  // Manage visibility
+  if (habitView === 'list') {
+    grid.style.display = 'none';
+    listContainer.style.display = 'flex';
+  } else {
+    grid.style.display = '';
+    listContainer.style.display = 'none';
+  }
+
+  if (habits.length === 0) {
+    grid.innerHTML = '<div class="empty-state"><div class="empty-icon">🌱</div>Add your first habit!</div>';
+    listContainer.innerHTML = '';
+    updateTree(); return;
+  }
+
+  const filtered = getFilteredSortedHabits();
+
+  if (habitView === 'list') {
+    listContainer.innerHTML = '';
+    if (filtered.length === 0) {
+      listContainer.innerHTML = '<div class="empty-state">No habits match your filters</div>';
+      updateTree(); return;
+    }
+    filtered.forEach(({ h, i: hIdx }) => {
+      const active = freqActiveDays(h);
+      const streak = h.days.filter((d, di) => active.includes(di) && d).length;
+      const total = active.length;
+      const catColor = CAT_COLORS[h.category] || '#8a8a8a';
+      const row = document.createElement('div');
+      row.className = 'habit-list-row' + (h.type === 'negative' ? ' negative' : '');
+      row.style.borderLeftColor = h.color || catColor;
+      row.innerHTML = `
+        <div style="flex:1;min-width:0">
+          <div class="hl-name">${h.type==='negative'?'🚫 ':''}${esc(h.name)}</div>
+          <div class="hl-cat">${esc(h.category||'Other')} · ${esc(FREQ_LABELS[h.freq||'daily'])}</div>
+        </div>
+        <div class="hl-days">${['M','T','W','T','F','S','S'].map((label, dIdx) => {
+          const isActive = active.includes(dIdx);
+          return `<div class="hl-day${h.days[dIdx]?' checked':''}${!isActive?' inactive':''}" data-hidx="${hIdx}" data-didx="${dIdx}" data-active="${isActive}">${label}</div>`;
+        }).join('')}</div>
+        <span class="hl-streak">🔥 ${streak}/${total}</span>
+        <div style="display:flex;gap:6px;flex-shrink:0">
+          <button class="tb-btn" style="padding:4px 8px;font-size:.72em" data-edit-habit="${hIdx}">Edit</button>
+          <button class="tb-btn" style="padding:4px 8px;font-size:.72em;color:#e74c3c" data-del-habit="${hIdx}">✕</button>
+        </div>`;
+      listContainer.appendChild(row);
+    });
+    // Event delegation
+    if (!listContainer._delegated) {
+      listContainer._delegated = true;
+      listContainer.addEventListener('click', e => {
+        const dayEl = e.target.closest('.hl-day');
+        if (dayEl && dayEl.dataset.active === 'true') { toggleHabit(parseInt(dayEl.dataset.hidx), parseInt(dayEl.dataset.didx)); return; }
+        const editBtn = e.target.closest('[data-edit-habit]');
+        if (editBtn) { openEditHabitModal(parseInt(editBtn.dataset.editHabit)); return; }
+        const delBtn = e.target.closest('[data-del-habit]');
+        if (delBtn) { deleteHabitConfirm(parseInt(delBtn.dataset.delHabit)); return; }
+      });
+    }
+  } else {
+    // Grid view
+    grid.innerHTML = '';
+    if (filtered.length === 0) {
+      grid.innerHTML = '<div class="empty-state">No habits match your filters</div>';
+      updateTree(); return;
+    }
+    filtered.forEach(({ h, i: hIdx }) => {
+      const active = freqActiveDays(h);
+      const streak = h.days.filter((d, di) => active.includes(di) && d).length;
+      const total = active.length;
+      const catColor = CAT_COLORS[h.category] || '#8a8a8a';
+      const card = document.createElement('div');
+      card.className = 'habit-card' + (h.type === 'negative' ? ' negative' : '');
+      card.style.borderTopColor = h.color || catColor;
+      card.innerHTML = `
+        <div class="habit-header">
+          <div class="habit-name-area">
+            <div class="habit-name">${h.type==='negative'?'🚫 ':''}${esc(h.name)}</div>
+            <div class="habit-category"><span class="cat-dot" style="background:${esc(catColor)}"></span>${esc(h.category||'Other')}</div>
+          </div>
+          <div class="habit-badges">
+            ${h.type==='negative'?'<span class="habit-type-badge">Break habit</span>':''}
+            <span class="habit-streak">🔥 ${streak}/${total}</span>
+          </div>
+        </div>
+        <div class="habit-freq">${esc(FREQ_LABELS[h.freq||'daily'])}${h.time?` · ⏰ ${esc(h.time)}`:''}</div>
+        <div class="days-grid">${['M','T','W','T','F','S','S'].map((label, dIdx) => {
+          const isActive = active.includes(dIdx);
+          return `<div class="day-checkbox ${h.days[dIdx]?'checked':''}" data-hidx="${hIdx}" data-didx="${dIdx}" data-active="${isActive}" style="${!isActive?'opacity:.3;cursor:default':''}">${label}</div>`;
+        }).join('')}</div>
+        <button class="btn-delete" style="font-size:.75em;cursor:pointer;" data-edit-habit="${hIdx}">Edit</button>
+        <button class="btn-delete" style="font-size:.75em;cursor:pointer;margin-left:8px;" data-del-habit="${hIdx}">Remove</button>`;
+      if (h.type === 'negative' && h.costPerSlip) {
+        const { slips, resisted } = getHabitStats(h);
+        const saved = (resisted * (h.costPerSlip || 0)).toFixed(2);
+        const spent = (slips * (h.costPerSlip || 0)).toFixed(2);
+        card.insertAdjacentHTML('beforeend', `<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><span class="habit-savings">💰 $${saved} saved (${resisted} resisted)</span><span class="habit-slips">💸 $${spent} spent (${slips} slips)</span></div>`);
+      }
+      grid.appendChild(card);
+    });
+    if (!grid._delegationAttached) {
+      grid._delegationAttached = true;
+      grid.addEventListener('click', e => {
+        const dayEl = e.target.closest('.day-checkbox');
+        if (dayEl && dayEl.dataset.active === 'true') { toggleHabit(parseInt(dayEl.dataset.hidx), parseInt(dayEl.dataset.didx)); return; }
+        const editBtn = e.target.closest('[data-edit-habit]');
+        if (editBtn) { openEditHabitModal(parseInt(editBtn.dataset.editHabit)); return; }
+        const delBtn = e.target.closest('[data-del-habit]');
+        if (delBtn) { deleteHabitConfirm(parseInt(delBtn.dataset.delHabit)); return; }
+      });
+    }
   }
   updateTree();
 }
