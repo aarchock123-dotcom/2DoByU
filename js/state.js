@@ -29,7 +29,6 @@ const DEFAULT_SETTINGS = {
 const PAGE_TITLES = {
   tasks: 'Task Board',
   habits: 'Habits',
-  analytics: 'Analytics',
   insights: 'Insights',
   calendar: 'Calendar',
   notes: 'Notes',

@@ -28,6 +28,7 @@ let calendarFilters = {
 let taskSortMenuOpen = false;
 let taskMenuExpanded = false;
 let calendarMenuExpanded = false;
+let insightsTrendDays = 7;
 let taskFilters = {
   query: '',
   sort: 'default',
@@ -58,6 +59,12 @@ function setStoredMenuState(key, value) {
 
 taskMenuExpanded = getStoredMenuState('2dobyu_task_menu_expanded', false);
 calendarMenuExpanded = getStoredMenuState('2dobyu_calendar_menu_expanded', false);
+try {
+  const rawTrendDays = localStorage.getItem('2dobyu_insights_trend_days');
+  if (rawTrendDays === '30') insightsTrendDays = 30;
+} catch (_err) {
+  // ignore storage failures
+}
 
 const NOTE_COLORS = ['#fff8e1', '#e3f2fd', '#f3e5f5', '#e8f5e9', '#ffebee', '#fbe9e7'];
 
@@ -100,15 +107,17 @@ const SETTINGS_TIME_ZONES = (() => {
 
 function getCurrentView() {
   const state = getState();
-  return state.ui.currentView || state.ui.currentPage || 'tasks';
+  const rawView = state.ui.currentView || state.ui.currentPage || 'tasks';
+  return rawView === 'analytics' ? 'insights' : rawView;
 }
 
 function setCurrentView(view) {
+  const nextView = view === 'analytics' ? 'insights' : view;
   patchState({
     ui: {
       ...getState().ui,
-      currentView: view,
-      currentPage: view
+      currentView: nextView,
+      currentPage: nextView
     }
   });
 }
@@ -174,6 +183,27 @@ function escapeHtml(value) {
 
 function sanitizeUserText(value) {
   return String(value ?? '').trim().replace(/[\u0000-\u001F\u007F]/g, '');
+}
+
+function getReadableTextColor(backgroundColor) {
+  const value = String(backgroundColor || '').trim();
+  const hexMatch = value.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!hexMatch) return '#1a1a1a';
+
+  let hex = hexMatch[1];
+  if (hex.length === 3) {
+    hex = hex
+      .split('')
+      .map((char) => char + char)
+      .join('');
+  }
+
+  const red = Number.parseInt(hex.slice(0, 2), 16);
+  const green = Number.parseInt(hex.slice(2, 4), 16);
+  const blue = Number.parseInt(hex.slice(4, 6), 16);
+  const yiq = (red * 299 + green * 587 + blue * 114) / 1000;
+
+  return yiq >= 150 ? '#1a1a1a' : '#ffffff';
 }
 
 function queuePendingChange(type, payload) {
@@ -1457,11 +1487,14 @@ function renderNotes() {
 
   const grid = createNode('div', { className: 'notes-masonry', attrs: { id: 'notes-grid' } });
   notes.forEach((note) => {
+    const background = sanitizeUserText(note.color || NOTE_COLORS[0]);
+    const textColor = getReadableTextColor(background);
     const card = createNode('div', {
       className: 'note-card',
       dataset: { noteId: note.id }
     });
-    card.style.background = sanitizeUserText(note.color || NOTE_COLORS[0]);
+    card.style.background = background;
+    card.style.color = textColor;
     card.appendChild(createNode('div', { className: 'note-title', text: sanitizeUserText(note.title || '(Untitled)') }));
     card.appendChild(createNode('div', { className: 'note-body', text: sanitizeUserText(note.body || '') }));
     grid.appendChild(card);
@@ -1603,26 +1636,203 @@ function renderCalendar() {
   container.appendChild(fragment);
 }
 
-function renderAnalytics() {
-  const container = document.getElementById('page-analytics');
-  if (!container) return;
-
-  container.replaceChildren();
-  const section = createNode('div', { className: 'analytics-section' });
-  section.appendChild(createNode('h3', { text: 'Analytics' }));
-  section.appendChild(createNode('div', { className: 'settings-row-desc', text: 'Analytics rendering module hooks are ready.' }));
-  container.appendChild(section);
-}
-
 function renderInsights() {
   const container = document.getElementById('page-insights');
   if (!container) return;
 
   container.replaceChildren();
-  const section = createNode('div', { className: 'analytics-section' });
-  section.appendChild(createNode('h3', { text: 'Insights' }));
-  section.appendChild(createNode('div', { className: 'settings-row-desc', text: 'Insights rendering module hooks are ready.' }));
-  container.appendChild(section);
+  const state = getState();
+  const allTasks = getAllTasksWithColumn(state.tasks);
+  const totalTasks = allTasks.length;
+  const doneTasks = state.tasks.done.length;
+  const openTasks = totalTasks - doneTasks;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dueToday = allTasks.filter((task) => {
+    const due = getTaskDueDate(task);
+    return due && getStartOfDay(due).getTime() === today.getTime();
+  }).length;
+
+  const overdue = allTasks.filter((task) => {
+    if (task._column === 'done') return false;
+    const due = getTaskDueDate(task);
+    return due && getStartOfDay(due).getTime() < today.getTime();
+  }).length;
+
+  let habitDone = 0;
+  let habitTotal = 0;
+  state.habits.forEach((habit) => {
+    const counts = getHabitWeeklyCounts(habit);
+    habitDone += counts.done;
+    habitTotal += counts.total;
+  });
+  const habitRate = habitTotal > 0 ? Math.round((habitDone / habitTotal) * 100) : 0;
+
+  const completionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
+  const notesCount = state.notes.length;
+
+  const upcomingTasks = allTasks
+    .filter((task) => task._column !== 'done' && task.dueDate)
+    .sort((a, b) => getTaskSortValue(a) - getTaskSortValue(b))
+    .slice(0, 6);
+
+  const habitMomentum = state.habits
+    .map((habit) => {
+      const counts = getHabitWeeklyCounts(habit);
+      const rate = counts.total > 0 ? Math.round((counts.done / counts.total) * 100) : 0;
+      return {
+        name: habit.name || '(Untitled Habit)',
+        category: habit.category || 'Other',
+        done: counts.done,
+        total: counts.total,
+        rate
+      };
+    })
+    .sort((a, b) => b.rate - a.rate)
+    .slice(0, 6);
+
+  const trendDaysBack = insightsTrendDays === 30 ? 29 : 6;
+  const recentKeys = getRecentDateKeys(trendDaysBack);
+  const dateLabel = (dateKey) => {
+    const date = new Date(`${dateKey}T00:00:00`);
+    return date.toLocaleDateString(undefined, { weekday: 'short' });
+  };
+
+  const openTaskLoadSeries = recentKeys.map((dateKey) => {
+    const count = allTasks.filter((task) => task._column !== 'done' && task.dueDate === dateKey).length;
+    return { dateKey, value: count };
+  });
+
+  const habitChecksSeries = recentKeys.map((dateKey) => {
+    const count = state.habits.reduce((sum, habit) => {
+      return sum + (getHabitStateByDate(habit, dateKey) === 'done' ? 1 : 0);
+    }, 0);
+    return { dateKey, value: count };
+  });
+
+  const notesCaptureSeries = recentKeys.map((dateKey) => {
+    const count = state.notes.reduce((sum, note) => {
+      const ts = Number(note.id);
+      if (!Number.isFinite(ts) || ts <= 0) return sum;
+      const key = getDateKeyFromDate(new Date(ts));
+      return sum + (key === dateKey ? 1 : 0);
+    }, 0);
+    return { dateKey, value: count };
+  });
+
+  const trendWindowLabel = insightsTrendDays === 30 ? 'last 30 days' : 'last 7 days';
+
+  const createTrendCard = (title, subtitle, series) => {
+    const card = createNode('section', { className: 'insight-card' });
+    card.appendChild(createNode('h3', { text: title }));
+    card.appendChild(createNode('div', { className: 'insight-meta', text: subtitle }));
+
+    const chart = createNode('div', { className: 'insight-trend-chart' });
+    const maxVal = Math.max(1, ...series.map((point) => Number(point.value || 0)));
+
+    series.forEach((point) => {
+      const barWrap = createNode('div', { className: 'insight-trend-point' });
+      const bar = createNode('div', {
+        className: 'insight-trend-bar',
+        attrs: { title: `${dateLabel(point.dateKey)}: ${point.value}` }
+      });
+      bar.style.setProperty('--bar-h', `${Math.max(8, Math.round((Number(point.value || 0) / maxVal) * 54))}px`);
+      bar.appendChild(createNode('span', { className: 'insight-trend-fill' }));
+      barWrap.appendChild(bar);
+      barWrap.appendChild(createNode('span', { className: 'insight-trend-label', text: dateLabel(point.dateKey) }));
+      chart.appendChild(barWrap);
+    });
+
+    card.appendChild(chart);
+    return card;
+  };
+
+  const header = createNode('div', { className: 'page-header' });
+  header.appendChild(createNode('h1', { className: 'page-title', text: 'Insights' }));
+  container.appendChild(header);
+
+  const statGrid = createNode('div', { className: 'insights-grid' });
+  [
+    ['Task Completion', `${completionRate}%`, `${doneTasks}/${totalTasks || 0} tasks done`],
+    ['Open Tasks', String(openTasks), overdue > 0 ? `${overdue} overdue` : 'No overdue tasks'],
+    ['Due Today', String(dueToday), dueToday > 0 ? 'Focus window today' : 'Nothing due today'],
+    ['Habit Consistency', `${habitRate}%`, `${habitDone}/${habitTotal || 0} weekly checks`],
+    ['Notes Captured', String(notesCount), notesCount > 0 ? 'Knowledge base growing' : 'No notes yet']
+  ].forEach(([label, value, meta]) => {
+    const card = createNode('section', { className: 'insight-card' });
+    card.appendChild(createNode('div', { className: 'insight-label', text: label }));
+    card.appendChild(createNode('div', { className: 'insight-value', text: value }));
+    card.appendChild(createNode('div', { className: 'insight-meta', text: meta }));
+    statGrid.appendChild(card);
+  });
+  container.appendChild(statGrid);
+
+  const trendHeader = createNode('div', { className: 'insights-trend-head' });
+  trendHeader.appendChild(createNode('h3', { text: 'Trends' }));
+  const trendRangeSwitch = createNode('div', { className: 'insights-trend-switch' });
+  trendRangeSwitch.appendChild(
+    createNode('button', {
+      className: `tb-btn ${insightsTrendDays === 7 ? 'active' : ''}`,
+      dataset: { action: 'insights-set-trend-range', days: '7' },
+      text: '7D'
+    })
+  );
+  trendRangeSwitch.appendChild(
+    createNode('button', {
+      className: `tb-btn ${insightsTrendDays === 30 ? 'active' : ''}`,
+      dataset: { action: 'insights-set-trend-range', days: '30' },
+      text: '30D'
+    })
+  );
+  trendHeader.appendChild(trendRangeSwitch);
+  container.appendChild(trendHeader);
+
+  const trendGrid = createNode('div', { className: 'insights-trend-grid' });
+  trendGrid.appendChild(createTrendCard('Open Task Load', `Open tasks due each day (${trendWindowLabel})`, openTaskLoadSeries));
+  trendGrid.appendChild(createTrendCard('Habit Checks', `Completed habit check-ins per day (${trendWindowLabel})`, habitChecksSeries));
+  trendGrid.appendChild(createTrendCard('Notes Capture', `Notes created per day (${trendWindowLabel})`, notesCaptureSeries));
+  container.appendChild(trendGrid);
+
+  const detailGrid = createNode('div', { className: 'insights-detail-grid' });
+
+  const upcomingCard = createNode('section', { className: 'insight-card' });
+  upcomingCard.appendChild(createNode('h3', { text: 'Upcoming Tasks' }));
+  const upcomingList = createNode('div', { className: 'insight-list' });
+  if (upcomingTasks.length === 0) {
+    upcomingList.appendChild(createNode('div', { className: 'settings-row-desc', text: 'No upcoming dated tasks.' }));
+  } else {
+    upcomingTasks.forEach((task) => {
+      const row = createNode('button', {
+        className: 'insight-list-row',
+        dataset: { action: 'insight-open-task', id: String(task.id) }
+      });
+      row.appendChild(createNode('strong', { text: sanitizeUserText(task.title) || '(Untitled Task)' }));
+      row.appendChild(createNode('span', { text: `${sanitizeUserText(task.dueDate || 'No date')} • ${getColumnLabel(task._column)}` }));
+      upcomingList.appendChild(row);
+    });
+  }
+  upcomingCard.appendChild(upcomingList);
+  detailGrid.appendChild(upcomingCard);
+
+  const habitsCard = createNode('section', { className: 'insight-card' });
+  habitsCard.appendChild(createNode('h3', { text: 'Habit Momentum' }));
+  const habitsList = createNode('div', { className: 'insight-list' });
+  if (habitMomentum.length === 0) {
+    habitsList.appendChild(createNode('div', { className: 'settings-row-desc', text: 'Add habits to unlock momentum insights.' }));
+  } else {
+    habitMomentum.forEach((item) => {
+      const row = createNode('div', { className: 'insight-list-row static' });
+      row.appendChild(createNode('strong', { text: sanitizeUserText(item.name) }));
+      row.appendChild(createNode('span', { text: `${item.rate}% • ${item.done}/${item.total || 0} • ${sanitizeUserText(item.category)}` }));
+      habitsList.appendChild(row);
+    });
+  }
+  habitsCard.appendChild(habitsList);
+  detailGrid.appendChild(habitsCard);
+
+  container.appendChild(detailGrid);
 }
 
 function renderSettings() {
@@ -1821,7 +2031,6 @@ export function renderApp() {
   if (view === 'habits') renderHabits();
   if (view === 'notes') renderNotes();
   if (view === 'calendar') renderCalendar();
-  if (view === 'analytics') renderAnalytics();
   if (view === 'insights') renderInsights();
   if (view === 'settings') renderSettings();
 
@@ -3024,6 +3233,23 @@ function bindGlobalEvents() {
         if (itemType === 'other') {
           openNoteModal(itemId);
         }
+        return;
+      }
+
+      if (action === 'insight-open-task') {
+        openTaskModal(actionEl.dataset.id || null);
+        return;
+      }
+
+      if (action === 'insights-set-trend-range') {
+        const days = Number(actionEl.dataset.days || 7);
+        insightsTrendDays = days === 30 ? 30 : 7;
+        try {
+          localStorage.setItem('2dobyu_insights_trend_days', String(insightsTrendDays));
+        } catch (_err) {
+          // ignore storage failures
+        }
+        renderInsights();
         return;
       }
 
