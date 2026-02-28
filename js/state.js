@@ -22,7 +22,8 @@ const DEFAULT_SETTINGS = {
   supabaseAnonKey: '',
   googleAuthEnabled: false,
   pushPublicKey: '',
-  customTaskViews: []
+  customTaskViews: [],
+  weekStyle: 'personal'
 };
 
 const PAGE_TITLES = {

@@ -26,6 +26,8 @@ let calendarFilters = {
   category: 'all'
 };
 let taskSortMenuOpen = false;
+let taskMenuExpanded = false;
+let calendarMenuExpanded = false;
 let taskFilters = {
   query: '',
   sort: 'default',
@@ -36,7 +38,43 @@ let taskFilters = {
 let activeModalTrap = null;
 let commandPaletteQuery = '';
 
+function getStoredMenuState(key, fallback = false) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (raw == null) return fallback;
+    return raw === '1';
+  } catch (_err) {
+    return fallback;
+  }
+}
+
+function setStoredMenuState(key, value) {
+  try {
+    localStorage.setItem(key, value ? '1' : '0');
+  } catch (_err) {
+    // ignore storage failures
+  }
+}
+
+taskMenuExpanded = getStoredMenuState('2dobyu_task_menu_expanded', false);
+calendarMenuExpanded = getStoredMenuState('2dobyu_calendar_menu_expanded', false);
+
 const NOTE_COLORS = ['#fff8e1', '#e3f2fd', '#f3e5f5', '#e8f5e9', '#ffebee', '#fbe9e7'];
+
+const THEME_PRESETS = {
+  'the-w': {
+    accent: '#d71920',
+    accentDark: '#b1151b'
+  },
+  christmas: {
+    accent: '#1f8f4e',
+    accentDark: '#176a3a'
+  },
+  aurora: {
+    accent: '#7a5cff',
+    accentDark: '#5840d1'
+  }
+};
 
 const SETTINGS_TIME_ZONES = (() => {
   try {
@@ -77,21 +115,25 @@ function setCurrentView(view) {
 
 function applySettingsVisuals() {
   const settings = getState().settings || {};
+  const theme = settings.theme || 'light';
+  const presetTheme = THEME_PRESETS[theme] || null;
 
-  if (settings.accent) {
+  if (presetTheme) {
+    document.documentElement.style.setProperty('--accent', presetTheme.accent);
+    document.documentElement.style.setProperty('--accent-dark', presetTheme.accentDark);
+  } else if (settings.accent) {
     document.documentElement.style.setProperty('--accent', settings.accent);
   }
 
-  if (settings.accentDark) {
+  if (!presetTheme && settings.accentDark) {
     document.documentElement.style.setProperty('--accent-dark', settings.accentDark);
   }
 
-  const theme = settings.theme || 'light';
-  document.body.classList.remove('theme-light', 'theme-dark', 'theme-system');
+  document.body.classList.remove('theme-light', 'theme-dark', 'theme-system', 'theme-the-w', 'theme-christmas', 'theme-aurora');
   document.body.classList.add(`theme-${theme}`);
 
   const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const forceDark = theme === 'dark' || (theme === 'system' && prefersDark);
+  const forceDark = theme === 'dark' || theme === 'aurora' || (theme === 'system' && prefersDark);
   document.body.classList.toggle('dark', forceDark);
   document.body.classList.toggle('compact', Boolean(settings.compact));
 
@@ -584,7 +626,10 @@ function getCalendarItems() {
         title: task.title || '(Untitled Task)',
         dateKey: task.dueDate,
         category: task.tag || 'General',
-        meta: getColumnLabel(task._column)
+        meta: getColumnLabel(task._column),
+        isAllDay: true,
+        hour: 9,
+        minute: 0
       });
     });
 
@@ -599,7 +644,10 @@ function getCalendarItems() {
         title: habit.name || '(Untitled Habit)',
         dateKey,
         category,
-        meta: getHabitStatusLabel(status)
+        meta: getHabitStatusLabel(status),
+        isAllDay: true,
+        hour: 9,
+        minute: 0
       });
     });
   });
@@ -615,7 +663,10 @@ function getCalendarItems() {
       title: note.title || '(Untitled Note)',
       dateKey: getDateKeyFromDate(date),
       category: 'Notes',
-      meta: 'Note'
+      meta: 'Note',
+      isAllDay: false,
+      hour: date.getHours(),
+      minute: date.getMinutes()
     });
   });
 
@@ -820,43 +871,114 @@ function renderMonthGrid(monthStart, itemsByDate, selectedDateKey) {
 }
 
 function renderRangeView(days, itemsByDate) {
-  const range = createNode('div', { className: 'calendar-range-grid' });
-  range.style.setProperty('--calendar-cols', String(days.length));
+  const HOUR_START = 6;
+  const HOUR_END = 22;
+  const settings = getState().settings || {};
+  const weekStyle = settings.weekStyle || 'personal';
+  const workMode = weekStyle === 'work';
+  const timeGrid = createNode('div', { className: 'calendar-time-grid' });
+  timeGrid.style.setProperty('--calendar-cols', String(days.length));
 
   const todayKey = new Date().toISOString().slice(0, 10);
+
+  const headerRow = createNode('div', { className: 'calendar-time-row calendar-time-header' });
+  headerRow.appendChild(createNode('div', { className: 'calendar-time-corner', text: 'Time' }));
   days.forEach((day) => {
     const dateKey = getDateKeyFromDate(day);
-    const items = itemsByDate[dateKey] || [];
-
-    const col = createNode('div', { className: `calendar-range-col ${dateKey === todayKey ? 'today' : ''}` });
-    const head = createNode(
-      'button',
-      {
-        className: 'calendar-range-head',
-        dataset: {
-          action: 'calendar-select-day',
-          date: dateKey
-        }
-      },
-      [
-        createNode('strong', { text: day.toLocaleDateString(undefined, { weekday: 'short' }) }),
-        createNode('span', { text: day.toLocaleDateString() })
-      ]
+    const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+    const cls = `calendar-time-day-head ${dateKey === todayKey ? 'today' : ''}`;
+    const nextClass = workMode && isWeekend ? `${cls} weekend-muted` : cls;
+    headerRow.appendChild(
+      createNode(
+        'button',
+        {
+          className: nextClass,
+          dataset: {
+            action: 'calendar-select-day',
+            date: dateKey
+          }
+        },
+        [
+          createNode('strong', { text: day.toLocaleDateString(undefined, { weekday: 'short' }) }),
+          createNode('span', { text: day.toLocaleDateString() })
+        ]
+      )
     );
-
-    const itemsWrap = createNode('div', { className: 'calendar-range-items' });
-    if (items.length === 0) {
-      itemsWrap.appendChild(createNode('div', { className: 'settings-row-desc', text: 'No items' }));
-    } else {
-      items.forEach((item) => itemsWrap.appendChild(renderCalendarItemButton(item)));
-    }
-
-    col.appendChild(head);
-    col.appendChild(itemsWrap);
-    range.appendChild(col);
   });
+  timeGrid.appendChild(headerRow);
 
-  return range;
+  const allDayRow = createNode('div', { className: 'calendar-time-row calendar-time-all-day' });
+  allDayRow.appendChild(createNode('div', { className: 'calendar-time-hour-label', text: 'All-day' }));
+  days.forEach((day) => {
+    const dateKey = getDateKeyFromDate(day);
+    const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+    const items = (itemsByDate[dateKey] || []).filter((item) => item.isAllDay);
+    const allDayClasses = ['calendar-time-cell'];
+    if (dateKey === todayKey) allDayClasses.push('today');
+    if (workMode && isWeekend) allDayClasses.push('weekend-muted');
+    const cell = createNode('div', { className: allDayClasses.join(' ') });
+    const stack = createNode('div', { className: 'calendar-time-items' });
+    if (items.length === 0) {
+      stack.appendChild(createNode('span', { className: 'calendar-time-empty', text: '—' }));
+    } else {
+      items.slice(0, 3).forEach((item) => {
+        stack.appendChild(
+          createNode('button', {
+            className: `calendar-time-item calendar-item-${item.type}`,
+            dataset: {
+              action: 'calendar-open-item',
+              itemType: item.type,
+              itemId: item.id
+            },
+            text: sanitizeUserText(item.title) || '(Untitled)'
+          })
+        );
+      });
+    }
+    cell.appendChild(stack);
+    allDayRow.appendChild(cell);
+  });
+  timeGrid.appendChild(allDayRow);
+
+  for (let hour = HOUR_START; hour <= HOUR_END; hour += 1) {
+    const row = createNode('div', { className: 'calendar-time-row' });
+    const label = hour === 12 ? '12 PM' : hour > 12 ? `${hour - 12} PM` : `${hour} AM`;
+    row.appendChild(createNode('div', { className: 'calendar-time-hour-label', text: label }));
+
+    days.forEach((day) => {
+      const dateKey = getDateKeyFromDate(day);
+      const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+      const isOffHours = hour < 8 || hour > 17;
+      const items = (itemsByDate[dateKey] || []).filter((item) => !item.isAllDay && Number(item.hour) === hour);
+      const classes = ['calendar-time-cell'];
+      if (dateKey === todayKey) classes.push('today');
+      if (workMode && isWeekend) classes.push('weekend-muted');
+      else if (workMode && isOffHours) classes.push('offhours-muted');
+      const cell = createNode('div', { className: classes.join(' ') });
+      const stack = createNode('div', { className: 'calendar-time-items' });
+      items.slice(0, 2).forEach((item) => {
+        const minute = Number(item.minute || 0);
+        const timeLabel = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        stack.appendChild(
+          createNode('button', {
+            className: `calendar-time-item calendar-item-${item.type}`,
+            dataset: {
+              action: 'calendar-open-item',
+              itemType: item.type,
+              itemId: item.id
+            },
+            text: `${timeLabel} ${sanitizeUserText(item.title) || '(Untitled)'}`
+          })
+        );
+      });
+      cell.appendChild(stack);
+      row.appendChild(cell);
+    });
+
+    timeGrid.appendChild(row);
+  }
+
+  return timeGrid;
 }
 
 function updateGrowthTree() {
@@ -878,19 +1000,44 @@ function updateGrowthTree() {
     compRateEl.classList.toggle('perfect-score', rate === 100);
   }
 
+  const treeContainer = document.querySelector('.tree-container');
+  if (treeContainer) {
+    treeContainer.style.setProperty('--tree-rate', String(rate / 100));
+  }
+
+  const progressRing = document.querySelector('.tree-progress-ring');
+  if (progressRing) {
+    const radius = Number(progressRing.getAttribute('r') || 56);
+    const circumference = 2 * Math.PI * radius;
+    progressRing.style.strokeDasharray = `${circumference}`;
+    progressRing.style.strokeDashoffset = `${circumference * (1 - rate / 100)}`;
+  }
+
   document.querySelectorAll('.tree-flower').forEach((flower) => {
-    flower.classList.toggle('blooming', rate === 100);
+    const threshold = Number(flower.dataset.threshold || 95);
+    const visible = rate >= threshold;
+    flower.classList.toggle('blooming', visible);
+    flower.style.opacity = visible ? '1' : '0';
+    flower.style.transform = visible ? 'scale(1)' : 'scale(0.2)';
   });
 
   document.querySelectorAll('.tree-branch').forEach((branch, idx) => {
-    branch.style.opacity = rate > idx * 10 + 5 ? '1' : '0';
+    const threshold = Number(branch.dataset.threshold || idx * 11 + 8);
+    const visible = rate >= threshold;
+    branch.style.opacity = visible ? '1' : '0.18';
+    branch.style.transform = visible ? 'scale(1)' : 'scale(0.94)';
   });
 
   document.querySelectorAll('.tree-leaf').forEach((leaf, idx) => {
-    const threshold = 20 + idx * 6.6;
-    const visible = rate > threshold;
+    const threshold = Number(leaf.dataset.threshold || 16 + idx * 7);
+    const visible = rate >= threshold;
     leaf.style.opacity = visible ? '1' : '0';
-    leaf.style.transform = visible ? 'scale(1)' : 'scale(0)';
+    leaf.style.transform = visible ? 'scale(1)' : 'scale(0.25)';
+  });
+
+  document.querySelectorAll('.tree-canopy').forEach((canopy, idx) => {
+    const threshold = Number(canopy.dataset.threshold || idx * 22);
+    canopy.style.opacity = rate >= threshold ? '1' : '0.3';
   });
 }
 
@@ -931,6 +1078,19 @@ function renderTasks() {
   fragment.appendChild(header);
 
   const toolbar = createNode('div', { className: 'task-toolbar' });
+  const toolbarHead = createNode('div', { className: 'minimal-menu-head' });
+  toolbarHead.appendChild(
+    createNode('button', {
+      className: 'tb-btn minimal-menu-toggle',
+      dataset: { action: 'toggle-task-menu' },
+      text: taskMenuExpanded ? 'Hide View & Filters' : 'View & Filters'
+    })
+  );
+  toolbarHead.appendChild(createNode('span', { className: 'task-filter-meta', text: `Showing ${totalVisible} task${totalVisible === 1 ? '' : 's'}` }));
+  toolbar.appendChild(toolbarHead);
+
+  const controlsPanel = createNode('div', { className: `minimal-menu-panel ${taskMenuExpanded ? 'open' : ''}` });
+
   const viewSwitch = createNode('div', { className: 'task-view-switch' });
   [
     ['status', 'Status'],
@@ -944,7 +1104,7 @@ function renderTasks() {
     });
     viewSwitch.appendChild(btn);
   });
-  toolbar.appendChild(viewSwitch);
+  controlsPanel.appendChild(viewSwitch);
 
   const searchInput = createNode('input', {
     className: 'input-field task-filter-input',
@@ -953,7 +1113,7 @@ function renderTasks() {
     value: taskFilters.query,
     type: 'text'
   });
-  toolbar.appendChild(searchInput);
+  controlsPanel.appendChild(searchInput);
 
   const smartRuleInput = createNode('input', {
     className: 'input-field task-filter-input',
@@ -962,7 +1122,7 @@ function renderTasks() {
     value: taskFilters.smartRule,
     type: 'text'
   });
-  toolbar.appendChild(smartRuleInput);
+  controlsPanel.appendChild(smartRuleInput);
 
   const smartViewsSelect = createNode('select', { className: 'input-field task-filter-select', dataset: { role: 'task-smart-view' } });
   smartViewsSelect.appendChild(createNode('option', { attrs: { value: 'none' }, text: 'Smart View: None' }));
@@ -970,9 +1130,9 @@ function renderTasks() {
     smartViewsSelect.appendChild(createNode('option', { attrs: { value: view.id }, text: `Smart View: ${view.name}` }));
   });
   smartViewsSelect.value = taskFilters.smartViewId || 'none';
-  toolbar.appendChild(smartViewsSelect);
+  controlsPanel.appendChild(smartViewsSelect);
 
-  toolbar.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'save-smart-view' }, text: 'Save Smart View' }));
+  controlsPanel.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'save-smart-view' }, text: 'Save Smart View' }));
 
   const sortMenu = createNode('div', { className: 'task-sort-menu' });
   sortMenu.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'toggle-sort-menu' }, text: 'Sort ▾' }));
@@ -993,7 +1153,7 @@ function renderTasks() {
     );
   });
   sortMenu.appendChild(sortPanel);
-  toolbar.appendChild(sortMenu);
+  controlsPanel.appendChild(sortMenu);
 
   const dueSelect = createNode('select', { className: 'input-field task-filter-select', dataset: { role: 'task-filter-due' } });
   [
@@ -1006,10 +1166,11 @@ function renderTasks() {
     dueSelect.appendChild(createNode('option', { attrs: { value }, text: label }));
   });
   dueSelect.value = taskFilters.due;
-  toolbar.appendChild(dueSelect);
+  controlsPanel.appendChild(dueSelect);
 
-  toolbar.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'clear-task-filters' }, text: 'Clear' }));
-  toolbar.appendChild(createNode('span', { className: 'task-filter-meta', text: `Showing ${totalVisible} task${totalVisible === 1 ? '' : 's'}` }));
+  controlsPanel.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'clear-task-filters' }, text: 'Clear' }));
+
+  toolbar.appendChild(controlsPanel);
 
   fragment.appendChild(toolbar);
 
@@ -1102,58 +1263,111 @@ function renderHabits() {
   treeSvg.setAttribute('class', 'tree-svg');
   treeSvg.setAttribute('viewBox', '0 0 200 200');
 
-  const trunk = document.createElementNS(svgNs, 'rect');
-  trunk.setAttribute('fill', '#8b7355');
-  trunk.setAttribute('x', '95');
-  trunk.setAttribute('y', '150');
-  trunk.setAttribute('width', '10');
-  trunk.setAttribute('height', '40');
+  const ground = document.createElementNS(svgNs, 'ellipse');
+  ground.setAttribute('class', 'tree-ground');
+  ground.setAttribute('cx', '100');
+  ground.setAttribute('cy', '186');
+  ground.setAttribute('rx', '62');
+  ground.setAttribute('ry', '10');
+  treeSvg.appendChild(ground);
+
+  const progressTrack = document.createElementNS(svgNs, 'circle');
+  progressTrack.setAttribute('class', 'tree-progress-track');
+  progressTrack.setAttribute('cx', '100');
+  progressTrack.setAttribute('cy', '90');
+  progressTrack.setAttribute('r', '56');
+  treeSvg.appendChild(progressTrack);
+
+  const progressRing = document.createElementNS(svgNs, 'circle');
+  progressRing.setAttribute('class', 'tree-progress-ring');
+  progressRing.setAttribute('cx', '100');
+  progressRing.setAttribute('cy', '90');
+  progressRing.setAttribute('r', '56');
+  treeSvg.appendChild(progressRing);
+
+  const canopyGroup = document.createElementNS(svgNs, 'g');
+  [
+    ['100', '84', '45', '8'],
+    ['72', '96', '30', '28'],
+    ['128', '96', '30', '48'],
+    ['100', '62', '26', '66']
+  ].forEach(([cx, cy, r, threshold]) => {
+    const c = document.createElementNS(svgNs, 'circle');
+    c.setAttribute('class', 'tree-canopy');
+    c.setAttribute('cx', cx);
+    c.setAttribute('cy', cy);
+    c.setAttribute('r', r);
+    c.dataset.threshold = threshold;
+    canopyGroup.appendChild(c);
+  });
+  treeSvg.appendChild(canopyGroup);
+
+  const trunk = document.createElementNS(svgNs, 'path');
+  trunk.setAttribute('class', 'tree-trunk');
+  trunk.setAttribute('d', 'M92 152 Q100 142 108 152 L112 187 Q100 193 88 187 Z');
   treeSvg.appendChild(trunk);
+
+  const roots = document.createElementNS(svgNs, 'path');
+  roots.setAttribute('class', 'tree-roots');
+  roots.setAttribute('d', 'M88 184 Q74 188 64 182 M112 184 Q126 188 136 182 M95 187 Q100 192 105 187');
+  treeSvg.appendChild(roots);
 
   const branchesGroup = document.createElementNS(svgNs, 'g');
   [
-    ['M100 150 Q80 130 60 110', '3'],
-    ['M100 150 Q120 130 140 110', '3'],
-    ['M100 130 Q90 110 90 80', '2'],
-    ['M100 130 Q110 110 110 80', '2']
-  ].forEach(([d, width]) => {
+    ['M100 150 Q84 133 62 116', '4', '10'],
+    ['M100 150 Q116 133 138 116', '4', '20'],
+    ['M100 138 Q92 116 84 92', '3', '30'],
+    ['M100 138 Q108 116 116 92', '3', '40'],
+    ['M84 122 Q74 108 66 94', '2.2', '52'],
+    ['M116 122 Q126 108 134 94', '2.2', '64']
+  ].forEach(([d, width, threshold]) => {
     const path = document.createElementNS(svgNs, 'path');
     path.setAttribute('class', 'tree-branch');
     path.setAttribute('d', d);
-    path.setAttribute('stroke', '#6b5d4f');
     path.setAttribute('stroke-width', width);
     path.setAttribute('fill', 'none');
+    path.dataset.threshold = threshold;
     branchesGroup.appendChild(path);
   });
   treeSvg.appendChild(branchesGroup);
 
   const leavesGroup = document.createElementNS(svgNs, 'g');
   [
-    ['60', '110', '8'],
-    ['140', '110', '8'],
-    ['90', '80', '8'],
-    ['110', '80', '8']
-  ].forEach(([cx, cy, r]) => {
+    ['62', '116', '8', '22'],
+    ['138', '116', '8', '30'],
+    ['84', '90', '7', '40'],
+    ['116', '90', '7', '48'],
+    ['67', '96', '6', '56'],
+    ['133', '96', '6', '64'],
+    ['94', '72', '7', '72'],
+    ['106', '72', '7', '80'],
+    ['79', '106', '6', '86'],
+    ['121', '106', '6', '90']
+  ].forEach(([cx, cy, r, threshold]) => {
     const c = document.createElementNS(svgNs, 'circle');
     c.setAttribute('class', 'tree-leaf');
     c.setAttribute('cx', cx);
     c.setAttribute('cy', cy);
     c.setAttribute('r', r);
+    c.dataset.threshold = threshold;
     leavesGroup.appendChild(c);
   });
   treeSvg.appendChild(leavesGroup);
 
   const flowersGroup = document.createElementNS(svgNs, 'g');
   [
-    ['60', '105', '4'],
-    ['140', '105', '4'],
-    ['100', '55', '5']
-  ].forEach(([cx, cy, r]) => {
+    ['60', '106', '3.5', '92'],
+    ['140', '106', '3.5', '94'],
+    ['100', '58', '4.6', '96'],
+    ['84', '80', '3.2', '98'],
+    ['116', '80', '3.2', '99']
+  ].forEach(([cx, cy, r, threshold]) => {
     const c = document.createElementNS(svgNs, 'circle');
     c.setAttribute('class', 'tree-flower');
     c.setAttribute('cx', cx);
     c.setAttribute('cy', cy);
     c.setAttribute('r', r);
+    c.dataset.threshold = threshold;
     flowersGroup.appendChild(c);
   });
   treeSvg.appendChild(flowersGroup);
@@ -1282,6 +1496,19 @@ function renderCalendar() {
   const wrap = createNode('div', { className: 'calendar-wrap' });
   const toolbar = createNode('div', { className: 'calendar-toolbar' });
 
+  const calendarHead = createNode('div', { className: 'minimal-menu-head' });
+  calendarHead.appendChild(
+    createNode('button', {
+      className: 'tb-btn minimal-menu-toggle',
+      dataset: { action: 'toggle-calendar-menu' },
+      text: calendarMenuExpanded ? 'Hide View & Filters' : 'View & Filters'
+    })
+  );
+  calendarHead.appendChild(createNode('span', { className: 'task-filter-meta', text: `View: ${calendarView}` }));
+  toolbar.appendChild(calendarHead);
+
+  const calendarControls = createNode('div', { className: `minimal-menu-panel ${calendarMenuExpanded ? 'open' : ''}` });
+
   const viewSwitch = createNode('div', { className: 'calendar-view-switch' });
   [
     ['day', 'Day'],
@@ -1300,7 +1527,7 @@ function renderCalendar() {
       })
     );
   });
-  toolbar.appendChild(viewSwitch);
+  calendarControls.appendChild(viewSwitch);
 
   const filterRow = createNode('div', { className: 'calendar-filter-row' });
   [
@@ -1325,7 +1552,8 @@ function renderCalendar() {
   categorySelect.value = calendarFilters.category;
   filterRow.appendChild(categorySelect);
 
-  toolbar.appendChild(filterRow);
+  calendarControls.appendChild(filterRow);
+  toolbar.appendChild(calendarControls);
   wrap.appendChild(toolbar);
 
   if (calendarView === 'month') {
@@ -1421,7 +1649,14 @@ function renderSettings() {
 
   const themeField = createNode('label', { className: 'settings-field' }, ['Theme']);
   const themeSelect = createNode('select', { className: 'input-field', dataset: { role: 'settings-theme' } });
-  [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].forEach(([value, label]) => {
+  [
+    ['light', 'Light'],
+    ['dark', 'Dark'],
+    ['system', 'System'],
+    ['the-w', 'The W'],
+    ['christmas', 'Christmas'],
+    ['aurora', 'Aurora']
+  ].forEach(([value, label]) => {
     themeSelect.appendChild(createNode('option', { attrs: { value }, text: label }));
   });
   themeSelect.value = settings.theme || 'light';
@@ -1474,6 +1709,14 @@ function renderSettings() {
   firstDaySelect.value = settings.firstday || 'mon';
   firstDayField.appendChild(firstDaySelect);
   calendarGrid.appendChild(firstDayField);
+
+  const weekStyleField = createNode('label', { className: 'settings-field' }, ['Week Style']);
+  const weekStyleSelect = createNode('select', { className: 'input-field', dataset: { role: 'settings-week-style' } });
+  weekStyleSelect.appendChild(createNode('option', { attrs: { value: 'personal' }, text: 'Personal Week' }));
+  weekStyleSelect.appendChild(createNode('option', { attrs: { value: 'work' }, text: 'Work Week (grey non-work hours)' }));
+  weekStyleSelect.value = settings.weekStyle || 'personal';
+  weekStyleField.appendChild(weekStyleSelect);
+  calendarGrid.appendChild(weekStyleField);
 
   calendarTime.appendChild(calendarGrid);
   stack.appendChild(calendarTime);
@@ -2657,6 +2900,14 @@ function bindGlobalEvents() {
         return;
       }
 
+      if (action === 'toggle-task-menu') {
+        taskMenuExpanded = !taskMenuExpanded;
+        setStoredMenuState('2dobyu_task_menu_expanded', taskMenuExpanded);
+        if (!taskMenuExpanded) taskSortMenuOpen = false;
+        renderTasks();
+        return;
+      }
+
       if (action === 'save-smart-view') {
         const rule = sanitizeUserText(taskFilters.smartRule);
         if (!rule) return;
@@ -2738,6 +2989,13 @@ function bindGlobalEvents() {
 
       if (action === 'calendar-set-view') {
         calendarView = actionEl.dataset.value || 'month';
+        renderCalendar();
+        return;
+      }
+
+      if (action === 'toggle-calendar-menu') {
+        calendarMenuExpanded = !calendarMenuExpanded;
+        setStoredMenuState('2dobyu_calendar_menu_expanded', calendarMenuExpanded);
         renderCalendar();
         return;
       }
@@ -3014,6 +3272,12 @@ function bindGlobalEvents() {
     const settingFirstDay = event.target.closest('[data-role="settings-firstday"]');
     if (settingFirstDay) {
       await updateSettings({ firstday: settingFirstDay.value || 'mon' });
+      return;
+    }
+
+    const settingWeekStyle = event.target.closest('[data-role="settings-week-style"]');
+    if (settingWeekStyle) {
+      await updateSettings({ weekStyle: settingWeekStyle.value || 'personal' });
       return;
     }
 

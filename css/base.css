@@ -172,3 +172,30 @@ body.theme-light {
    --text:#1a1a1a;
    --muted:#999;
 }
+
+body.theme-the-w {
+   --bg:#f5f6f8;
+   --surface:#ffffff;
+   --surface2:#f0f2f5;
+   --border:#e3e6ea;
+   --text:#1f2428;
+   --muted:#7a828a;
+}
+
+body.theme-christmas {
+   --bg:#f6f8f6;
+   --surface:#ffffff;
+   --surface2:#eef4ef;
+   --border:#dde7df;
+   --text:#1f2b24;
+   --muted:#6d7e73;
+}
+
+body.theme-aurora {
+   --bg:#16152a;
+   --surface:#201f36;
+   --surface2:#282645;
+   --border:#34315a;
+   --text:#eceaff;
+   --muted:#aaa6d4;
+}
