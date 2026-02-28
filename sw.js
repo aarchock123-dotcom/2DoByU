@@ -1,4 +1,4 @@
-const CACHE_NAME = '2dobyu-v4';
+const CACHE_NAME = '2dobyu-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -40,7 +40,11 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         })
-        .catch(() => caches.match(event.request))
+        .catch(async () => {
+          const directMatch = await caches.match(event.request);
+          if (directMatch) return directMatch;
+          return caches.match('./index.html');
+        })
     );
     return;
   }

@@ -316,6 +316,12 @@ body.dark .outlook-day-col:hover, body.dark .outlook-hour-cell:hover { backgroun
 .settings-row-label { font-size:.9em; font-weight:500; }
 .settings-row-desc { font-size:.75em; color:var(--muted); }
 .settings-row-right { display:flex; align-items:center; gap:10px; flex-shrink:0; }
+.account-row { align-items:flex-start; }
+.account-actions { width:100%; justify-content:flex-end; flex-wrap:wrap; }
+@media(max-width:700px){
+  .account-row { flex-direction:column; align-items:flex-start; gap:10px; }
+  .account-actions { justify-content:flex-start; }
+}
 .toggle { position:relative; width:44px; height:24px; cursor:pointer; }
 .toggle input { opacity:0; width:0; height:0; position:absolute; }
 .toggle-track { position:absolute; inset:0; background:var(--border); border-radius:12px; transition:.2s; }
@@ -344,6 +350,17 @@ body.dark .outlook-day-col:hover, body.dark .outlook-hour-cell:hover { backgroun
 .auth-title { font-size:1.25em; font-weight:800; color:var(--accent); letter-spacing:-0.02em; }
 .auth-sub { color:var(--muted); font-size:.9em; }
 .auth-actions { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
+.auth-mode { display:flex; gap:8px; }
+.auth-mode-btn { flex:1; padding:8px 10px; border:1px solid var(--border); border-radius:8px; background:var(--surface2); color:var(--muted); font-weight:600; cursor:pointer; }
+.auth-mode-btn.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+.auth-hero { background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:12px; }
+.auth-hero svg { width:100%; height:150px; display:block; }
+.auth-choice-actions { display:flex; gap:10px; }
+.auth-choice-actions .settings-btn { flex:1; }
+.auth-form { display:none; flex-direction:column; gap:10px; }
+.auth-form.show { display:flex; }
+.auth-row-between { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.auth-link-btn { background:none; border:none; color:var(--accent); cursor:pointer; font-size:.82em; text-decoration:underline; padding:0; }
 body.dark { --bg:#1a1a1a; --surface:#242424; --surface2:#2a2a2a; --border:#333; --text:#f0f0f0; --muted:#777; }
 body.dark #sidebar, body.dark #topbar, body.dark .column, body.dark .card, body.dark .habit-card,
 body.dark .modal, body.dark .analytics-section, body.dark .stat-card,
@@ -458,7 +475,7 @@ body.dark .white-surface { background:var(--surface); }
 .note-card { break-inside:avoid; border-radius:10px; border:1px solid var(--border); padding:16px; margin-bottom:14px; cursor:pointer; transition:box-shadow .15s,transform .15s; position:relative; display:block; }
 .note-card:hover { box-shadow:0 4px 16px rgba(0,0,0,.1); transform:translateY(-2px); }
 .note-card-title { font-weight:700; font-size:.95em; margin-bottom:7px; word-break:break-word; }
-.note-card-body { font-size:.83em; color:var(--text); line-height:1.55; display:-webkit-box; -webkit-line-clamp:7; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; white-space:pre-wrap; }
+.note-card-body { font-size:.83em; color:var(--text); line-height:1.55; display:-webkit-box; line-clamp:7; -webkit-line-clamp:7; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; white-space:pre-wrap; }
 .note-card-footer { display:flex; justify-content:flex-end; margin-top:10px; }
 .note-pin-btn { background:none; border:none; cursor:pointer; font-size:.85em; opacity:.35; transition:.15s; padding:2px 5px; border-radius:4px; }
 .note-pin-btn:hover { opacity:.85; background:rgba(0,0,0,.06); }
@@ -570,13 +587,44 @@ body.dark .habit-list-row { background:var(--surface); border-color:var(--border
 
 <div id="auth-gate">
   <div class="auth-card">
-    <div class="auth-title">2DoByU</div>
-    <div class="auth-sub" id="auth-gate-status">Sign in to continue</div>
-    <input id="gate-email" type="email" class="input-field" placeholder="Email">
-    <input id="gate-password" type="password" class="input-field" placeholder="Password">
-    <div class="auth-actions">
-      <button class="settings-btn" onclick="cloudSignUpEmail('gate')">Create Account</button>
-      <button class="settings-btn primary" onclick="cloudSignInEmail('gate')">Sign In</button>
+    <div class="auth-title" id="auth-gate-title">2DoByU</div>
+    <div class="auth-sub" id="auth-gate-status">Welcome back</div>
+    <div class="auth-hero" id="auth-hero">
+      <svg viewBox="0 0 360 170" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="0" y="0" width="360" height="170" rx="10" fill="none"/>
+        <ellipse cx="210" cy="145" rx="120" ry="16" fill="rgba(0,0,0,.05)"/>
+        <rect x="198" y="80" width="14" height="58" rx="5" fill="#8b7355"/>
+        <circle cx="170" cy="72" r="36" fill="#8b9d83"/>
+        <circle cx="215" cy="62" r="42" fill="#94a88b"/>
+        <circle cx="248" cy="80" r="30" fill="#8b9d83"/>
+        <circle cx="192" cy="56" r="4" fill="#e74c3c"/>
+        <circle cx="226" cy="72" r="4" fill="#e74c3c"/>
+        <circle cx="243" cy="58" r="4" fill="#e74c3c"/>
+        <ellipse cx="120" cy="136" rx="40" ry="8" fill="#d9d2c6"/>
+        <rect x="99" y="124" width="48" height="10" rx="5" fill="#d4a373"/>
+        <circle cx="95" cy="126" r="7" fill="#f0d2b8"/>
+        <rect x="138" y="128" width="16" height="5" rx="2" fill="#8b7355"/>
+      </svg>
+    </div>
+    <div class="auth-choice-actions" id="gate-choice-actions">
+      <button class="settings-btn" onclick="setGateMode('signup')">Create Account</button>
+      <button class="settings-btn primary" onclick="setGateMode('signin')">Sign In</button>
+    </div>
+
+    <div class="auth-form" id="gate-form">
+      <div class="auth-mode">
+        <button class="auth-mode-btn active" id="gate-mode-signin" onclick="setGateMode('signin')">Sign In</button>
+        <button class="auth-mode-btn" id="gate-mode-signup" onclick="setGateMode('signup')">Create Account</button>
+      </div>
+      <input id="gate-email" type="email" class="input-field" placeholder="Email">
+      <input id="gate-password" type="password" class="input-field" placeholder="Password">
+      <div class="auth-row-between">
+        <button class="auth-link-btn" id="gate-back-btn" onclick="showGateChoice()">← Back</button>
+        <button class="auth-link-btn" id="gate-forgot-btn" onclick="gateForgotPassword()">Forgot password?</button>
+      </div>
+      <div class="auth-actions">
+        <button class="settings-btn primary" id="gate-submit-btn" onclick="submitGateAuth()">Sign In</button>
+      </div>
     </div>
   </div>
 </div>
@@ -609,6 +657,7 @@ body.dark .habit-list-row { background:var(--surface); border-color:var(--border
   <div id="topbar">
     <button id="hamburger" onclick="openSidebar()">☰</button>
     <span id="topbar-title" style="font-weight:800;letter-spacing:-0.5px;color:var(--accent)">2DoByU</span>
+    <button class="settings-btn" style="margin-left:auto" onclick="openGlobalSearch()">🔎 Search</button>
     <button id="topbar-action" onclick="topbarAction()">+ New Task</button>
   </div>
 
@@ -739,6 +788,7 @@ body.dark .habit-list-row { background:var(--surface); border-color:var(--border
           Weekly Completion: <span id="comp-rate">0%</span>
         </div>
       </div>
+      <div id="habit-nudge" class="analytics-section" style="display:none;padding:12px 14px;font-size:.86em"></div>
       <div class="tb-toolbar" id="habit-toolbar">
         <!-- Sort -->
         <div class="tb-dropdown-wrap" id="habit-sort-wrap">
@@ -828,6 +878,10 @@ body.dark .habit-list-row { background:var(--surface); border-color:var(--border
       <div class="analytics-section">
         <h3>All Completed Tasks</h3>
         <div id="all-done-list"></div>
+      </div>
+      <div class="analytics-section">
+        <h3>Weekly Review</h3>
+        <div id="weekly-review"></div>
       </div>
     </div>
 
@@ -1039,8 +1093,8 @@ body.dark .habit-list-row { background:var(--surface); border-color:var(--border
         </div>
         <div class="settings-row">
           <div class="settings-row-left">
-            <div class="settings-row-label">Import Data</div>
-            <div class="settings-row-desc">Restore from a previously exported CSV</div>
+            <div class="settings-row-label">Import CSV</div>
+            <div class="settings-row-desc">Restore tasks and habits from a CSV export</div>
           </div>
           <div class="settings-row-right">
             <button class="settings-btn" onclick="document.getElementById('import-file').click()">Import CSV</button>
@@ -1049,8 +1103,42 @@ body.dark .habit-list-row { background:var(--surface); border-color:var(--border
         </div>
         <div class="settings-row">
           <div class="settings-row-left">
+            <div class="settings-row-label">Import JSON Backup</div>
+            <div class="settings-row-desc">Restore full app data from a version-checked JSON backup</div>
+          </div>
+          <div class="settings-row-right">
+            <button class="settings-btn" onclick="document.getElementById('import-backup-file').click()">Import JSON</button>
+            <input type="file" id="import-backup-file" accept=".json" style="display:none" onchange="importBackupJSON(this)">
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-label">Undo</div>
+            <div class="settings-row-desc" id="undo-meta">No undo available</div>
+          </div>
+          <div class="settings-row-right">
+            <button class="settings-btn" onclick="undoLastChange()">Undo</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-label">Archive</div>
+            <div class="settings-row-desc" id="archive-meta">No archived items</div>
+          </div>
+          <div class="settings-row-right">
+            <button class="settings-btn" onclick="restoreLastArchived()">Restore Last</button>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-label">Recent Activity</div>
+            <div class="settings-row-desc" id="activity-meta">No recent activity</div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-left">
             <div class="settings-row-label">Clear All Data</div>
-            <div class="settings-row-desc">Permanently delete all tasks and habits</div>
+            <div class="settings-row-desc">Permanently delete all tasks, habits, and notes</div>
           </div>
           <div class="settings-row-right">
             <button class="settings-btn danger" onclick="confirmClearData()">Clear Data</button>
@@ -1058,52 +1146,30 @@ body.dark .habit-list-row { background:var(--surface); border-color:var(--border
         </div>
       </div>
 
-      <div class="settings-group-title">Account & Sync</div>
+      <div class="settings-group-title">Account</div>
       <div class="settings-group">
         <div class="settings-row">
           <div class="settings-row-left">
             <div class="settings-row-label">Cloud Account</div>
             <div class="settings-row-desc" id="cloud-user-email">Not signed in</div>
+            <div class="settings-row-desc" id="cloud-sync-meta">Last sync: not yet</div>
           </div>
           <div class="settings-row-right"><span class="version-tag" id="cloud-auth-status">☁️ Offline</span></div>
         </div>
-        <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:10px">
-          <div class="settings-row-label">Supabase Config</div>
-          <div class="settings-row-desc">Paste once, then save. Required for auth + cross-device sync.</div>
-          <div class="form-row" style="width:100%">
-            <input id="sb-url" class="input-field" placeholder="https://YOUR-PROJECT.supabase.co">
-            <input id="sb-key" class="input-field" placeholder="Supabase anon public key">
-          </div>
-          <div class="settings-row-right" style="width:100%;justify-content:flex-end">
-            <button class="settings-btn" onclick="saveCloudConfig()">Save Config</button>
-          </div>
-        </div>
-        <div class="settings-row" style="flex-direction:column;align-items:flex-start;gap:10px">
-          <div class="settings-row-label">Sign In</div>
-          <div class="form-row" style="width:100%">
-            <input id="cloud-email" type="email" class="input-field" placeholder="Email">
-            <input id="cloud-password" type="password" class="input-field" placeholder="Password">
-          </div>
-          <div class="settings-row-right" style="width:100%;justify-content:flex-end;flex-wrap:wrap">
-            <button class="settings-btn" onclick="cloudSignInEmail()">Sign In</button>
-            <button class="settings-btn" onclick="cloudSignUpEmail()">Sign Up</button>
-            <button class="settings-btn" id="cloud-google-btn" onclick="cloudSignInGoogle()" style="display:none">Google</button>
+        <div class="settings-row account-row" style="gap:10px">
+          <div class="settings-row-label">Sync</div>
+          <div class="settings-row-desc">Sign in on the lock screen. Changes sync automatically.</div>
+          <div class="settings-row-right account-actions">
+            <button class="settings-btn" onclick="cloudManualSync()">Sync Now</button>
+            <button class="settings-btn" onclick="cloudSignOutAll()">Sign Out All Devices</button>
+            <button class="settings-btn danger" onclick="deleteCloudBackupConfirm()">Delete Cloud Backup</button>
             <button class="settings-btn danger" onclick="cloudSignOut()">Sign Out</button>
           </div>
         </div>
         <div class="settings-row">
           <div class="settings-row-left">
-            <div class="settings-row-label">Auto Sync</div>
-            <div class="settings-row-desc">Automatically sync after local changes (hybrid mode keeps manual sync too)</div>
-          </div>
-          <div class="settings-row-right">
-            <label class="toggle">
-              <input type="checkbox" id="setting-cloud-auto" onchange="setCloudAutoSync(this.checked)">
-              <div class="toggle-track"></div>
-              <div class="toggle-thumb"></div>
-            </label>
-            <button class="settings-btn" onclick="cloudManualSync()">Sync Now</button>
-            <button class="settings-btn" onclick="cloudPullLatest()">Pull Latest</button>
+            <div class="settings-row-label">Security</div>
+            <div class="settings-row-desc" id="security-meta">No active session</div>
           </div>
         </div>
       </div>
@@ -1327,25 +1393,105 @@ let tasks={todo:[],inprogress:[],done:[]};
 let habits=[];
 let editingTask=null,editingHabitIdx=null,draggedTaskId=null,dragOverCardId=null,dragOverPosition=null,celebratedThisSession=false;
 let notes=[];
+let archived={tasks:[],habits:[],notes:[]};
+let undoStack=[];
+let activityLog=[];
+let lastSavedSnapshot='';
+let isUndoing=false;
+const ACTIVITY_KEY='2dobyu_activity_v1';
+
+function buildStateSnapshot(){
+  return JSON.stringify({tasks,habits,notes,taskIdCounter,archived});
+}
+
+function logActivity(message){
+  activityLog.unshift(`${new Date().toLocaleTimeString()} • ${message}`);
+  activityLog=activityLog.slice(0,15);
+  localStorage.setItem(ACTIVITY_KEY, JSON.stringify(activityLog));
+}
+
+function refreshDataMeta(){
+  const undoEl=document.getElementById('undo-meta');
+  const arcEl=document.getElementById('archive-meta');
+  const actEl=document.getElementById('activity-meta');
+  if(undoEl) undoEl.textContent=undoStack.length?`${undoStack.length} undo step(s) available`:'Nothing to undo';
+  const aCount=(archived.tasks?.length||0)+(archived.habits?.length||0)+(archived.notes?.length||0);
+  if(arcEl) arcEl.textContent=aCount?`${aCount} item(s) archived`:'Nothing archived';
+  if(actEl) actEl.textContent=activityLog[0]||'No recent activity yet';
+}
+
+function archiveItem(type,data,col){
+  const entry={deletedAt:Date.now(),type,col,data:JSON.parse(JSON.stringify(data))};
+  if(type==='task') archived.tasks.push(entry);
+  if(type==='habit') archived.habits.push(entry);
+  if(type==='note') archived.notes.push(entry);
+}
+
+function restoreLastArchived(){
+  const all=[...(archived.tasks||[]),...(archived.habits||[]),...(archived.notes||[])];
+  if(!all.length){ showToast('No archived items to restore.'); return; }
+  all.sort((a,b)=>b.deletedAt-a.deletedAt);
+  const entry=all[0];
+  if(entry.type==='task'){
+    archived.tasks=archived.tasks.filter(x=>x!==entry);
+    const col=(entry.col&&tasks[entry.col])?entry.col:'todo';
+    tasks[col].push(entry.data);
+  }
+  if(entry.type==='habit'){
+    archived.habits=archived.habits.filter(x=>x!==entry);
+    habits.push(entry.data);
+  }
+  if(entry.type==='note'){
+    archived.notes=archived.notes.filter(x=>x!==entry);
+    notes.push(entry.data);
+  }
+  saveAndRender('Restored archived item');
+  showToast('Restored last archived item.');
+}
+
+function undoLastChange(){
+  if(!undoStack.length){ showToast('Nothing to undo.'); return; }
+  const prev=undoStack.pop();
+  isUndoing=true;
+  tasks=prev.tasks||{todo:[],inprogress:[],done:[]};
+  habits=prev.habits||[];
+  notes=prev.notes||[];
+  taskIdCounter=prev.taskIdCounter||taskIdCounter;
+  archived=prev.archived||{tasks:[],habits:[],notes:[]};
+  saveAndRender('Undo applied');
+  isUndoing=false;
+  showToast('Undid last change.');
+}
 
 function loadData(){
   try{
     const raw=localStorage.getItem('2dobyu_data');
-    if(!raw) return;
-    const d=JSON.parse(raw);
-    tasks=d.tasks||tasks;
-    habits=d.habits||habits;
-    notes=d.notes||notes;
-    taskIdCounter=d.taskIdCounter||taskIdCounter;
+    if(raw){
+      const d=JSON.parse(raw);
+      tasks=d.tasks||tasks;
+      habits=d.habits||habits;
+      notes=d.notes||notes;
+      archived=d.archived||archived;
+      taskIdCounter=d.taskIdCounter||taskIdCounter;
+    }
+    const actRaw=localStorage.getItem(ACTIVITY_KEY);
+    if(actRaw) activityLog=JSON.parse(actRaw)||[];
     const allIds=[...tasks.todo,...tasks.inprogress,...tasks.done].map(t=>t.id||0);
     if(allIds.length) taskIdCounter=Math.max(taskIdCounter,...allIds)+1;
+    lastSavedSnapshot=buildStateSnapshot();
   } catch(err){
     console.error('[2DoByU] loadData failed:', err);
   }
 }
-function saveAndRender(){
+function saveAndRender(reason='Data updated'){
+  const nextSnapshot=buildStateSnapshot();
+  if(!isUndoing && lastSavedSnapshot && lastSavedSnapshot!==nextSnapshot){
+    try{ undoStack.push(JSON.parse(lastSavedSnapshot)); undoStack=undoStack.slice(-25); }catch{}
+    logActivity(reason);
+  }
+  lastSavedSnapshot=nextSnapshot;
   try{
-    localStorage.setItem('2dobyu_data', JSON.stringify({tasks,habits,notes,taskIdCounter}));
+    localStorage.setItem('2dobyu_data', JSON.stringify({tasks,habits,notes,taskIdCounter,archived}));
     localStorage.setItem('2dobyu_last_modified', String(Date.now()));
   } catch(err){
     console.error('[2DoByU] save failed:', err);
@@ -1356,7 +1502,56 @@ function saveAndRender(){
   if(currentPage==='notes') renderNotes();
   if(currentPage==='analytics') renderAnalytics();
   if(currentPage==='calendar') renderCalendar();
+  refreshDataMeta();
   scheduleCloudAutoSync();
+}
+
+function openGlobalSearch(){
+  const modal=document.getElementById('global-search-modal');
+  if(!modal) return;
+  modal.style.display='flex';
+  const input=document.getElementById('global-search-input');
+  if(input){ input.value=''; setTimeout(()=>input.focus(),80); }
+  renderGlobalSearch('');
+}
+
+function closeGlobalSearch(){
+  const modal=document.getElementById('global-search-modal');
+  if(modal) modal.style.display='none';
+}
+
+function openSearchResult(type,id,col){
+  closeGlobalSearch();
+  if(type==='task'){
+    navigateTo('tasks');
+    const task=tasks[col]?.find(t=>t.id===id); if(task) openTaskPreview(task,col);
+    return;
+  }
+  if(type==='habit'){
+    navigateTo('habits');
+    openHabitPreview(id);
+    return;
+  }
+  if(type==='note'){
+    navigateTo('notes');
+    openNoteModal(id);
+  }
+}
+
+function renderGlobalSearch(query=''){
+  const q=(query||'').toLowerCase().trim();
+  const out=document.getElementById('global-search-results');
+  if(!out) return;
+  if(!q){ out.innerHTML='<div class="settings-row-desc">Type to search tasks, habits, and notes.</div>'; return; }
+  const rows=[];
+  Object.entries(tasks).forEach(([col,list])=>{
+    list.forEach(t=>{ if((t.title||'').toLowerCase().includes(q)||(t.notes||'').toLowerCase().includes(q)||(t.tag||'').toLowerCase().includes(q)) rows.push({type:'task',id:t.id,col,label:`📋 ${t.title}`,meta:`${col} ${t.dueDate||''}`}); });
+  });
+  habits.forEach((h,i)=>{ if((h.name||'').toLowerCase().includes(q)||(h.category||'').toLowerCase().includes(q)) rows.push({type:'habit',id:i,label:`✅ ${h.name}`,meta:h.category||'Habit'}); });
+  notes.forEach(n=>{ if((n.title||'').toLowerCase().includes(q)||(n.body||'').toLowerCase().includes(q)) rows.push({type:'note',id:n.id,label:`📝 ${n.title||'(Untitled note)'}`,meta:(n.body||'').slice(0,60)}); });
+  const top=rows.slice(0,40);
+  if(!top.length){ out.innerHTML='<div class="settings-row-desc">No matches found.</div>'; return; }
+  out.innerHTML=top.map(r=>`<button class="settings-btn" style="text-align:left;justify-content:space-between" onclick="openSearchResult('${r.type}',${r.id}${r.col?`, '${r.col}'`:''})"><span>${esc(r.label)}</span><span class="version-tag">${esc(r.meta||'')}</span></button>`).join('');
 }
 
 // ════════════════════════════════════════════════
@@ -1931,9 +2126,11 @@ function saveTask(){
 }
 function deleteCurrentTask(){
   if(!editingTask) return;
+  const task=tasks[editingTask.col].find(t=>t.id===editingTask.id);
+  if(task) archiveItem('task',task,editingTask.col);
   tasks[editingTask.col]=tasks[editingTask.col].filter(t=>t.id!==editingTask.id);
   closeModals();
-  saveAndRender();
+  saveAndRender('Task deleted (archived)');
 }
 
 // Safe helper to move a task by id into a new status column (todo/inprogress/done)
@@ -2184,7 +2381,20 @@ function renderHabits(){
       });
     }
   }
+  renderHabitNudge();
   updateTree();
+}
+
+function renderHabitNudge(){
+  const box=document.getElementById('habit-nudge');
+  if(!box) return;
+  const now=new Date();
+  const dow=now.getDay()===0?6:now.getDay()-1;
+  const due=habits.filter(h=>freqActiveDays(h).includes(dow));
+  const pending=due.filter(h=>!h.days[dow]);
+  if(!pending.length){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.innerHTML=`<strong>Today’s nudge:</strong> ${pending.length} habit(s) still pending. Small steps keep your streak alive.`;
 }
 
 function getThisWeekDate(dIdx){
@@ -2205,7 +2415,12 @@ function toggleHabit(h,d){
   habits[h].history[ds]=habits[h].days[d];
   saveAndRender();
 }
-function deleteHabitConfirm(i){if(confirm('Delete habit?')){habits.splice(i,1);saveAndRender();}}
+function deleteHabitConfirm(i){
+  if(!confirm('Delete habit?')) return;
+  if(habits[i]) archiveItem('habit',habits[i]);
+  habits.splice(i,1);
+  saveAndRender('Habit deleted (archived)');
+}
 
 let selectedHabitColor='#d4a373';
 document.querySelectorAll('.color-swatch').forEach(s=>{
@@ -2259,7 +2474,14 @@ function saveHabit(){
   else{habits.push({...data,days:Array(7).fill(false),history:{}});}
   closeModals();saveAndRender();
 }
-function deleteCurrentHabit(){if(editingHabitIdx!==null){habits.splice(editingHabitIdx,1);}closeModals();saveAndRender();}
+function deleteCurrentHabit(){
+  if(editingHabitIdx!==null){
+    if(habits[editingHabitIdx]) archiveItem('habit',habits[editingHabitIdx]);
+    habits.splice(editingHabitIdx,1);
+  }
+  closeModals();
+  saveAndRender('Habit deleted (archived)');
+}
 
 // ════════════════════════════════════════════════
 //  PROGRESS TREE
@@ -2344,6 +2566,20 @@ function renderAnalytics(){
       const task=tasks.done.find(t=>t.id===id);
       if(task) openTaskPreview(task,'done');
     });
+  }
+
+  const review=document.getElementById('weekly-review');
+  if(review){
+    const activeTotal=habits.reduce((sum,h)=>sum+freqActiveDays(h).length,0);
+    const checkedTotal=habits.reduce((sum,h)=>sum+h.days.filter((d,i)=>freqActiveDays(h).includes(i)&&d).length,0);
+    const missed=Math.max(0,activeTotal-checkedTotal);
+    const donePct=activeTotal?Math.round((checkedTotal/activeTotal)*100):0;
+    const doneTasksThisWeek=tasks.done.length;
+    review.innerHTML=`
+      <div class="habit-analytics-row"><div class="hab-name">Habits completed</div><div class="hab-pct">${checkedTotal}/${activeTotal||0}</div></div>
+      <div class="habit-analytics-row"><div class="hab-name">Missed habit checks</div><div class="hab-pct">${missed}</div></div>
+      <div class="habit-analytics-row"><div class="hab-name">Tasks completed</div><div class="hab-pct">${doneTasksThisWeek}</div></div>
+      <div style="margin-top:10px;color:var(--muted);font-size:.82em">Weekly insight: ${donePct>=80?'Excellent consistency — keep momentum.':donePct>=50?'Good progress — focus on one small daily win.':'Start small: complete one pending habit today.'}</div>`;
   }
 }
 
@@ -2457,10 +2693,12 @@ function closeNoteModal(){
 function deleteCurrentNote(){
   if(editingNoteId === null) return;
   if(!confirm('Delete this note?')) return;
+  const note = notes.find(n => n.id === editingNoteId);
+  if(note) archiveItem('note', note);
   notes = notes.filter(n => n.id !== editingNoteId);
   document.getElementById('note-modal').style.display = 'none';
   editingNoteId = null;
-  saveAndRender();
+  saveAndRender('Note deleted (archived)');
 }
 
 function toggleNotePin(noteId, e){
@@ -2756,6 +2994,10 @@ document.addEventListener('keydown',e=>{
   if(e.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)&&!e.ctrlKey&&!e.metaKey){
     e.preventDefault();
     openQuickAdd();
+  }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){
+    e.preventDefault();
+    openGlobalSearch();
   }
 });
 let calView = 'month';
@@ -3325,13 +3567,38 @@ function exportData(){
 }
 
 function exportBackupJSON() {
-  const data = { tasks, habits, settings: appSettings, exportDate: new Date().toISOString() };
+  const data = { schemaVersion:2, tasks, habits, notes, archived, taskIdCounter, settings: appSettings, exportDate: new Date().toISOString() };
   const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `2DoByU_Backup_${new Date().toISOString().slice(0,10)}.json`;
   a.click();
   showToast("Full JSON Backup downloaded!");
+}
+
+function importBackupJSON(input){
+  const file=input.files?.[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const payload=JSON.parse(String(e.target.result||'{}'));
+      const version=payload.schemaVersion||1;
+      if(version>2){ showToast('Backup version is newer than this app.'); input.value=''; return; }
+      if(!payload.tasks||!payload.habits){ showToast('Invalid backup file.'); input.value=''; return; }
+      if(!confirm('Import backup and replace current local data?')){ input.value=''; return; }
+      tasks=payload.tasks||{todo:[],inprogress:[],done:[]};
+      habits=payload.habits||[];
+      notes=payload.notes||[];
+      archived=payload.archived||{tasks:[],habits:[],notes:[]};
+      taskIdCounter=payload.taskIdCounter||taskIdCounter;
+      saveAndRender('Backup JSON imported');
+      showToast('Backup imported successfully.');
+    }catch(err){
+      showToast('Backup import failed — invalid JSON.');
+    } finally { input.value=''; }
+  };
+  reader.readAsText(file);
 }
 
 function parseCSVLine(line) {
@@ -3396,7 +3663,7 @@ const _dismissBtn = document.getElementById('dismiss-btn');
 if(_dismissBtn){ _dismissBtn.addEventListener('click', ()=>{ const banner = document.getElementById('install-banner'); if(banner) banner.style.display = 'none'; }); }
 window.addEventListener('appinstalled', ()=>{ const banner = document.getElementById('install-banner'); if(banner) banner.style.display = 'none'; });
 if('serviceWorker' in navigator && !['claudeusercontent.com','localhost'].some(h=>location.hostname.includes(h))){
-  navigator.serviceWorker.register('sw.js')
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
     .then(reg => {
       reg.update();
       let refreshing = false;
@@ -3432,13 +3699,17 @@ if('serviceWorker' in navigator && !['claudeusercontent.com','localhost'].some(h
 //  SETTINGS
 // ════════════════════════════════════════════════
 const SETTINGS_KEY = 'ht_settings_v1';
-let appSettings = { theme:'light', accent:'#d4a373', accentDark:'#c49363', compact:false, autolock:true, firstday:'mon', fireworks:true, cloudAutoSync:true, supabaseUrl:'https://pebvtcctjdjyyxrbepby.supabase.co', supabaseAnonKey:'sb_publishable_eBavrWNjMUpHt9Kp7lMONA_YDK-EQQ4', googleAuthEnabled:false };
+const CLOUD_SYNC_TS_KEY = '2dobyu_last_cloud_sync';
+const CLOUD_SIGNOUT_ALL_TS_KEY = '2dobyu_last_global_signout';
+let appSettings = { theme:'light', accent:'#d4a373', accentDark:'#c49363', compact:false, autolock:true, firstday:'mon', fireworks:true, supabaseUrl:'https://pebvtcctjdjyyxrbepby.supabase.co', supabaseAnonKey:'sb_publishable_eBavrWNjMUpHt9Kp7lMONA_YDK-EQQ4', googleAuthEnabled:false };
 let supabaseClient = null;
 let cloudUser = null;
 let cloudSyncTimer = null;
 let cloudSyncInFlight = false;
 let applyingRemoteData = false;
 let appUnlocked = false;
+let gateMode = 'signin';
+let gateStep = 'choice';
 
 function loadSettings(){
   try { const s=JSON.parse(localStorage.getItem(SETTINGS_KEY)); if(s) appSettings={...appSettings,...s}; } catch{}
@@ -3456,13 +3727,10 @@ function renderSettingsUI(){
   const cp=document.getElementById('setting-compact'); if(cp) cp.checked=!!appSettings.compact;
   const fd=document.getElementById('setting-firstday'); if(fd) fd.value=appSettings.firstday||'mon';
   const fw=document.getElementById('setting-fireworks'); if(fw) fw.checked=appSettings.fireworks!==false;
-  const sa=document.getElementById('setting-cloud-auto'); if(sa) sa.checked=appSettings.cloudAutoSync!==false;
-  const sbUrl=document.getElementById('sb-url'); if(sbUrl) sbUrl.value=appSettings.supabaseUrl||'';
-  const sbKey=document.getElementById('sb-key'); if(sbKey) sbKey.value=appSettings.supabaseAnonKey||'';
-  const gbtn=document.getElementById('cloud-google-btn'); if(gbtn) gbtn.style.display=appSettings.googleAuthEnabled ? '' : 'none';
   document.querySelectorAll('.theme-card').forEach(c=>c.classList.toggle('selected',c.dataset.theme===appSettings.theme));
   document.querySelectorAll('.accent-swatch').forEach(s=>s.classList.toggle('selected',s.dataset.accent===appSettings.accent));
   renderCloudState();
+  refreshDataMeta();
 }
 
 function setTheme(theme){ appSettings.theme=theme; saveSetting('theme',theme); applyTheme(theme); document.querySelectorAll('.theme-card').forEach(c=>c.classList.toggle('selected',c.dataset.theme===theme)); }
@@ -3471,17 +3739,47 @@ window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{
 function setAccent(color, dark){ appSettings.accent=color; appSettings.accentDark=dark; localStorage.setItem(SETTINGS_KEY,JSON.stringify(appSettings)); applyAccent(color,dark); document.querySelectorAll('.accent-swatch').forEach(s=>s.classList.toggle('selected',s.dataset.accent===color)); }
 function applyAccent(color,dark){ document.documentElement.style.setProperty('--accent',color); document.documentElement.style.setProperty('--accent-dark',dark||color); document.querySelector('meta[name=theme-color]').setAttribute('content',color); }
 function setCompact(on){ appSettings.compact=on; saveSetting('compact',on); document.body.classList.toggle('compact',on); }
-function setCloudAutoSync(on){ appSettings.cloudAutoSync=on; saveSetting('cloudAutoSync',on); if(on) scheduleCloudAutoSync(); }
 const compactStyle=document.createElement('style'); compactStyle.textContent=`body.compact .card{padding:9px 12px;margin-bottom:6px} body.compact .habit-card{padding:12px} body.compact .settings-row{padding:10px 20px} body.compact .nav-item{padding:8px 20px}`; document.head.appendChild(compactStyle);
+
+function formatSyncLabel(ts){
+  if(!ts) return 'Last sync: not yet';
+  const d = new Date(Number(ts));
+  if(Number.isNaN(d.getTime())) return 'Last sync: not yet';
+  return 'Last sync: ' + d.toLocaleString();
+}
+
+function markCloudSynced(ts = Date.now()){
+  localStorage.setItem(CLOUD_SYNC_TS_KEY, String(ts));
+}
+
+function markGlobalSignOut(ts = Date.now()){
+  localStorage.setItem(CLOUD_SIGNOUT_ALL_TS_KEY, String(ts));
+}
+
+function getSyncSafeSettings(){
+  const {
+    supabaseUrl,
+    supabaseAnonKey,
+    googleAuthEnabled,
+    ...safeSettings
+  } = appSettings;
+  return safeSettings;
+}
 
 function renderCloudState(){
   const status=document.getElementById('cloud-auth-status');
   const email=document.getElementById('cloud-user-email');
+  const sync=document.getElementById('cloud-sync-meta');
+  const security=document.getElementById('security-meta');
   const badge=document.getElementById('storage-badge');
   const desc=document.getElementById('storage-desc');
+  const lastSyncTs = localStorage.getItem(CLOUD_SYNC_TS_KEY);
+  const lastGlobalSignOutTs = localStorage.getItem(CLOUD_SIGNOUT_ALL_TS_KEY);
+  if(sync) sync.textContent = formatSyncLabel(lastSyncTs);
   if(!appSettings.supabaseUrl || !appSettings.supabaseAnonKey){
     if(status) status.textContent='⚙️ Not configured';
-    if(email) email.textContent='Add Supabase URL + anon key';
+    if(email) email.textContent='Cloud sync is not configured';
+    if(security) security.textContent='Sign-in unavailable (cloud sync not configured)';
     if(badge) badge.textContent='🔒 Local';
     if(desc) desc.textContent='All data is stored locally on this device';
     return;
@@ -3489,13 +3787,17 @@ function renderCloudState(){
   if(cloudUser){
     if(status) status.textContent='☁️ Connected';
     if(email) email.textContent=cloudUser.email || 'Signed in';
+    if(security) security.textContent='Session active • RLS enforced by Supabase';
     if(badge) badge.textContent='☁️ Local + Cloud';
     if(desc) desc.textContent='Data sync is enabled across devices';
   } else {
     if(status) status.textContent='☁️ Ready';
     if(email) email.textContent='Configured. Sign in to sync.';
+    if(security) security.textContent = lastGlobalSignOutTs
+      ? ('Signed out globally: ' + new Date(Number(lastGlobalSignOutTs)).toLocaleString())
+      : 'No active session';
     if(badge) badge.textContent='🔒 Local';
-    if(desc) desc.textContent='Cloud is configured but account is not signed in';
+    if(desc) desc.textContent='Cloud sync is configured, but no account is signed in';
   }
 }
 
@@ -3515,10 +3817,67 @@ function getCloudCreds(source='settings'){
       password:document.getElementById('gate-password')?.value||''
     };
   }
-  return {
-    email:(document.getElementById('cloud-email')?.value||'').trim(),
-    password:document.getElementById('cloud-password')?.value||''
-  };
+  return { email:'', password:'' };
+}
+
+function setGateMode(mode){
+  gateMode = mode === 'signup' ? 'signup' : 'signin';
+  gateStep = 'form';
+  const signInBtn = document.getElementById('gate-mode-signin');
+  const signUpBtn = document.getElementById('gate-mode-signup');
+  const submitBtn = document.getElementById('gate-submit-btn');
+  const forgotBtn = document.getElementById('gate-forgot-btn');
+  const title = document.getElementById('auth-gate-title');
+  if(signInBtn) signInBtn.classList.toggle('active', gateMode==='signin');
+  if(signUpBtn) signUpBtn.classList.toggle('active', gateMode==='signup');
+  if(submitBtn) submitBtn.textContent = gateMode==='signup' ? 'Create Account' : 'Sign In';
+  if(forgotBtn) forgotBtn.style.display = gateMode==='signin' ? '' : 'none';
+  if(title) title.textContent = gateMode==='signup' ? 'Create your account' : 'Welcome back';
+  renderGateView();
+}
+
+function showGateChoice(){
+  gateStep = 'choice';
+  const title = document.getElementById('auth-gate-title');
+  if(title) title.textContent = '2DoByU';
+  renderGateView();
+}
+
+function renderGateView(){
+  const choice = document.getElementById('gate-choice-actions');
+  const form = document.getElementById('gate-form');
+  const hero = document.getElementById('auth-hero');
+  const status = document.getElementById('auth-gate-status');
+  const isChoice = gateStep === 'choice';
+  if(choice) choice.style.display = isChoice ? 'flex' : 'none';
+  if(form) form.classList.toggle('show', !isChoice);
+  if(hero) hero.style.display = isChoice ? '' : 'none';
+  if(status && isChoice) status.textContent = 'A calm place to plan your day';
+}
+
+async function submitGateAuth(){
+  if(gateMode==='signup') return cloudSignUpEmail('gate');
+  return cloudSignInEmail('gate');
+}
+
+function setGateBusy(busy){
+  const submitBtn = document.getElementById('gate-submit-btn');
+  const modeSignIn = document.getElementById('gate-mode-signin');
+  const modeSignUp = document.getElementById('gate-mode-signup');
+  if(submitBtn) submitBtn.disabled = busy;
+  if(modeSignIn) modeSignIn.disabled = busy;
+  if(modeSignUp) modeSignUp.disabled = busy;
+}
+
+async function gateForgotPassword(){
+  const sb=initSupabaseClient();
+  if(!sb){ setAuthGate('Cloud sync is not configured yet.'); showToast('Cloud sync is not configured yet.'); return; }
+  const email=(document.getElementById('gate-email')?.value||'').trim();
+  if(!email){ showToast('Enter your email first.'); return; }
+  const {error}=await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  if(error){ showToast('Reset failed: '+error.message); return; }
+  showToast('Password reset email sent.');
+  setAuthGate('Password reset email sent. Check your inbox.');
 }
 
 function setAuthGate(status='Sign in to continue'){
@@ -3536,39 +3895,48 @@ function unlockApp(){
   navigateTo(currentPage);
 }
 
-function saveCloudConfig(){
-  const url=(document.getElementById('sb-url')?.value||'').trim();
-  const key=(document.getElementById('sb-key')?.value||'').trim();
-  if(!url || !key){ showToast('Enter both Supabase URL and anon key.'); return; }
-  appSettings.supabaseUrl=url;
-  appSettings.supabaseAnonKey=key;
-  saveSetting('supabaseUrl',url);
-  saveSetting('supabaseAnonKey',key);
-  supabaseClient=null;
-  initCloudAuth();
-  showToast('Supabase config saved.');
-}
-
 async function cloudSignInEmail(source='settings'){
   const sb=initSupabaseClient();
-  if(!sb){ showToast('Configure Supabase first.'); setAuthGate('Supabase is not configured yet.'); return; }
+  if(!sb){ showToast('Cloud sync is not configured yet.'); setAuthGate('Cloud sync is not configured yet.'); return; }
   const {email,password}=getCloudCreds(source);
   if(!email || !password){ showToast('Enter email and password.'); return; }
   if(source==='gate') setAuthGate('Signing you in...');
-  const {error}=await sb.auth.signInWithPassword({email,password});
-  if(error){ showToast('Sign in failed: '+error.message); if(source==='gate') setAuthGate('Sign in failed. Check your credentials.'); return; }
+  if(source==='gate') setGateBusy(true);
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error){ showToast('Sign in failed: '+error.message); if(source==='gate') setAuthGate('Sign in failed. Check your credentials.'); if(source==='gate') setGateBusy(false); return; }
+  cloudUser = data?.user || data?.session?.user || cloudUser;
+  renderCloudState();
+  if(cloudUser){
+    await reconcileCloudData();
+    unlockApp();
+  }
+  if(source==='gate') setGateBusy(false);
   showToast('Signed in. Syncing data...');
 }
 
 async function cloudSignUpEmail(source='settings'){
   const sb=initSupabaseClient();
-  if(!sb){ showToast('Configure Supabase first.'); setAuthGate('Supabase is not configured yet.'); return; }
+  if(!sb){ showToast('Cloud sync is not configured yet.'); setAuthGate('Cloud sync is not configured yet.'); return; }
   const {email,password}=getCloudCreds(source);
   if(!email || !password){ showToast('Enter email and password.'); return; }
   if(source==='gate') setAuthGate('Creating your account...');
-  const {error}=await sb.auth.signUp({email,password});
-  if(error){ showToast('Sign up failed: '+error.message); if(source==='gate') setAuthGate('Sign up failed.'); return; }
-  if(source==='gate') setAuthGate('Account created. Sign in with your credentials.');
+  if(source==='gate') setGateBusy(true);
+  const {data,error}=await sb.auth.signUp({email,password});
+  if(error){ showToast('Sign up failed: '+error.message); if(source==='gate') setAuthGate('Sign up failed.'); if(source==='gate') setGateBusy(false); return; }
+  if(data?.session?.user){
+    cloudUser = data.session.user;
+    renderCloudState();
+    await reconcileCloudData();
+    unlockApp();
+    if(source==='gate') setGateBusy(false);
+    showToast('Account created and signed in.');
+    return;
+  }
+  if(source==='gate'){
+    setGateBusy(false);
+    setGateMode('signin');
+    setAuthGate('Account created. Check email if confirmation is enabled, then sign in.');
+  }
   showToast('Check your email to confirm sign-up (if confirmation is enabled).');
 }
 
@@ -3578,7 +3946,7 @@ async function cloudSignInGoogle(){
     return;
   }
   const sb=initSupabaseClient();
-  if(!sb){ showToast('Configure Supabase first.'); return; }
+  if(!sb){ showToast('Cloud sync is not configured yet.'); return; }
   const {error}=await sb.auth.signInWithOAuth({provider:'google',options:{redirectTo:location.origin+location.pathname}});
   if(error) showToast('Google sign-in failed: '+error.message);
 }
@@ -3588,15 +3956,47 @@ async function cloudSignOut(){
   await supabaseClient.auth.signOut();
   cloudUser=null;
   appUnlocked = false;
+  showGateChoice();
+  setGateMode('signin');
   setAuthGate('Signed out. Sign in to continue.');
   renderCloudState();
   showToast('Signed out of cloud account.');
 }
 
+async function cloudSignOutAll(){
+  if(!supabaseClient || !cloudUser){ showToast('No active cloud session.'); return; }
+  const ok = confirm('Sign out on all devices? This will end all active sessions for your account.');
+  if(!ok) return;
+  const {error} = await supabaseClient.auth.signOut({ scope:'global' });
+  if(error){ showToast('Global sign-out failed: ' + error.message); return; }
+  markGlobalSignOut();
+  cloudUser = null;
+  appUnlocked = false;
+  showGateChoice();
+  setGateMode('signin');
+  setAuthGate('Signed out on all devices. Sign in to continue.');
+  renderCloudState();
+  showToast('Signed out on all devices.');
+}
+
+async function deleteCloudBackupConfirm(){
+  if(!supabaseClient || !cloudUser){ showToast('Sign in first.'); return; }
+  if(!confirm('Delete your cloud backup? This removes remote data only and keeps local data on this device.')) return;
+  if(!confirm('Final confirmation: permanently delete your cloud backup?')) return;
+  const {error} = await supabaseClient
+    .from('user_data')
+    .delete()
+    .eq('user_id', cloudUser.id);
+  if(error){ showToast('Cloud backup delete failed: ' + error.message); return; }
+  localStorage.removeItem(CLOUD_SYNC_TS_KEY);
+  renderCloudState();
+  showToast('Cloud backup deleted. Local data is unchanged.');
+}
+
 function buildCloudPayload(){
   return {
     tasks, habits, notes, taskIdCounter,
-    settings: appSettings,
+    settings: getSyncSafeSettings(),
     updatedAt: new Date().toISOString(),
     schemaVersion: 1
   };
@@ -3620,6 +4020,7 @@ function applyCloudPayload(payload){
   }
   localStorage.setItem('2dobyu_data', JSON.stringify({tasks,habits,notes,taskIdCounter}));
   localStorage.setItem('2dobyu_last_modified', String(Date.now()));
+  markCloudSynced(payload.updatedAt ? Date.parse(payload.updatedAt) : Date.now());
   renderTasks(); renderHabits(); if(currentPage==='notes') renderNotes(); if(currentPage==='analytics') renderAnalytics(); if(currentPage==='calendar') renderCalendar();
   applyingRemoteData = false;
 }
@@ -3643,6 +4044,7 @@ async function pushCloudData(reason='auto'){
       .from('user_data')
       .upsert({user_id:cloudUser.id,data:payload,updated_at:new Date().toISOString()},{onConflict:'user_id'});
     if(error) throw error;
+    markCloudSynced();
     if(reason!=='auto') showToast('Cloud sync complete.');
   } catch(err){
     console.error('[2DoByU] pushCloudData failed', err);
@@ -3653,17 +4055,8 @@ async function pushCloudData(reason='auto'){
   }
 }
 
-async function pullCloudData(showToastOnDone=true){
-  if(!cloudUser || !supabaseClient){ showToast('Sign in to pull cloud data.'); return; }
-  const {row,error}=await fetchRemoteRow();
-  if(error){ showToast('Pull failed: '+error.message); return; }
-  if(!row || !row.data){ showToast('No cloud backup found yet.'); return; }
-  applyCloudPayload(row.data);
-  if(showToastOnDone) showToast('Pulled latest cloud data.');
-}
-
 function scheduleCloudAutoSync(){
-  if(appSettings.cloudAutoSync===false || !cloudUser) return;
+  if(!cloudUser) return;
   clearTimeout(cloudSyncTimer);
   cloudSyncTimer = setTimeout(()=>pushCloudData('auto'), 700);
 }
@@ -3673,10 +4066,6 @@ async function cloudManualSync(){
   await pushCloudData('manual');
 }
 
-async function cloudPullLatest(){
-  await pullCloudData(true);
-}
-
 async function reconcileCloudData(){
   const {row,error}=await fetchRemoteRow();
   if(error){ console.warn('[2DoByU] reconcile failed', error); return; }
@@ -3684,6 +4073,19 @@ async function reconcileCloudData(){
   const remoteTs = Date.parse(row.data.updatedAt || row.updated_at || 0) || 0;
   const localTs = parseInt(localStorage.getItem('2dobyu_last_modified') || '0', 10) || 0;
   const localEmpty = isLocalDataEmpty();
+  const remoteHasData = !!(row.data.tasks || row.data.habits || row.data.notes);
+  const likelyConflict = !localEmpty && remoteHasData && localTs && remoteTs && Math.abs(remoteTs-localTs) > 5000;
+  if(likelyConflict){
+    const useCloud = confirm('Changes were detected both locally and in cloud.\n\nPress OK to keep CLOUD data, or Cancel to keep LOCAL data.');
+    if(useCloud){
+      applyCloudPayload(row.data);
+      showToast('Conflict resolved: cloud version kept.');
+      return;
+    }
+    await pushCloudData('manual');
+    showToast('Conflict resolved: local version kept.');
+    return;
+  }
   if(localEmpty || remoteTs > localTs){
     applyCloudPayload(row.data);
     showToast('Loaded your cloud data.');
@@ -3694,7 +4096,7 @@ async function reconcileCloudData(){
 
 async function initCloudAuth(){
   const sb=initSupabaseClient();
-  if(!sb){ cloudUser=null; renderCloudState(); appUnlocked=false; setAuthGate('Configure Supabase first in Settings.'); return; }
+  if(!sb){ cloudUser=null; renderCloudState(); appUnlocked=false; showGateChoice(); setAuthGate('Sign-in is currently unavailable. Configure cloud sync first.'); return; }
   setAuthGate('Checking session...');
   const {data:{session}}=await sb.auth.getSession();
   cloudUser=session?.user||null;
@@ -3704,6 +4106,7 @@ async function initCloudAuth(){
     unlockApp();
   } else {
     appUnlocked = false;
+    showGateChoice();
     setAuthGate('Sign in to continue');
   }
   sb.auth.onAuthStateChange(async (_event, sessionNow) => {
@@ -3714,6 +4117,7 @@ async function initCloudAuth(){
       unlockApp();
     } else {
       appUnlocked = false;
+      showGateChoice();
       setAuthGate('Sign in to continue');
     }
   });
@@ -3722,8 +4126,11 @@ async function initCloudAuth(){
 function confirmClearData(){
   if(!confirm('This will permanently delete ALL tasks and habits. This cannot be undone. Are you sure?')) return;
   if(!confirm('Last chance — delete everything?')) return;
-  tasks={todo:[],inprogress:[],done:[]}; habits=[]; notes=[];
-  saveAndRender(); showToast('All data cleared.');
+  tasks={todo:[],inprogress:[],done:[]}; habits=[]; notes=[]; archived={tasks:[],habits:[],notes:[]};
+  undoStack=[]; activityLog=[];
+  localStorage.removeItem(ACTIVITY_KEY);
+  saveAndRender('All data cleared');
+  showToast('All data cleared.');
 }
 
 function importData(input){
@@ -3779,6 +4186,16 @@ function showToast(msg){
     if(hash && document.getElementById('page-'+hash)) currentPage=hash;
     // Ensure cal view select matches state
     const cv=document.getElementById('cal-view-select'); if(cv) cv.value=calView;
+    showGateChoice();
+    setGateMode('signin');
+    const gateEmail=document.getElementById('gate-email');
+    const gatePassword=document.getElementById('gate-password');
+    [gateEmail, gatePassword].forEach(el => {
+      if(!el) return;
+      el.addEventListener('keydown', e => {
+        if(e.key==='Enter') submitGateAuth();
+      });
+    });
     setAuthGate('Checking session...');
     initCloudAuth();
   }catch(err){console.warn('[2DoByU] openApp error',err);}
@@ -3825,6 +4242,15 @@ function showToast(msg){
       <div style="flex:1"></div>
       <button class="btn btn-cancel" onclick="closeNoteModal()">Close</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="global-search-modal" role="dialog" aria-modal="true" style="display:none" onclick="if(event.target===this)closeGlobalSearch()">
+  <div class="modal" style="max-width:720px">
+    <h2>Global Search</h2>
+    <input id="global-search-input" class="input-field" placeholder="Search tasks, habits, notes..." oninput="renderGlobalSearch(this.value)">
+    <div id="global-search-results" style="display:flex;flex-direction:column;gap:8px;max-height:52vh;overflow:auto"></div>
+    <div class="modal-footer"><button class="btn btn-cancel" onclick="closeGlobalSearch()">Close</button></div>
   </div>
 </div>
 
