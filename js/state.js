@@ -20,7 +20,9 @@ const DEFAULT_SETTINGS = {
   fireworks: true,
   supabaseUrl: '',
   supabaseAnonKey: '',
-  googleAuthEnabled: false
+  googleAuthEnabled: false,
+  pushPublicKey: '',
+  customTaskViews: []
 };
 
 const PAGE_TITLES = {
@@ -56,7 +58,8 @@ let state = {
   sync: {
     cloudUser: null,
     cloudSyncInFlight: false,
-    cloudOfflineQueue: []
+    cloudOfflineQueue: [],
+    pendingChanges: []
   },
   settings: structuredClone(DEFAULT_SETTINGS)
 };
@@ -293,6 +296,49 @@ export function restoreDirtyState(previousDirty) {
   };
 }
 
+export function enqueuePendingChange(change) {
+  if (!change || typeof change !== 'object') return;
+
+  const nextChange = {
+    id: change.id || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    type: String(change.type || 'unknown'),
+    payload: change.payload ?? null,
+    ts: change.ts || new Date().toISOString()
+  };
+
+  state = {
+    ...state,
+    sync: {
+      ...state.sync,
+      pendingChanges: [...(state.sync?.pendingChanges || []), nextChange]
+    }
+  };
+}
+
+export function consumePendingChanges() {
+  const snapshot = [...(state.sync?.pendingChanges || [])];
+  state = {
+    ...state,
+    sync: {
+      ...state.sync,
+      pendingChanges: []
+    }
+  };
+  return snapshot;
+}
+
+export function restorePendingChanges(changes = []) {
+  if (!Array.isArray(changes) || changes.length === 0) return;
+
+  state = {
+    ...state,
+    sync: {
+      ...state.sync,
+      pendingChanges: [...(changes || []), ...(state.sync?.pendingChanges || [])]
+    }
+  };
+}
+
 function getThisWeekDate(dIdx) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -385,7 +431,8 @@ export function resetState() {
     sync: {
       cloudUser: null,
       cloudSyncInFlight: false,
-      cloudOfflineQueue: []
+      cloudOfflineQueue: [],
+      pendingChanges: []
     },
     settings: structuredClone(DEFAULT_SETTINGS)
   };

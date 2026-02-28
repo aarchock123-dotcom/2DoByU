@@ -1,4 +1,4 @@
-import { consumeDirtyState, getState, patchState, restoreDirtyState } from './state.js';
+import { consumePendingChanges, getState, patchState, restorePendingChanges } from './state.js';
 
 const DB_NAME = '2DoByU_DB';
 const DB_VERSION = 1;
@@ -118,95 +118,91 @@ function normalizeDocShape(doc, fallbackState = getState()) {
   };
 }
 
-function isDirtyEmpty(dirty) {
-  return (
-    !dirty?.full &&
-    !dirty?.notes &&
-    !dirty?.settings &&
-    Object.keys(dirty?.tasks || {}).length === 0 &&
-    Object.keys(dirty?.habits || {}).length === 0
-  );
-}
-
-function buildGranularPatch(snapshot, dirty) {
-  const patch = {
-    tasks: {
-      todo: [],
-      inprogress: [],
-      done: []
-    },
-    habits: []
-  };
-
-  if (dirty.settings) {
-    patch.settings = snapshot.settings;
-  }
-
-  if (dirty.notes) {
-    patch.notes = snapshot.notes;
-  }
-
-  const taskIds = new Set(Object.keys(dirty.tasks || {}).map(String));
-  ['todo', 'inprogress', 'done'].forEach((column) => {
-    snapshot.tasks[column].forEach((task) => {
-      if (taskIds.has(String(task.id))) {
-        patch.tasks[column].push(task);
-      }
-    });
-  });
-
-  Object.keys(dirty.habits || {}).forEach((indexKey) => {
-    const index = Number(indexKey);
-    if (!Number.isInteger(index)) return;
-    patch.habits.push({
-      index,
-      value: snapshot.habits[index] || null
-    });
-  });
-
-  return patch;
-}
-
-function applyGranularPatch(baseDoc, patch) {
+function applyQueuedChanges(baseDoc, changes = []) {
   const merged = normalizeDocShape(baseDoc || {}, getState());
 
-  if (patch.settings) {
-    merged.settings = {
-      ...(merged.settings || {}),
-      ...(patch.settings || {})
-    };
-  }
-
-  if (patch.notes) {
-    merged.notes = patch.notes;
-  }
-
-  if (patch.tasks) {
-    const removeById = (taskId) => {
-      ['todo', 'inprogress', 'done'].forEach((column) => {
-        merged.tasks[column] = merged.tasks[column].filter((task) => String(task.id) !== String(taskId));
-      });
-    };
-
+  const removeTaskById = (taskId) => {
     ['todo', 'inprogress', 'done'].forEach((column) => {
-      (patch.tasks[column] || []).forEach((task) => {
-        removeById(task.id);
-        merged.tasks[column].push(task);
-      });
+      merged.tasks[column] = merged.tasks[column].filter((task) => String(task.id) !== String(taskId));
     });
-  }
+  };
 
-  if (Array.isArray(patch.habits) && patch.habits.length > 0) {
-    const nextHabits = [...merged.habits];
-    patch.habits.forEach(({ index, value }) => {
+  changes.forEach((change) => {
+    const payload = change?.payload || {};
+
+    if (change?.type === 'full-snapshot') {
+      const doc = normalizeDocShape(payload.doc || {}, merged);
+      merged.tasks = doc.tasks;
+      merged.habits = doc.habits;
+      merged.notes = doc.notes;
+      merged.archived = doc.archived;
+      merged.taskIdCounter = doc.taskIdCounter;
+      merged.settings = doc.settings;
+      return;
+    }
+
+    if (change?.type === 'task-upsert' && payload.task) {
+      removeTaskById(payload.task.id);
+      const column = payload.column && merged.tasks[payload.column] ? payload.column : 'todo';
+      merged.tasks[column].push(payload.task);
+      return;
+    }
+
+    if (change?.type === 'task-delete') {
+      removeTaskById(payload.taskId);
+      return;
+    }
+
+    if (change?.type === 'habit-upsert') {
+      const index = Number(payload.index);
       if (!Number.isInteger(index) || index < 0) return;
-      nextHabits[index] = value;
-    });
-    merged.habits = nextHabits.filter((item) => item != null);
-  }
+      const nextHabits = [...merged.habits];
+      nextHabits[index] = payload.habit || null;
+      merged.habits = nextHabits.filter((item) => item != null);
+      return;
+    }
+
+    if (change?.type === 'habit-delete') {
+      const index = Number(payload.index);
+      if (!Number.isInteger(index) || index < 0) return;
+      const nextHabits = [...merged.habits];
+      nextHabits.splice(index, 1);
+      merged.habits = nextHabits;
+      return;
+    }
+
+    if (change?.type === 'note-upsert' && payload.note) {
+      const next = [...merged.notes];
+      const idx = next.findIndex((item) => String(item.id) === String(payload.note.id));
+      if (idx === -1) next.push(payload.note);
+      else next[idx] = payload.note;
+      merged.notes = next;
+      return;
+    }
+
+    if (change?.type === 'note-delete') {
+      merged.notes = merged.notes.filter((item) => String(item.id) !== String(payload.id));
+      return;
+    }
+
+    if (change?.type === 'settings-merge') {
+      merged.settings = {
+        ...(merged.settings || {}),
+        ...(payload.settings || {})
+      };
+    }
+  });
 
   merged.updatedAt = new Date().toISOString();
   return merged;
+}
+
+async function pushRemoteChanges(changes, localFallbackDoc) {
+  const remoteDoc = await fetchRemoteUserData().catch(() => null);
+  const baseDoc = remoteDoc || localFallbackDoc;
+  const mergedDoc = applyQueuedChanges(baseDoc, changes);
+  await pushRemoteUserData(mergedDoc);
+  return mergedDoc;
 }
 
 function mergeState(localDoc, remoteDoc) {
@@ -391,6 +387,24 @@ export async function syncData() {
   });
 
   await saveUserData(merged);
+
+  const pendingChanges = consumePendingChanges();
+  if (pendingChanges.length > 0) {
+    try {
+      const pushedDoc = await pushRemoteChanges(pendingChanges, merged);
+      await saveUserData(pushedDoc);
+      patchState({
+        sync: {
+          ...getState().sync,
+          lastSyncedAt: pushedDoc.updatedAt
+        }
+      });
+    } catch (err) {
+      restorePendingChanges(pendingChanges);
+      handleSupabaseFailure(err, 'syncData:pushRemoteChanges');
+    }
+  }
+
   return {
     ...merged,
     authRequired: false
@@ -400,39 +414,60 @@ export async function syncData() {
 export async function pushUpdate(nextStateLike) {
   const snapshot = nextStateLike || getState();
   const doc = cloneStateForStorage(snapshot);
-  const dirty = consumeDirtyState();
+  const pendingChanges = consumePendingChanges();
 
   await saveUserData(doc);
 
   if (!navigator.onLine) {
     console.info('[2DoByU] Offline: update saved locally; sync deferred.');
-    restoreDirtyState(dirty);
+    restorePendingChanges(pendingChanges);
     return;
   }
 
+  if (pendingChanges.length === 0) return;
+
   try {
-    if (dirty.full || dirty.notes || dirty.settings) {
-      await pushRemoteUserData(doc);
-    } else if (isDirtyEmpty(dirty)) {
-      return;
-    } else {
-      const remoteDoc = await fetchRemoteUserData().catch(() => null);
-      const patch = buildGranularPatch(snapshot, dirty);
-      const mergedDoc = applyGranularPatch(remoteDoc || doc, patch);
-      await pushRemoteUserData(mergedDoc);
-    }
+    const pushedDoc = await pushRemoteChanges(pendingChanges, doc);
 
     patchState({
       sync: {
         ...getState().sync,
-        lastSyncedAt: doc.updatedAt
+        lastSyncedAt: pushedDoc.updatedAt
       }
     });
   } catch (err) {
-    restoreDirtyState(dirty);
+    restorePendingChanges(pendingChanges);
     handleSupabaseFailure(err, 'pushUpdate:pushRemoteUserData');
     console.warn('[2DoByU] Remote push failed; local IndexedDB data preserved.', err);
   }
+}
+
+export async function savePushSubscription(subscription) {
+  if (!subscription) return;
+
+  const sb = getSupabaseClient();
+  const userResp = await sb.auth.getUser();
+  if (userResp.error) throw userResp.error;
+  const user = userResp.data?.user || null;
+  if (!user) return;
+
+  const json = typeof subscription.toJSON === 'function' ? subscription.toJSON() : subscription;
+  const endpoint = String(json?.endpoint || '').trim();
+  if (!endpoint) return;
+
+  const { error } = await sb.from('user_subscriptions').upsert(
+    {
+      user_id: user.id,
+      endpoint,
+      p256dh: json?.keys?.p256dh || null,
+      auth: json?.keys?.auth || null,
+      subscription: json,
+      updated_at: new Date().toISOString()
+    },
+    { onConflict: 'endpoint' }
+  );
+
+  if (error) throw error;
 }
 
 export async function signIn(email, password) {

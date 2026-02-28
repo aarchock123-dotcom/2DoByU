@@ -1,4 +1,4 @@
-const CACHE_NAME = '2dobyu-v19';
+const CACHE_NAME = '2dobyu-v20';
 const ASSETS = [
   './',
   './index.html',
@@ -78,4 +78,59 @@ self.addEventListener('message', (event) => {
 self.addEventListener('sync', (event) => {
   if (event.tag !== '2dobyu-sync') return;
   event.waitUntil(notifyClientsTriggerSync());
+});
+
+self.addEventListener('push', (event) => {
+  const fallback = {
+    title: '2DoByU',
+    body: 'You have a new update.',
+    icon: './icon-192.png',
+    badge: './icon-192.png',
+    data: { url: './' }
+  };
+
+  let payload = fallback;
+  try {
+    const parsed = event.data?.json?.();
+    if (parsed && typeof parsed === 'object') {
+      payload = {
+        ...fallback,
+        ...parsed,
+        data: {
+          ...(fallback.data || {}),
+          ...(parsed.data || {})
+        }
+      };
+    }
+  } catch (_err) {
+    const text = event.data?.text?.();
+    if (text) payload = { ...fallback, body: text };
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title || '2DoByU', {
+      body: payload.body,
+      icon: payload.icon,
+      badge: payload.badge,
+      data: payload.data || { url: './' }
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification?.data?.url || './';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsList) => {
+      for (const client of clientsList) {
+        if ('focus' in client) {
+          client.postMessage({ type: 'TRIGGER_SYNC' });
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(targetUrl);
+      return undefined;
+    })
+  );
 });

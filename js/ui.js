@@ -1,4 +1,13 @@
-import { getState, markDirty, patchState, resetState, setState, subscribe, undoLastChange } from './state.js';
+import {
+  enqueuePendingChange,
+  getState,
+  markDirty,
+  patchState,
+  resetState,
+  setState,
+  subscribe,
+  undoLastChange
+} from './state.js';
 import { pushUpdate, saveUserData, signIn, signUp, signOut, syncData } from './api.js';
 
 let initialized = false;
@@ -20,9 +29,12 @@ let taskSortMenuOpen = false;
 let taskFilters = {
   query: '',
   sort: 'default',
-  due: 'all'
+  due: 'all',
+  smartRule: '',
+  smartViewId: 'none'
 };
 let activeModalTrap = null;
+let commandPaletteQuery = '';
 
 const NOTE_COLORS = ['#fff8e1', '#e3f2fd', '#f3e5f5', '#e8f5e9', '#ffebee', '#fbe9e7'];
 
@@ -120,6 +132,154 @@ function escapeHtml(value) {
 
 function sanitizeUserText(value) {
   return String(value ?? '').trim().replace(/[\u0000-\u001F\u007F]/g, '');
+}
+
+function queuePendingChange(type, payload) {
+  enqueuePendingChange({ type, payload });
+}
+
+function queueFullSnapshotChange() {
+  queuePendingChange('full-snapshot', { doc: cloneForSync(getState()) });
+}
+
+function getCustomTaskViews() {
+  const customViews = getState().settings?.customTaskViews;
+  return Array.isArray(customViews) ? customViews : [];
+}
+
+function evaluateSmartClause(task, rawClause) {
+  const clause = rawClause.trim();
+  if (!clause) return true;
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+
+  const includesMatch = clause.match(/^(title|tag|notes)\s*\.includes\((['"])(.*?)\2\)$/i);
+  if (includesMatch) {
+    const field = includesMatch[1].toLowerCase();
+    const needle = includesMatch[3].toLowerCase();
+    const value = String(task?.[field] || '').toLowerCase();
+    return value.includes(needle);
+  }
+
+  const match = clause.match(/^(priority|dueDate|tag|title)\s*(===|!==|<=|>=|<|>)\s*(.+)$/i);
+  if (!match) return true;
+
+  const field = match[1];
+  const op = match[2];
+  let rawValue = match[3].trim();
+
+  if (rawValue === 'today') rawValue = `'${todayKey}'`;
+  const unquoted = rawValue.replace(/^['"]|['"]$/g, '');
+  const left = String(task?.[field] || '');
+
+  if (field === 'dueDate') {
+    const leftVal = left || '9999-12-31';
+    const rightVal = unquoted;
+    if (op === '===') return leftVal === rightVal;
+    if (op === '!==') return leftVal !== rightVal;
+    if (op === '<') return leftVal < rightVal;
+    if (op === '<=') return leftVal <= rightVal;
+    if (op === '>') return leftVal > rightVal;
+    if (op === '>=') return leftVal >= rightVal;
+    return true;
+  }
+
+  if (op === '===') return left === unquoted;
+  if (op === '!==') return left !== unquoted;
+  if (op === '<') return left < unquoted;
+  if (op === '<=') return left <= unquoted;
+  if (op === '>') return left > unquoted;
+  if (op === '>=') return left >= unquoted;
+  return true;
+}
+
+function matchesSmartRule(task, rule) {
+  const normalized = sanitizeUserText(rule);
+  if (!normalized) return true;
+  return normalized
+    .split('&&')
+    .map((clause) => clause.trim())
+    .filter(Boolean)
+    .every((clause) => evaluateSmartClause(task, clause));
+}
+
+function getActiveSmartRule() {
+  if (taskFilters.smartViewId && taskFilters.smartViewId !== 'none') {
+    const view = getCustomTaskViews().find((item) => item.id === taskFilters.smartViewId);
+    if (view?.rule) return view.rule;
+  }
+  return taskFilters.smartRule || '';
+}
+
+function buildTaskCsv() {
+  const rows = [['type', 'id', 'column', 'title', 'dueDate', 'priority', 'tag', 'notes']];
+  ['todo', 'inprogress', 'done'].forEach((column) => {
+    getState().tasks[column].forEach((task) => {
+      rows.push([
+        'task',
+        String(task.id ?? ''),
+        column,
+        String(task.title ?? ''),
+        String(task.dueDate ?? ''),
+        String(task.priority ?? ''),
+        String(task.tag ?? ''),
+        String(task.notes ?? '')
+      ]);
+    });
+  });
+  return rows;
+}
+
+function buildHabitCsv() {
+  const rows = [['type', 'index', 'name', 'category', 'freq', 'dateKey', 'status', 'reflection']];
+  getState().habits.forEach((habit, index) => {
+    const historyEntries = Object.entries(habit.history || {});
+    if (historyEntries.length === 0) {
+      rows.push(['habit', String(index), String(habit.name || ''), String(habit.category || ''), String(habit.freq || ''), '', '', '']);
+      return;
+    }
+
+    historyEntries.forEach(([dateKey, raw]) => {
+      const status = raw === true ? 'done' : raw === 'skipped' ? 'skipped' : 'missed';
+      rows.push([
+        'habit',
+        String(index),
+        String(habit.name || ''),
+        String(habit.category || ''),
+        String(habit.freq || ''),
+        dateKey,
+        status,
+        String(habit.reflections?.[dateKey] || '')
+      ]);
+    });
+  });
+  return rows;
+}
+
+function rowsToCsv(rows) {
+  return rows
+    .map((row) =>
+      row
+        .map((value) => {
+          const text = String(value ?? '');
+          const escaped = text.replace(/"/g, '""');
+          return /[",\n]/.test(escaped) ? `"${escaped}"` : escaped;
+        })
+        .join(',')
+    )
+    .join('\n');
+}
+
+function downloadTextFile(filename, content, type = 'text/plain;charset=utf-8') {
+  const blob = new Blob([content], { type });
+  const href = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = href;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(href);
 }
 
 function parseNaturalDueDate(inputValue) {
@@ -261,18 +421,24 @@ function removeTaskById(tasks, id) {
 
 function moveTaskToColumn(taskId, targetCol) {
   let moved = false;
+  let movedTask = null;
 
   setState((prev) => {
     const next = structuredClone(prev);
     const task = removeTaskById(next.tasks, taskId);
     if (!task || !next.tasks[targetCol]) return prev;
     next.tasks[targetCol].push(task);
+    movedTask = task;
     moved = true;
     return next;
   });
 
   if (moved) {
     markDirty('tasks', taskId);
+    queuePendingChange('task-upsert', {
+      task: movedTask,
+      column: targetCol
+    });
   }
 
   return moved;
@@ -310,6 +476,7 @@ function filterTask(task) {
   const query = taskFilters.query.trim().toLowerCase();
   const today = getStartOfDay(new Date());
   const dueDate = getTaskDueDate(task);
+  const smartRule = getActiveSmartRule();
 
   if (query) {
     const haystack = [task.title, task.tag, task.notes].filter(Boolean).join(' ').toLowerCase();
@@ -329,6 +496,10 @@ function filterTask(task) {
   }
 
   if (taskFilters.due === 'nodate' && dueDate) {
+    return false;
+  }
+
+  if (!matchesSmartRule(task, smartRule)) {
     return false;
   }
 
@@ -783,6 +954,25 @@ function renderTasks() {
     type: 'text'
   });
   toolbar.appendChild(searchInput);
+
+  const smartRuleInput = createNode('input', {
+    className: 'input-field task-filter-input',
+    attrs: { placeholder: "Smart Rule (e.g. priority === 'high' && dueDate < today)" },
+    dataset: { role: 'task-smart-rule' },
+    value: taskFilters.smartRule,
+    type: 'text'
+  });
+  toolbar.appendChild(smartRuleInput);
+
+  const smartViewsSelect = createNode('select', { className: 'input-field task-filter-select', dataset: { role: 'task-smart-view' } });
+  smartViewsSelect.appendChild(createNode('option', { attrs: { value: 'none' }, text: 'Smart View: None' }));
+  getCustomTaskViews().forEach((view) => {
+    smartViewsSelect.appendChild(createNode('option', { attrs: { value: view.id }, text: `Smart View: ${view.name}` }));
+  });
+  smartViewsSelect.value = taskFilters.smartViewId || 'none';
+  toolbar.appendChild(smartViewsSelect);
+
+  toolbar.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'save-smart-view' }, text: 'Save Smart View' }));
 
   const sortMenu = createNode('div', { className: 'task-sort-menu' });
   sortMenu.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'toggle-sort-menu' }, text: 'Sort ▾' }));
@@ -1331,6 +1521,18 @@ function renderSettings() {
   );
   cloudGrid.appendChild(keyField);
 
+  const pushKeyField = createNode('label', { className: 'settings-field settings-wide' }, ['Push VAPID Public Key']);
+  pushKeyField.appendChild(
+    createNode('input', {
+      className: 'input-field',
+      dataset: { role: 'settings-push-public-key' },
+      type: 'text',
+      value: settings.pushPublicKey || '',
+      attrs: { placeholder: 'BEl... (Base64URL public key)' }
+    })
+  );
+  cloudGrid.appendChild(pushKeyField);
+
   const googleAuthCheckbox = createNode('input', { type: 'checkbox', dataset: { role: 'settings-google-auth' } });
   googleAuthCheckbox.checked = Boolean(settings.googleAuthEnabled);
   cloudGrid.appendChild(createNode('label', { className: 'settings-check' }, [googleAuthCheckbox, ' Google Auth Enabled']));
@@ -1343,6 +1545,7 @@ function renderSettings() {
   const actions = createNode('div', { className: 'settings-actions' });
   actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'settings-signout' }, text: 'Sign Out' }));
   actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'settings-export' }, text: 'Export Backup' }));
+  actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'settings-export-csv' }, text: 'Export to CSV' }));
   actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'settings-import' }, text: 'Import Backup' }));
   actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'settings-reset-local' }, text: 'Reset Local Data' }));
   actions.appendChild(createNode('input', { dataset: { role: 'settings-import-file' }, type: 'file', attrs: { accept: 'application/json', hidden: '' } }));
@@ -1378,6 +1581,154 @@ export function renderApp() {
   if (view === 'analytics') renderAnalytics();
   if (view === 'insights') renderInsights();
   if (view === 'settings') renderSettings();
+
+  renderCustomViewsSidebar();
+}
+
+function ensureCustomViewsSidebarHost() {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return null;
+
+  let host = document.getElementById('custom-views-nav');
+  if (host) return host;
+
+  host = createNode('div', { attrs: { id: 'custom-views-nav' } });
+  const navList = sidebar.querySelector('.nav-list');
+  if (navList) navList.insertAdjacentElement('afterend', host);
+  else sidebar.appendChild(host);
+
+  return host;
+}
+
+function renderCustomViewsSidebar() {
+  const host = ensureCustomViewsSidebarHost();
+  if (!host) return;
+
+  host.replaceChildren();
+
+  const views = getCustomTaskViews();
+  if (views.length === 0) return;
+
+  host.appendChild(createNode('div', { className: 'custom-views-title', text: 'Custom Views' }));
+  const list = createNode('div', { className: 'custom-views-list' });
+  views.forEach((view) => {
+    list.appendChild(
+      createNode('button', {
+        className: `custom-view-btn ${taskFilters.smartViewId === view.id ? 'active' : ''}`,
+        dataset: { action: 'apply-smart-view', id: view.id },
+        text: sanitizeUserText(view.name || 'Smart View')
+      })
+    );
+  });
+  host.appendChild(list);
+}
+
+function fuzzyScore(haystack, needle) {
+  const text = haystack.toLowerCase();
+  const query = needle.toLowerCase().trim();
+  if (!query) return 0;
+  if (text.includes(query)) return query.length + 100;
+
+  let score = 0;
+  let qi = 0;
+  for (let ti = 0; ti < text.length && qi < query.length; ti += 1) {
+    if (text[ti] === query[qi]) {
+      score += 2;
+      qi += 1;
+    }
+  }
+  return qi === query.length ? score : -1;
+}
+
+function getCommandPaletteEntries() {
+  const entries = [];
+  const state = getState();
+
+  getAllTasksWithColumn(state.tasks).forEach((task) => {
+    entries.push({
+      id: `task-${task.id}`,
+      label: `Task: ${task.title || '(Untitled Task)'}`,
+      action: 'command-open-task',
+      payload: { taskId: task.id }
+    });
+  });
+
+  state.habits.forEach((habit, index) => {
+    entries.push({
+      id: `habit-${index}`,
+      label: `Habit: ${habit.name || '(Untitled Habit)'}`,
+      action: 'command-open-habit',
+      payload: { habitId: index }
+    });
+  });
+
+  state.notes.forEach((note) => {
+    entries.push({
+      id: `note-${note.id}`,
+      label: `Note: ${note.title || '(Untitled Note)'}`,
+      action: 'command-open-note',
+      payload: { noteId: note.id }
+    });
+  });
+
+  [
+    ['Switch to Calendar', 'command-switch-view', { view: 'calendar' }],
+    ['Switch to Tasks', 'command-switch-view', { view: 'tasks' }],
+    ['Switch to Habits', 'command-switch-view', { view: 'habits' }],
+    ['Switch to Notes', 'command-switch-view', { view: 'notes' }],
+    ['Create New Task', 'command-create-task', {}],
+    ['Create New Habit', 'command-create-habit', {}],
+    ['Create New Note', 'command-create-note', {}]
+  ].forEach(([label, action, payload], idx) => {
+    entries.push({ id: `quick-${idx}`, label, action, payload });
+  });
+
+  return entries;
+}
+
+function renderCommandPalette() {
+  const modal = document.getElementById('global-search-modal');
+  if (!modal) return;
+
+  const list = modal.querySelector('[data-role="command-results"]');
+  if (!list) return;
+
+  list.replaceChildren();
+
+  const query = commandPaletteQuery.trim();
+  const entries = getCommandPaletteEntries()
+    .map((entry) => ({ ...entry, _score: query ? fuzzyScore(entry.label, query) : 1 }))
+    .filter((entry) => entry._score >= 0)
+    .sort((a, b) => b._score - a._score)
+    .slice(0, 12);
+
+  if (entries.length === 0) {
+    list.appendChild(createNode('div', { className: 'settings-row-desc', text: 'No matching commands' }));
+    return;
+  }
+
+  entries.forEach((entry) => {
+    list.appendChild(
+      createNode('button', {
+        className: 'command-item',
+        dataset: {
+          action: entry.action,
+          commandPayload: encodeURIComponent(JSON.stringify(entry.payload || {}))
+        },
+        text: entry.label
+      })
+    );
+  });
+}
+
+function openCommandPalette() {
+  commandPaletteQuery = '';
+  openModal('global-search-modal');
+
+  const input = document.querySelector('[data-role="command-query"]');
+  if (input) input.value = '';
+
+  renderCommandPalette();
 }
 
 function setupTaskDnD() {
@@ -1602,6 +1953,28 @@ function ensureModals() {
     reflectionModal.replaceChildren(wrap);
   }
 
+  const commandModal = document.getElementById('global-search-modal');
+  if (commandModal && !commandModal.dataset.initialized) {
+    commandModal.dataset.initialized = '1';
+    const wrap = createNode('div', { className: 'modal command-palette-modal' });
+    wrap.appendChild(createNode('h2', { text: 'Command Palette' }));
+    wrap.appendChild(
+      createNode('input', {
+        className: 'input-field',
+        dataset: { role: 'command-query' },
+        type: 'text',
+        attrs: { placeholder: 'Search tasks, habits, notes, and actions...' }
+      })
+    );
+    wrap.appendChild(createNode('div', { className: 'command-results', dataset: { role: 'command-results' } }));
+
+    const footer = createNode('div', { className: 'modal-footer' });
+    footer.appendChild(createNode('button', { className: 'btn btn-cancel', dataset: { action: 'close-modal', modal: 'global-search-modal' }, text: 'Close' }));
+    wrap.appendChild(footer);
+
+    commandModal.replaceChildren(wrap);
+  }
+
   const authGate = document.getElementById('auth-gate');
   if (authGate && !authGate.dataset.initialized) {
     authGate.dataset.initialized = '1';
@@ -1707,6 +2080,18 @@ function activateModalFocusTrap(modal) {
 function triggerHapticFeedback() {
   if (!('vibrate' in navigator)) return;
   navigator.vibrate(12);
+}
+
+async function handleHabitCheck(habitId, dateKey) {
+  triggerHapticFeedback();
+  await toggleHabitDayByDate(habitId, dateKey);
+}
+
+async function handleTaskComplete(taskId) {
+  triggerHapticFeedback();
+  const moved = moveTaskToColumn(taskId, 'done');
+  if (!moved) return;
+  await persistSnapshot();
 }
 
 function openTaskModal(taskId = null) {
@@ -1845,6 +2230,15 @@ async function saveTaskFromModal() {
   });
 
   if (changedTaskId) markDirty('tasks', changedTaskId);
+  if (changedTaskId) {
+    const live = getTaskById(changedTaskId);
+    if (live) {
+      queuePendingChange('task-upsert', {
+        task: structuredClone(live.task),
+        column: live.col
+      });
+    }
+  }
 
   closeModal('task-modal');
   await persistSnapshot();
@@ -1892,6 +2286,15 @@ async function saveHabitFromModal() {
   });
 
   if (changedHabitIndex != null) markDirty('habits', changedHabitIndex);
+  if (changedHabitIndex != null) {
+    const habit = getState().habits[changedHabitIndex];
+    if (habit) {
+      queuePendingChange('habit-upsert', {
+        index: changedHabitIndex,
+        habit: structuredClone(habit)
+      });
+    }
+  }
 
   closeModal('habit-modal');
   await persistSnapshot();
@@ -1933,6 +2336,13 @@ async function saveNoteFromModal() {
 
   markDirty('notes');
 
+  const note = editId
+    ? getState().notes.find((item) => String(item.id) === String(editId))
+    : getState().notes[getState().notes.length - 1];
+  if (note) {
+    queuePendingChange('note-upsert', { note: structuredClone(note) });
+  }
+
   closeModal('note-modal');
   await persistSnapshot();
 }
@@ -1966,6 +2376,13 @@ async function saveHabitReflectionFromModal() {
   });
 
   markDirty('habits', habitId);
+  const habit = getState().habits[habitId];
+  if (habit) {
+    queuePendingChange('habit-upsert', {
+      index: habitId,
+      habit: structuredClone(habit)
+    });
+  }
 
   closeModal('habit-reflection-modal');
   await persistSnapshot();
@@ -1985,6 +2402,13 @@ async function toggleHabitDayByDate(habitId, dateKey) {
   });
 
   markDirty('habits', idx);
+  const habit = getState().habits[idx];
+  if (habit) {
+    queuePendingChange('habit-upsert', {
+      index: idx,
+      habit: structuredClone(habit)
+    });
+  }
 
   await persistSnapshot();
 }
@@ -2003,6 +2427,13 @@ async function toggleHabitSkipByDate(habitId, dateKey) {
   });
 
   markDirty('habits', idx);
+  const habit = getState().habits[idx];
+  if (habit) {
+    queuePendingChange('habit-upsert', {
+      index: idx,
+      habit: structuredClone(habit)
+    });
+  }
 
   await persistSnapshot();
 }
@@ -2062,6 +2493,7 @@ function renderSnackbar() {
 
 async function updateSettings(nextPartial) {
   markDirty('settings');
+  queuePendingChange('settings-merge', { settings: nextPartial });
 
   patchState({
     settings: {
@@ -2134,8 +2566,7 @@ function bindGlobalEvents() {
 
     if (event.ctrlKey && event.key.toLowerCase() === 'k') {
       event.preventDefault();
-      const searchBtn = document.getElementById('search-btn');
-      if (searchBtn) searchBtn.focus();
+      openCommandPalette();
       return;
     }
 
@@ -2220,8 +2651,41 @@ function bindGlobalEvents() {
       }
 
       if (action === 'clear-task-filters') {
-        taskFilters = { query: '', sort: 'default', due: 'all' };
+        taskFilters = { query: '', sort: 'default', due: 'all', smartRule: '', smartViewId: 'none' };
         taskSortMenuOpen = false;
+        renderTasks();
+        return;
+      }
+
+      if (action === 'save-smart-view') {
+        const rule = sanitizeUserText(taskFilters.smartRule);
+        if (!rule) return;
+
+        const name = window.prompt('Smart view name', 'High Priority');
+        if (!name) return;
+
+        const view = {
+          id: `view-${Date.now()}`,
+          name: sanitizeUserText(name),
+          rule
+        };
+
+        updateSettings({
+          customTaskViews: [...getCustomTaskViews(), view]
+        }).catch((err) => console.warn('[2DoByU] save smart view failed', err));
+        taskFilters = {
+          ...taskFilters,
+          smartViewId: view.id
+        };
+        renderTasks();
+        return;
+      }
+
+      if (action === 'apply-smart-view') {
+        taskFilters = {
+          ...taskFilters,
+          smartViewId: actionEl.dataset.id || 'none'
+        };
         renderTasks();
         return;
       }
@@ -2318,15 +2782,13 @@ function bindGlobalEvents() {
 
       if (action === 'settings-export') {
         const snapshot = cloneForSync(getState());
-        const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
-        const href = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = href;
-        link.download = `2dobyu-backup-${new Date().toISOString().slice(0, 10)}.json`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(href);
+        downloadTextFile(`2dobyu-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(snapshot, null, 2), 'application/json');
+        return;
+      }
+
+      if (action === 'settings-export-csv') {
+        const rows = [...buildTaskCsv(), ...buildHabitCsv().slice(1)];
+        downloadTextFile(`2dobyu-export-${new Date().toISOString().slice(0, 10)}.csv`, rowsToCsv(rows), 'text/csv;charset=utf-8');
         return;
       }
 
@@ -2341,6 +2803,7 @@ function bindGlobalEvents() {
         if (!confirmed) return;
         resetState();
         markDirty('full');
+        queueFullSnapshotChange();
         applySettingsVisuals();
         await persistSnapshot();
         return;
@@ -2349,7 +2812,50 @@ function bindGlobalEvents() {
       if (action === 'undo-snackbar') {
         const didUndo = undoLastChange();
         if (didUndo) {
+          queueFullSnapshotChange();
           await persistSnapshot();
+        }
+        return;
+      }
+
+      if (action === 'command-switch-view') {
+        try {
+          const payload = JSON.parse(decodeURIComponent(actionEl.dataset.commandPayload || '%7B%7D'));
+          if (payload.view) setCurrentView(payload.view);
+        } catch (_err) {
+          // ignore malformed payload
+        }
+        closeModal('global-search-modal');
+        return;
+      }
+
+      if (action === 'command-create-task') {
+        closeModal('global-search-modal');
+        openTaskModal();
+        return;
+      }
+
+      if (action === 'command-create-habit') {
+        closeModal('global-search-modal');
+        openHabitModal();
+        return;
+      }
+
+      if (action === 'command-create-note') {
+        closeModal('global-search-modal');
+        openNoteModal();
+        return;
+      }
+
+      if (action === 'command-open-task' || action === 'command-open-habit' || action === 'command-open-note') {
+        try {
+          const payload = JSON.parse(decodeURIComponent(actionEl.dataset.commandPayload || '%7B%7D'));
+          closeModal('global-search-modal');
+          if (action === 'command-open-task') openTaskModal(payload.taskId);
+          if (action === 'command-open-habit') openHabitModal(payload.habitId);
+          if (action === 'command-open-note') openNoteModal(payload.noteId);
+        } catch (_err) {
+          closeModal('global-search-modal');
         }
         return;
       }
@@ -2366,12 +2872,16 @@ function bindGlobalEvents() {
 
     const habitDay = event.target.closest('[data-role="habit-history-day"]');
     if (habitDay) {
-      triggerHapticFeedback();
-      await toggleHabitDayByDate(habitDay.dataset.id, habitDay.dataset.date);
+      await handleHabitCheck(habitDay.dataset.id, habitDay.dataset.date);
       return;
     }
 
     const taskCard = event.target.closest('[data-task-id]');
+    if (taskCard && event.detail === 2 && (event.shiftKey || event.altKey)) {
+      await handleTaskComplete(taskCard.dataset.taskId);
+      return;
+    }
+
     if (taskCard && event.detail === 2) {
       openTaskModal(taskCard.dataset.taskId);
       return;
@@ -2398,6 +2908,23 @@ function bindGlobalEvents() {
       query: queryInput.value || ''
     };
     renderTasks();
+
+    const smartInput = event.target.closest('[data-role="task-smart-rule"]');
+    if (smartInput) {
+      taskFilters = {
+        ...taskFilters,
+        smartRule: smartInput.value || '',
+        smartViewId: 'none'
+      };
+      renderTasks();
+      return;
+    }
+
+    const commandInput = event.target.closest('[data-role="command-query"]');
+    if (commandInput) {
+      commandPaletteQuery = commandInput.value || '';
+      renderCommandPalette();
+    }
   });
 
   document.addEventListener('change', async (event) => {
@@ -2417,6 +2944,16 @@ function bindGlobalEvents() {
       taskFilters = {
         ...taskFilters,
         due: dueSelect.value || 'all'
+      };
+      renderTasks();
+      return;
+    }
+
+    const smartViewSelect = event.target.closest('[data-role="task-smart-view"]');
+    if (smartViewSelect) {
+      taskFilters = {
+        ...taskFilters,
+        smartViewId: smartViewSelect.value || 'none'
       };
       renderTasks();
       return;
@@ -2510,6 +3047,12 @@ function bindGlobalEvents() {
       return;
     }
 
+    const settingPushPublicKey = event.target.closest('[data-role="settings-push-public-key"]');
+    if (settingPushPublicKey) {
+      await updateSettings({ pushPublicKey: String(settingPushPublicKey.value || '').trim() });
+      return;
+    }
+
     const importFileInput = event.target.closest('[data-role="settings-import-file"]');
     if (importFileInput && importFileInput.files?.[0]) {
       try {
@@ -2528,6 +3071,7 @@ function bindGlobalEvents() {
           }
         }));
         markDirty('full');
+        queueFullSnapshotChange();
         applySettingsVisuals();
         await persistSnapshot();
       } catch (err) {
@@ -2545,6 +3089,13 @@ function bindGlobalEvents() {
       if (view === 'tasks') openTaskModal();
       if (view === 'habits') openHabitModal();
       if (view === 'notes') openNoteModal();
+    });
+  }
+
+  const searchBtn = document.getElementById('search-btn');
+  if (searchBtn) {
+    searchBtn.addEventListener('click', () => {
+      openCommandPalette();
     });
   }
 }
