@@ -3,6 +3,13 @@ import { pushUpdate, saveUserData, signIn, signUp, signOut } from './api.js';
 
 let initialized = false;
 let draggingTask = null;
+let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+let calendarSelectedDateKey = new Date().toISOString().slice(0, 10);
+let taskFilters = {
+  query: '',
+  sort: 'default',
+  due: 'all'
+};
 
 const NOTE_COLORS = ['#fff8e1', '#e3f2fd', '#f3e5f5', '#e8f5e9', '#ffebee', '#fbe9e7'];
 
@@ -124,6 +131,120 @@ function removeTaskById(tasks, id) {
   return null;
 }
 
+function getAllTasksWithColumn(tasks) {
+  const entries = [];
+  ['todo', 'inprogress', 'done'].forEach((col) => {
+    tasks[col].forEach((task) => {
+      entries.push({ ...task, _column: col });
+    });
+  });
+  return entries;
+}
+
+function getTaskDueDate(task) {
+  if (!task?.dueDate) return null;
+  const parsed = new Date(`${task.dueDate}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function getStartOfDay(value) {
+  const date = new Date(value);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function getTaskSortValue(task) {
+  const due = getTaskDueDate(task);
+  return due ? due.getTime() : Number.MAX_SAFE_INTEGER;
+}
+
+function filterTask(task) {
+  const query = taskFilters.query.trim().toLowerCase();
+  const today = getStartOfDay(new Date());
+  const dueDate = getTaskDueDate(task);
+
+  if (query) {
+    const haystack = [task.title, task.tag, task.notes].filter(Boolean).join(' ').toLowerCase();
+    if (!haystack.includes(query)) return false;
+  }
+
+  if (taskFilters.due === 'today') {
+    if (!dueDate || getStartOfDay(dueDate).getTime() !== today.getTime()) return false;
+  }
+
+  if (taskFilters.due === 'overdue') {
+    if (!dueDate || getStartOfDay(dueDate).getTime() >= today.getTime()) return false;
+  }
+
+  if (taskFilters.due === 'upcoming') {
+    if (!dueDate || getStartOfDay(dueDate).getTime() <= today.getTime()) return false;
+  }
+
+  if (taskFilters.due === 'nodate' && dueDate) {
+    return false;
+  }
+
+  return true;
+}
+
+function sortTasks(items) {
+  const sorted = [...items];
+
+  if (taskFilters.sort === 'title') {
+    sorted.sort((a, b) => String(a.title || '').localeCompare(String(b.title || '')));
+    return sorted;
+  }
+
+  if (taskFilters.sort === 'due-asc') {
+    sorted.sort((a, b) => getTaskSortValue(a) - getTaskSortValue(b));
+    return sorted;
+  }
+
+  if (taskFilters.sort === 'due-desc') {
+    sorted.sort((a, b) => getTaskSortValue(b) - getTaskSortValue(a));
+    return sorted;
+  }
+
+  if (taskFilters.sort === 'recent') {
+    sorted.sort((a, b) => Number(b.id || 0) - Number(a.id || 0));
+    return sorted;
+  }
+
+  return sorted;
+}
+
+function getFilteredTaskColumns(tasks) {
+  const byColumn = {
+    todo: [],
+    inprogress: [],
+    done: []
+  };
+
+  const filtered = sortTasks(getAllTasksWithColumn(tasks).filter(filterTask));
+  filtered.forEach((task) => {
+    byColumn[task._column].push(task);
+  });
+
+  return byColumn;
+}
+
+function formatMonthLabel(date) {
+  return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+}
+
+function getDateKeyFromDate(date) {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function getCalendarGridStart(monthStart) {
+  const day = monthStart.getDay();
+  const mondayIdx = day === 0 ? 6 : day - 1;
+  const gridStart = new Date(monthStart);
+  gridStart.setDate(monthStart.getDate() - mondayIdx);
+  return gridStart;
+}
+
 function updateGrowthTree() {
   const state = getState();
   let total = 0;
@@ -164,6 +285,8 @@ function renderTasks() {
   if (!container) return;
 
   const { tasks } = getState();
+  const visibleTasks = getFilteredTaskColumns(tasks);
+  const totalVisible = visibleTasks.todo.length + visibleTasks.inprogress.length + visibleTasks.done.length;
   const columns = [
     { key: 'todo', title: 'To Do' },
     { key: 'inprogress', title: 'In Progress' },
@@ -175,14 +298,39 @@ function renderTasks() {
       <h1 class="page-title">Task Board</h1>
       <button class="action-btn" data-action="open-task-modal">+ New Task</button>
     </div>
+    <div class="task-toolbar">
+      <input
+        class="input-field task-filter-input"
+        type="text"
+        placeholder="Search tasks..."
+        value="${escapeHtml(taskFilters.query)}"
+        data-role="task-filter-query"
+      />
+      <select class="input-field task-filter-select" data-role="task-filter-sort">
+        <option value="default" ${taskFilters.sort === 'default' ? 'selected' : ''}>Sort: Default</option>
+        <option value="recent" ${taskFilters.sort === 'recent' ? 'selected' : ''}>Sort: Recent</option>
+        <option value="due-asc" ${taskFilters.sort === 'due-asc' ? 'selected' : ''}>Sort: Due Soon</option>
+        <option value="due-desc" ${taskFilters.sort === 'due-desc' ? 'selected' : ''}>Sort: Due Later</option>
+        <option value="title" ${taskFilters.sort === 'title' ? 'selected' : ''}>Sort: Title</option>
+      </select>
+      <select class="input-field task-filter-select" data-role="task-filter-due">
+        <option value="all" ${taskFilters.due === 'all' ? 'selected' : ''}>Due: All</option>
+        <option value="today" ${taskFilters.due === 'today' ? 'selected' : ''}>Due: Today</option>
+        <option value="overdue" ${taskFilters.due === 'overdue' ? 'selected' : ''}>Due: Overdue</option>
+        <option value="upcoming" ${taskFilters.due === 'upcoming' ? 'selected' : ''}>Due: Upcoming</option>
+        <option value="nodate" ${taskFilters.due === 'nodate' ? 'selected' : ''}>Due: No Date</option>
+      </select>
+      <button class="tb-btn" data-action="clear-task-filters">Clear</button>
+      <span class="task-filter-meta">Showing ${totalVisible} task${totalVisible === 1 ? '' : 's'}</span>
+    </div>
     <div class="columns-container">
       ${columns
         .map(
           (col) => `
             <div class="column" data-column="${col.key}">
-              <div class="column-header">${col.title} <span class="task-count">${tasks[col.key].length}</span></div>
+              <div class="column-header">${col.title} <span class="task-count">${visibleTasks[col.key].length}</span></div>
               <div class="cards" data-drop-col="${col.key}">
-                ${tasks[col.key]
+                ${visibleTasks[col.key]
                   .map(
                     (task) => `
                       <div class="card task-item" draggable="true" data-task-id="${task.id}">
@@ -310,7 +458,72 @@ function renderNotes() {
 function renderCalendar() {
   const container = document.getElementById('page-calendar');
   if (!container) return;
-  container.innerHTML = '<div class="analytics-section"><h3>Calendar</h3><div class="settings-row-desc">Calendar rendering module hooks are ready.</div></div>';
+
+  const monthStart = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), 1);
+  const monthEnd = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 0);
+  const gridStart = getCalendarGridStart(monthStart);
+  const allTasks = getAllTasksWithColumn(getState().tasks).filter((task) => task.dueDate);
+  const taskMap = allTasks.reduce((acc, task) => {
+    const key = task.dueDate;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(task);
+    return acc;
+  }, {});
+
+  const calendarCells = [];
+  for (let idx = 0; idx < 42; idx += 1) {
+    const day = new Date(gridStart);
+    day.setDate(gridStart.getDate() + idx);
+    const key = getDateKeyFromDate(day);
+    const inMonth = day >= monthStart && day <= monthEnd;
+    const isToday = key === new Date().toISOString().slice(0, 10);
+    const isSelected = key === calendarSelectedDateKey;
+    const dayTasks = taskMap[key] || [];
+
+    calendarCells.push(`
+      <button class="calendar-day ${inMonth ? '' : 'outside'} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" data-action="calendar-select-day" data-date="${key}">
+        <div class="calendar-day-head">
+          <span>${day.getDate()}</span>
+          <span class="calendar-count">${dayTasks.length > 0 ? dayTasks.length : ''}</span>
+        </div>
+        <div class="calendar-day-items">
+          ${dayTasks
+            .slice(0, 3)
+            .map((task) => `<span class="calendar-pill">${escapeHtml(task.title)}</span>`)
+            .join('')}
+        </div>
+      </button>
+    `);
+  }
+
+  const selectedTasks = taskMap[calendarSelectedDateKey] || [];
+
+  container.innerHTML = `
+    <div class="page-header">
+      <h1 class="page-title">Calendar</h1>
+      <div class="calendar-nav">
+        <button class="tb-btn" data-action="calendar-prev-month">←</button>
+        <button class="tb-btn" data-action="calendar-today">Today</button>
+        <button class="tb-btn" data-action="calendar-next-month">→</button>
+      </div>
+    </div>
+    <div class="calendar-wrap">
+      <div class="calendar-month-label">${escapeHtml(formatMonthLabel(monthStart))}</div>
+      <div class="calendar-weekdays">
+        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+      </div>
+      <div class="calendar-grid">${calendarCells.join('')}</div>
+      <div class="calendar-agenda">
+        <div class="calendar-agenda-title">Due on ${escapeHtml(calendarSelectedDateKey)}</div>
+        <div class="calendar-agenda-list">
+          ${selectedTasks.length === 0 ? '<div class="settings-row-desc">No tasks due.</div>' : ''}
+          ${selectedTasks
+            .map((task) => `<div class="calendar-agenda-item">${escapeHtml(task.title)} <span>${task._column === 'inprogress' ? 'In Progress' : task._column === 'done' ? 'Done' : 'To Do'}</span></div>`)
+            .join('')}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function renderAnalytics() {
@@ -931,6 +1144,38 @@ function bindGlobalEvents() {
         await handleAuthSignUp();
         return;
       }
+
+      if (action === 'clear-task-filters') {
+        taskFilters = { query: '', sort: 'default', due: 'all' };
+        renderTasks();
+        return;
+      }
+
+      if (action === 'calendar-prev-month') {
+        calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() - 1, 1);
+        renderCalendar();
+        return;
+      }
+
+      if (action === 'calendar-next-month') {
+        calendarCursor = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth() + 1, 1);
+        renderCalendar();
+        return;
+      }
+
+      if (action === 'calendar-today') {
+        const today = new Date();
+        calendarCursor = new Date(today.getFullYear(), today.getMonth(), 1);
+        calendarSelectedDateKey = today.toISOString().slice(0, 10);
+        renderCalendar();
+        return;
+      }
+
+      if (action === 'calendar-select-day') {
+        calendarSelectedDateKey = actionEl.dataset.date || calendarSelectedDateKey;
+        renderCalendar();
+        return;
+      }
     }
 
     const navItem = event.target.closest('.nav-item[data-page]');
@@ -966,6 +1211,36 @@ function bindGlobalEvents() {
     if (!habitDay || habitDay.dataset.active !== 'true') return;
     event.preventDefault();
     await toggleHabitSkip(habitDay.dataset.id, habitDay.dataset.day);
+  });
+
+  document.addEventListener('input', (event) => {
+    const queryInput = event.target.closest('[data-role="task-filter-query"]');
+    if (!queryInput) return;
+    taskFilters = {
+      ...taskFilters,
+      query: queryInput.value || ''
+    };
+    renderTasks();
+  });
+
+  document.addEventListener('change', (event) => {
+    const sortSelect = event.target.closest('[data-role="task-filter-sort"]');
+    if (sortSelect) {
+      taskFilters = {
+        ...taskFilters,
+        sort: sortSelect.value || 'default'
+      };
+      renderTasks();
+      return;
+    }
+
+    const dueSelect = event.target.closest('[data-role="task-filter-due"]');
+    if (!dueSelect) return;
+    taskFilters = {
+      ...taskFilters,
+      due: dueSelect.value || 'all'
+    };
+    renderTasks();
   });
 
   const topbarAction = document.getElementById('topbar-action');
