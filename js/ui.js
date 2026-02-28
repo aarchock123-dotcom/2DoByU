@@ -1,4 +1,4 @@
-import { getState, patchState, setState, subscribe, resetState } from './state.js';
+import { getState, markDirty, patchState, resetState, setState, subscribe, undoLastChange } from './state.js';
 import { pushUpdate, saveUserData, signIn, signUp, signOut, syncData } from './api.js';
 
 let initialized = false;
@@ -22,6 +22,7 @@ let taskFilters = {
   sort: 'default',
   due: 'all'
 };
+let activeModalTrap = null;
 
 const NOTE_COLORS = ['#fff8e1', '#e3f2fd', '#f3e5f5', '#e8f5e9', '#ffebee', '#fbe9e7'];
 
@@ -115,6 +116,51 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+function sanitizeUserText(value) {
+  return String(value ?? '').trim().replace(/[\u0000-\u001F\u007F]/g, '');
+}
+
+function parseNaturalDueDate(inputValue) {
+  const input = sanitizeUserText(inputValue).toLowerCase();
+  if (!input) return '';
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  if (/(^|\s)today(\s|$)/.test(input)) {
+    return today.toISOString().slice(0, 10);
+  }
+
+  if (/(^|\s)tomorrow(\s|$)/.test(input)) {
+    const next = new Date(today);
+    next.setDate(today.getDate() + 1);
+    return next.toISOString().slice(0, 10);
+  }
+
+  const weekdayMap = {
+    sunday: 0,
+    monday: 1,
+    tuesday: 2,
+    wednesday: 3,
+    thursday: 4,
+    friday: 5,
+    saturday: 6
+  };
+
+  for (const [name, targetDow] of Object.entries(weekdayMap)) {
+    if (!new RegExp(`(^|\\s)${name}(\\s|$)`).test(input)) continue;
+
+    const result = new Date(today);
+    const currentDow = result.getDay();
+    let delta = targetDow - currentDow;
+    if (delta <= 0) delta += 7;
+    result.setDate(result.getDate() + delta);
+    return result.toISOString().slice(0, 10);
+  }
+
+  return '';
 }
 
 function getWeekDate(dIdx) {
@@ -224,6 +270,10 @@ function moveTaskToColumn(taskId, targetCol) {
     moved = true;
     return next;
   });
+
+  if (moved) {
+    markDirty('tasks', taskId);
+  }
 
   return moved;
 }
@@ -478,19 +528,87 @@ function getCalendarRangeDays() {
   return [];
 }
 
+function createNode(tag, options = {}, children = []) {
+  const el = document.createElement(tag);
+  if (options.className) el.className = options.className;
+  if (options.text != null) el.textContent = String(options.text);
+  if (options.type) el.type = options.type;
+  if (options.value != null) el.value = String(options.value);
+
+  if (options.attrs) {
+    Object.entries(options.attrs).forEach(([k, v]) => {
+      if (v == null) return;
+      el.setAttribute(k, String(v));
+    });
+  }
+
+  if (options.dataset) {
+    Object.entries(options.dataset).forEach(([k, v]) => {
+      if (v == null) return;
+      el.dataset[k] = String(v);
+    });
+  }
+
+  const list = Array.isArray(children) ? children : [children];
+  list.forEach((child) => {
+    if (child == null) return;
+    if (typeof child === 'string') {
+      el.appendChild(document.createTextNode(child));
+      return;
+    }
+    el.appendChild(child);
+  });
+
+  return el;
+}
+
+function createTaskCard(task, options = {}) {
+  const card = createNode('div', {
+    className: 'card task-item',
+    dataset: { taskId: task.id }
+  });
+  if (options.draggable) card.setAttribute('draggable', 'true');
+
+  card.appendChild(createNode('div', { className: 'card-title', text: sanitizeUserText(task.title) || '(Untitled Task)' }));
+
+  const meta = createNode('div', { className: 'card-meta' });
+  meta.appendChild(createNode('span', { className: 'date-text', text: sanitizeUserText(task.dueDate || 'No date') }));
+
+  if (task.tag) {
+    meta.appendChild(createNode('span', { className: 'tag-badge', text: sanitizeUserText(task.tag) }));
+  }
+
+  card.appendChild(meta);
+  return card;
+}
+
 function renderCalendarItemButton(item) {
-  return `
-    <button class="calendar-pill calendar-item-${item.type}" data-action="calendar-open-item" data-item-type="${item.type}" data-item-id="${escapeHtml(item.id)}">
-      ${escapeHtml(item.title)}
-    </button>
-  `;
+  return createNode(
+    'button',
+    {
+      className: `calendar-pill calendar-item-${item.type}`,
+      dataset: {
+        action: 'calendar-open-item',
+        itemType: item.type,
+        itemId: item.id
+      }
+    },
+    [sanitizeUserText(item.title) || '(Untitled)']
+  );
 }
 
 function renderMonthGrid(monthStart, itemsByDate, selectedDateKey) {
+  const monthBlock = createNode('div', { className: 'calendar-month-block' });
+  monthBlock.appendChild(createNode('div', { className: 'calendar-month-label', text: formatMonthLabel(monthStart) }));
+
+  const weekdays = createNode('div', { className: 'calendar-weekdays' });
+  ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach((w) => weekdays.appendChild(createNode('span', { text: w })));
+  monthBlock.appendChild(weekdays);
+
+  const grid = createNode('div', { className: 'calendar-grid' });
   const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0);
   const gridStart = getCalendarGridStart(monthStart);
   const todayKey = new Date().toISOString().slice(0, 10);
-  const cells = [];
 
   for (let idx = 0; idx < 42; idx += 1) {
     const day = new Date(gridStart);
@@ -501,54 +619,73 @@ function renderMonthGrid(monthStart, itemsByDate, selectedDateKey) {
     const isSelected = key === selectedDateKey;
     const dayItems = itemsByDate[key] || [];
 
-    cells.push(`
-      <div class="calendar-day ${inMonth ? '' : 'outside'} ${isToday ? 'today' : ''} ${isSelected ? 'selected' : ''}" data-action="calendar-select-day" data-date="${key}">
-        <div class="calendar-day-head">
-          <span>${day.getDate()}</span>
-          <span class="calendar-count">${dayItems.length > 0 ? dayItems.length : ''}</span>
-        </div>
-        <div class="calendar-day-items">
-          ${dayItems.slice(0, 3).map(renderCalendarItemButton).join('')}
-        </div>
-      </div>
-    `);
+    const cls = ['calendar-day'];
+    if (!inMonth) cls.push('outside');
+    if (isToday) cls.push('today');
+    if (isSelected) cls.push('selected');
+
+    const dayEl = createNode('div', {
+      className: cls.join(' '),
+      dataset: {
+        action: 'calendar-select-day',
+        date: key
+      }
+    });
+
+    const head = createNode('div', { className: 'calendar-day-head' });
+    head.appendChild(createNode('span', { text: String(day.getDate()) }));
+    head.appendChild(createNode('span', { className: 'calendar-count', text: dayItems.length > 0 ? String(dayItems.length) : '' }));
+    dayEl.appendChild(head);
+
+    const itemsWrap = createNode('div', { className: 'calendar-day-items' });
+    dayItems.slice(0, 3).forEach((item) => itemsWrap.appendChild(renderCalendarItemButton(item)));
+    dayEl.appendChild(itemsWrap);
+
+    grid.appendChild(dayEl);
   }
 
-  return `
-    <div class="calendar-month-block">
-      <div class="calendar-month-label">${escapeHtml(formatMonthLabel(monthStart))}</div>
-      <div class="calendar-weekdays">
-        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
-      </div>
-      <div class="calendar-grid">${cells.join('')}</div>
-    </div>
-  `;
+  monthBlock.appendChild(grid);
+  return monthBlock;
 }
 
 function renderRangeView(days, itemsByDate) {
+  const range = createNode('div', { className: 'calendar-range-grid' });
+  range.style.setProperty('--calendar-cols', String(days.length));
+
   const todayKey = new Date().toISOString().slice(0, 10);
-  return `
-    <div class="calendar-range-grid" style="--calendar-cols:${days.length};">
-      ${days
-        .map((day) => {
-          const dateKey = getDateKeyFromDate(day);
-          const items = itemsByDate[dateKey] || [];
-          const isToday = dateKey === todayKey;
-          return `
-            <div class="calendar-range-col ${isToday ? 'today' : ''}">
-              <button class="calendar-range-head" data-action="calendar-select-day" data-date="${dateKey}">
-                <strong>${escapeHtml(day.toLocaleDateString(undefined, { weekday: 'short' }))}</strong>
-                <span>${escapeHtml(day.toLocaleDateString())}</span>
-              </button>
-              <div class="calendar-range-items">
-                ${items.length === 0 ? '<div class="settings-row-desc">No items</div>' : items.map(renderCalendarItemButton).join('')}
-              </div>
-            </div>
-          `;
-        })
-        .join('')}
-    </div>
-  `;
+  days.forEach((day) => {
+    const dateKey = getDateKeyFromDate(day);
+    const items = itemsByDate[dateKey] || [];
+
+    const col = createNode('div', { className: `calendar-range-col ${dateKey === todayKey ? 'today' : ''}` });
+    const head = createNode(
+      'button',
+      {
+        className: 'calendar-range-head',
+        dataset: {
+          action: 'calendar-select-day',
+          date: dateKey
+        }
+      },
+      [
+        createNode('strong', { text: day.toLocaleDateString(undefined, { weekday: 'short' }) }),
+        createNode('span', { text: day.toLocaleDateString() })
+      ]
+    );
+
+    const itemsWrap = createNode('div', { className: 'calendar-range-items' });
+    if (items.length === 0) {
+      itemsWrap.appendChild(createNode('div', { className: 'settings-row-desc', text: 'No items' }));
+    } else {
+      items.forEach((item) => itemsWrap.appendChild(renderCalendarItemButton(item)));
+    }
+
+    col.appendChild(head);
+    col.appendChild(itemsWrap);
+    range.appendChild(col);
+  });
+
+  return range;
 }
 
 function updateGrowthTree() {
@@ -590,6 +727,19 @@ function renderTasks() {
   const container = document.getElementById('page-tasks');
   if (!container) return;
 
+  container.replaceChildren();
+
+  if (getState().ui?.syncPending) {
+    const header = createNode('div', { className: 'page-header' }, [createNode('h1', { className: 'page-title', text: 'Task Board' })]);
+    const grid = createNode('div', { className: 'skeleton-grid' });
+    grid.appendChild(createNode('div', { className: 'skeleton-card' }));
+    grid.appendChild(createNode('div', { className: 'skeleton-card' }));
+    grid.appendChild(createNode('div', { className: 'skeleton-card' }));
+    container.appendChild(header);
+    container.appendChild(grid);
+    return;
+  }
+
   const state = getState();
   const { tasks } = state;
   const taskView = state.ui.taskView || 'status';
@@ -602,127 +752,130 @@ function renderTasks() {
     { key: 'done', title: 'Done' }
   ];
 
-  container.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-title">Task Board</h1>
-      <button class="action-btn" data-action="open-task-modal">+ New Task</button>
-    </div>
-    <div class="task-toolbar">
-      <div class="task-view-switch">
-        <button class="tb-btn ${taskView === 'status' ? 'active' : ''}" data-action="set-task-view" data-view="status">Status</button>
-        <button class="tb-btn ${taskView === 'list' ? 'active' : ''}" data-action="set-task-view" data-view="list">List</button>
-        <button class="tb-btn ${taskView === 'card' ? 'active' : ''}" data-action="set-task-view" data-view="card">Card</button>
-      </div>
-      <input
-        class="input-field task-filter-input"
-        type="text"
-        placeholder="Search tasks..."
-        value="${escapeHtml(taskFilters.query)}"
-        data-role="task-filter-query"
-      />
-      <div class="task-sort-menu">
-        <button class="tb-btn" data-action="toggle-sort-menu">Sort ▾</button>
-        <div class="task-sort-panel ${taskSortMenuOpen ? 'open' : ''}">
-          <button class="task-sort-option ${taskFilters.sort === 'default' ? 'active' : ''}" data-action="set-task-sort" data-sort="default">Default</button>
-          <button class="task-sort-option ${taskFilters.sort === 'recent' ? 'active' : ''}" data-action="set-task-sort" data-sort="recent">Recent</button>
-          <button class="task-sort-option ${taskFilters.sort === 'due-asc' ? 'active' : ''}" data-action="set-task-sort" data-sort="due-asc">Due Soon</button>
-          <button class="task-sort-option ${taskFilters.sort === 'due-desc' ? 'active' : ''}" data-action="set-task-sort" data-sort="due-desc">Due Later</button>
-          <button class="task-sort-option ${taskFilters.sort === 'title' ? 'active' : ''}" data-action="set-task-sort" data-sort="title">Title</button>
-        </div>
-      </div>
-      <select class="input-field task-filter-select" data-role="task-filter-due">
-        <option value="all" ${taskFilters.due === 'all' ? 'selected' : ''}>Due: All</option>
-        <option value="today" ${taskFilters.due === 'today' ? 'selected' : ''}>Due: Today</option>
-        <option value="overdue" ${taskFilters.due === 'overdue' ? 'selected' : ''}>Due: Overdue</option>
-        <option value="upcoming" ${taskFilters.due === 'upcoming' ? 'selected' : ''}>Due: Upcoming</option>
-        <option value="nodate" ${taskFilters.due === 'nodate' ? 'selected' : ''}>Due: No Date</option>
-      </select>
-      <button class="tb-btn" data-action="clear-task-filters">Clear</button>
-      <span class="task-filter-meta">Showing ${totalVisible} task${totalVisible === 1 ? '' : 's'}</span>
-    </div>
-    ${
-      taskView === 'status'
-        ? `
-          <div class="columns-container">
-            ${columns
-              .map(
-                (col) => `
-                  <div class="column" data-column="${col.key}">
-                    <div class="column-header">${col.title} <span class="task-count">${visibleTasks[col.key].length}</span></div>
-                    <div class="cards" data-drop-col="${col.key}">
-                      ${visibleTasks[col.key]
-                        .map(
-                          (task) => `
-                            <div class="card task-item" draggable="true" data-task-id="${task.id}">
-                              <div class="card-title">${escapeHtml(task.title)}</div>
-                              <div class="card-meta">
-                                <span class="date-text">${escapeHtml(task.dueDate || 'No date')}</span>
-                                ${task.tag ? `<span class="tag-badge">${escapeHtml(task.tag)}</span>` : ''}
-                              </div>
-                            </div>
-                          `
-                        )
-                        .join('')}
-                    </div>
-                  </div>
-                `
-              )
-              .join('')}
-          </div>
-        `
-        : ''
+  const fragment = document.createDocumentFragment();
+
+  const header = createNode('div', { className: 'page-header' });
+  header.appendChild(createNode('h1', { className: 'page-title', text: 'Task Board' }));
+  header.appendChild(createNode('button', { className: 'action-btn', dataset: { action: 'open-task-modal' }, text: '+ New Task' }));
+  fragment.appendChild(header);
+
+  const toolbar = createNode('div', { className: 'task-toolbar' });
+  const viewSwitch = createNode('div', { className: 'task-view-switch' });
+  [
+    ['status', 'Status'],
+    ['list', 'List'],
+    ['card', 'Card']
+  ].forEach(([value, label]) => {
+    const btn = createNode('button', {
+      className: `tb-btn ${taskView === value ? 'active' : ''}`,
+      dataset: { action: 'set-task-view', view: value },
+      text: label
+    });
+    viewSwitch.appendChild(btn);
+  });
+  toolbar.appendChild(viewSwitch);
+
+  const searchInput = createNode('input', {
+    className: 'input-field task-filter-input',
+    attrs: { placeholder: 'Search tasks...' },
+    dataset: { role: 'task-filter-query' },
+    value: taskFilters.query,
+    type: 'text'
+  });
+  toolbar.appendChild(searchInput);
+
+  const sortMenu = createNode('div', { className: 'task-sort-menu' });
+  sortMenu.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'toggle-sort-menu' }, text: 'Sort ▾' }));
+  const sortPanel = createNode('div', { className: `task-sort-panel ${taskSortMenuOpen ? 'open' : ''}` });
+  [
+    ['default', 'Default'],
+    ['recent', 'Recent'],
+    ['due-asc', 'Due Soon'],
+    ['due-desc', 'Due Later'],
+    ['title', 'Title']
+  ].forEach(([value, label]) => {
+    sortPanel.appendChild(
+      createNode('button', {
+        className: `task-sort-option ${taskFilters.sort === value ? 'active' : ''}`,
+        dataset: { action: 'set-task-sort', sort: value },
+        text: label
+      })
+    );
+  });
+  sortMenu.appendChild(sortPanel);
+  toolbar.appendChild(sortMenu);
+
+  const dueSelect = createNode('select', { className: 'input-field task-filter-select', dataset: { role: 'task-filter-due' } });
+  [
+    ['all', 'Due: All'],
+    ['today', 'Due: Today'],
+    ['overdue', 'Due: Overdue'],
+    ['upcoming', 'Due: Upcoming'],
+    ['nodate', 'Due: No Date']
+  ].forEach(([value, label]) => {
+    dueSelect.appendChild(createNode('option', { attrs: { value }, text: label }));
+  });
+  dueSelect.value = taskFilters.due;
+  toolbar.appendChild(dueSelect);
+
+  toolbar.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'clear-task-filters' }, text: 'Clear' }));
+  toolbar.appendChild(createNode('span', { className: 'task-filter-meta', text: `Showing ${totalVisible} task${totalVisible === 1 ? '' : 's'}` }));
+
+  fragment.appendChild(toolbar);
+
+  if (taskView === 'status') {
+    const board = createNode('div', { className: 'columns-container' });
+    columns.forEach((col) => {
+      const colWrap = createNode('div', { className: 'column', dataset: { column: col.key } });
+      const colHeader = createNode('div', { className: 'column-header' });
+      colHeader.appendChild(document.createTextNode(`${col.title} `));
+      colHeader.appendChild(createNode('span', { className: 'task-count', text: String(visibleTasks[col.key].length) }));
+      colWrap.appendChild(colHeader);
+
+      const cards = createNode('div', { className: 'cards', dataset: { dropCol: col.key } });
+      visibleTasks[col.key].forEach((task) => cards.appendChild(createTaskCard(task, { draggable: true })));
+      colWrap.appendChild(cards);
+      board.appendChild(colWrap);
+    });
+    fragment.appendChild(board);
+  }
+
+  if (taskView === 'list') {
+    const list = createNode('div', { className: 'task-list-view' });
+    if (visibleFlatTasks.length === 0) {
+      list.appendChild(createNode('div', { className: 'settings-row-desc', text: 'No tasks match current filters.' }));
+    } else {
+      visibleFlatTasks.forEach((task) => {
+        const item = createNode('div', { className: 'task-list-item', dataset: { taskId: task.id } });
+        const left = createNode('div');
+        left.appendChild(createNode('div', { className: 'card-title', text: sanitizeUserText(task.title) || '(Untitled Task)' }));
+        left.appendChild(createNode('div', { className: 'date-text', text: sanitizeUserText(task.dueDate || 'No date') }));
+        item.appendChild(left);
+        item.appendChild(createNode('span', { className: 'task-list-status', text: getColumnLabel(task._column) }));
+        list.appendChild(item);
+      });
     }
-    ${
-      taskView === 'list'
-        ? `
-          <div class="task-list-view">
-            ${
-              visibleFlatTasks.length === 0
-                ? '<div class="settings-row-desc">No tasks match current filters.</div>'
-                : visibleFlatTasks
-                    .map(
-                      (task) => `
-                        <div class="task-list-item" data-task-id="${task.id}">
-                          <div>
-                            <div class="card-title">${escapeHtml(task.title)}</div>
-                            <div class="date-text">${escapeHtml(task.dueDate || 'No date')}</div>
-                          </div>
-                          <span class="task-list-status">${task._column === 'inprogress' ? 'In Progress' : task._column === 'done' ? 'Done' : 'To Do'}</span>
-                        </div>
-                      `
-                    )
-                    .join('')
-            }
-          </div>
-        `
-        : ''
+    fragment.appendChild(list);
+  }
+
+  if (taskView === 'card') {
+    const grid = createNode('div', { className: 'task-card-grid' });
+    if (visibleFlatTasks.length === 0) {
+      grid.appendChild(createNode('div', { className: 'settings-row-desc', text: 'No tasks match current filters.' }));
+    } else {
+      visibleFlatTasks.forEach((task) => {
+        const card = createTaskCard(task, { draggable: false });
+        const meta = card.querySelector('.card-meta');
+        if (meta) {
+          meta.appendChild(createNode('span', { className: 'tag-badge', text: getColumnLabel(task._column) }));
+        }
+        grid.appendChild(card);
+      });
     }
-    ${
-      taskView === 'card'
-        ? `
-          <div class="task-card-grid">
-            ${
-              visibleFlatTasks.length === 0
-                ? '<div class="settings-row-desc">No tasks match current filters.</div>'
-                : visibleFlatTasks
-                    .map(
-                      (task) => `
-                        <div class="card task-item" data-task-id="${task.id}">
-                          <div class="card-title">${escapeHtml(task.title)}</div>
-                          <div class="card-meta">
-                            <span class="date-text">${escapeHtml(task.dueDate || 'No date')}</span>
-                            <span class="tag-badge">${task._column === 'inprogress' ? 'In Progress' : task._column === 'done' ? 'Done' : 'To Do'}</span>
-                          </div>
-                        </div>
-                      `
-                    )
-                    .join('')
-            }
-          </div>
-        `
-        : ''
-    }
-  `;
+    fragment.appendChild(grid);
+  }
+
+  container.appendChild(fragment);
 
   if (taskView === 'status') {
     setupTaskDnD();
@@ -733,76 +886,154 @@ function renderHabits() {
   const container = document.getElementById('page-habits');
   if (!container) return;
 
+  container.replaceChildren();
+
   const { habits } = getState();
 
-  container.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-title">Habits</h1>
-      <button class="action-btn" data-action="open-habit-modal">+ New Habit</button>
-    </div>
-    <div class="tree-container">
-      <h3 style="font-size:.8em;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600;margin-bottom:4px">Weekly Progress</h3>
-      <svg class="tree-svg" viewBox="0 0 200 200">
-        <rect fill="#8b7355" x="95" y="150" width="10" height="40"></rect>
-        <g>
-          <path class="tree-branch" d="M100 150 Q80 130 60 110" stroke="#6b5d4f" stroke-width="3" fill="none"></path>
-          <path class="tree-branch" d="M100 150 Q120 130 140 110" stroke="#6b5d4f" stroke-width="3" fill="none"></path>
-          <path class="tree-branch" d="M100 130 Q90 110 90 80" stroke="#6b5d4f" stroke-width="2" fill="none"></path>
-          <path class="tree-branch" d="M100 130 Q110 110 110 80" stroke="#6b5d4f" stroke-width="2" fill="none"></path>
-        </g>
-        <g>
-          <circle class="tree-leaf" cx="60" cy="110" r="8"></circle>
-          <circle class="tree-leaf" cx="140" cy="110" r="8"></circle>
-          <circle class="tree-leaf" cx="90" cy="80" r="8"></circle>
-          <circle class="tree-leaf" cx="110" cy="80" r="8"></circle>
-        </g>
-        <g>
-          <circle class="tree-flower" cx="60" cy="105" r="4"></circle>
-          <circle class="tree-flower" cx="140" cy="105" r="4"></circle>
-          <circle class="tree-flower" cx="100" cy="55" r="5"></circle>
-        </g>
-      </svg>
-      <div style="margin-top:8px;color:var(--muted);font-weight:bold;font-size:1.1em;">Weekly Completion: <span id="comp-rate">0%</span></div>
-    </div>
-    <div class="habits-grid" id="habits-grid">
-      ${habits
-        .map((habit, habitIdx) => {
-          const dateKeys = getRecentDateKeys(7);
-          const counts = getHabitWeeklyCounts(habit);
-          return `
-            <div class="habit-card" data-habit-id="${habitIdx}">
-              <div class="habit-header">
-                <div class="habit-name-area">
-                  <div class="habit-name">${escapeHtml(habit.name)}</div>
-                  <div class="habit-category">${escapeHtml(habit.category || 'Other')}</div>
-                </div>
-                <div class="habit-badges"><span class="habit-streak">🔥 ${counts.done}/${counts.total}</span></div>
-              </div>
-              <div class="habit-history-grid">
-                ${dateKeys
-                  .map((dateKey) => {
-                    const state = getHabitStateByDate(habit, dateKey);
-                    const className = state === 'done' ? 'history-done' : state === 'skipped' ? 'history-skipped' : 'history-missed';
-                    const isToday = dateKey === new Date().toISOString().slice(0, 10);
-                    return `
-                      <button class="day-checkbox history-cell ${className} ${isToday ? 'today' : ''}" data-role="habit-history-day" data-id="${habitIdx}" data-date="${dateKey}" title="${dateKey}">
-                        ${escapeHtml(formatShortDayLabel(dateKey))}
-                      </button>
-                    `;
-                  })
-                  .join('')}
-              </div>
-              <div class="habit-actions-row">
-                <button class="tb-btn" data-action="open-habit-reflection" data-id="${habitIdx}">📝</button>
-                <button class="tb-btn" data-action="toggle-habit-skip-today" data-id="${habitIdx}">Skip</button>
-                <button class="tb-btn" data-action="open-habit-modal" data-id="${habitIdx}">Edit</button>
-              </div>
-            </div>
-          `;
+  const fragment = document.createDocumentFragment();
+
+  const header = createNode('div', { className: 'page-header' });
+  header.appendChild(createNode('h1', { className: 'page-title', text: 'Habits' }));
+  header.appendChild(createNode('button', { className: 'action-btn', dataset: { action: 'open-habit-modal' }, text: '+ New Habit' }));
+  fragment.appendChild(header);
+
+  const treeContainer = createNode('div', { className: 'tree-container' });
+  treeContainer.appendChild(
+    createNode('h3', {
+      attrs: {
+        style: 'font-size:.8em;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:600;margin-bottom:4px'
+      },
+      text: 'Weekly Progress'
+    })
+  );
+
+  const svgNs = 'http://www.w3.org/2000/svg';
+  const treeSvg = document.createElementNS(svgNs, 'svg');
+  treeSvg.setAttribute('class', 'tree-svg');
+  treeSvg.setAttribute('viewBox', '0 0 200 200');
+
+  const trunk = document.createElementNS(svgNs, 'rect');
+  trunk.setAttribute('fill', '#8b7355');
+  trunk.setAttribute('x', '95');
+  trunk.setAttribute('y', '150');
+  trunk.setAttribute('width', '10');
+  trunk.setAttribute('height', '40');
+  treeSvg.appendChild(trunk);
+
+  const branchesGroup = document.createElementNS(svgNs, 'g');
+  [
+    ['M100 150 Q80 130 60 110', '3'],
+    ['M100 150 Q120 130 140 110', '3'],
+    ['M100 130 Q90 110 90 80', '2'],
+    ['M100 130 Q110 110 110 80', '2']
+  ].forEach(([d, width]) => {
+    const path = document.createElementNS(svgNs, 'path');
+    path.setAttribute('class', 'tree-branch');
+    path.setAttribute('d', d);
+    path.setAttribute('stroke', '#6b5d4f');
+    path.setAttribute('stroke-width', width);
+    path.setAttribute('fill', 'none');
+    branchesGroup.appendChild(path);
+  });
+  treeSvg.appendChild(branchesGroup);
+
+  const leavesGroup = document.createElementNS(svgNs, 'g');
+  [
+    ['60', '110', '8'],
+    ['140', '110', '8'],
+    ['90', '80', '8'],
+    ['110', '80', '8']
+  ].forEach(([cx, cy, r]) => {
+    const c = document.createElementNS(svgNs, 'circle');
+    c.setAttribute('class', 'tree-leaf');
+    c.setAttribute('cx', cx);
+    c.setAttribute('cy', cy);
+    c.setAttribute('r', r);
+    leavesGroup.appendChild(c);
+  });
+  treeSvg.appendChild(leavesGroup);
+
+  const flowersGroup = document.createElementNS(svgNs, 'g');
+  [
+    ['60', '105', '4'],
+    ['140', '105', '4'],
+    ['100', '55', '5']
+  ].forEach(([cx, cy, r]) => {
+    const c = document.createElementNS(svgNs, 'circle');
+    c.setAttribute('class', 'tree-flower');
+    c.setAttribute('cx', cx);
+    c.setAttribute('cy', cy);
+    c.setAttribute('r', r);
+    flowersGroup.appendChild(c);
+  });
+  treeSvg.appendChild(flowersGroup);
+
+  treeContainer.appendChild(treeSvg);
+
+  const weekly = createNode('div', {
+    attrs: { style: 'margin-top:8px;color:var(--muted);font-weight:bold;font-size:1.1em;' }
+  });
+  weekly.appendChild(document.createTextNode('Weekly Completion: '));
+  weekly.appendChild(createNode('span', { attrs: { id: 'comp-rate' }, text: '0%' }));
+  treeContainer.appendChild(weekly);
+  fragment.appendChild(treeContainer);
+
+  const grid = createNode('div', { className: 'habits-grid', attrs: { id: 'habits-grid' } });
+  const todayKey = new Date().toISOString().slice(0, 10);
+
+  habits.forEach((habit, habitIdx) => {
+    const dateKeys = getRecentDateKeys(7);
+    const counts = getHabitWeeklyCounts(habit);
+
+    const card = createNode('div', { className: 'habit-card', dataset: { habitId: habitIdx } });
+    const hHeader = createNode('div', { className: 'habit-header' });
+    const nameArea = createNode('div', { className: 'habit-name-area' });
+    nameArea.appendChild(createNode('div', { className: 'habit-name', text: sanitizeUserText(habit.name) || '(Untitled Habit)' }));
+    nameArea.appendChild(createNode('div', { className: 'habit-category', text: sanitizeUserText(habit.category || 'Other') }));
+    hHeader.appendChild(nameArea);
+
+    const badges = createNode('div', { className: 'habit-badges' });
+    badges.appendChild(createNode('span', { className: 'habit-streak', text: `🔥 ${counts.done}/${counts.total}` }));
+    hHeader.appendChild(badges);
+    card.appendChild(hHeader);
+
+    const historyGrid = createNode('div', { className: 'habit-history-grid' });
+    dateKeys.forEach((dateKey) => {
+      const state = getHabitStateByDate(habit, dateKey);
+      const cls = ['day-checkbox', 'history-cell'];
+      if (state === 'done') cls.push('history-done');
+      else if (state === 'skipped') cls.push('history-skipped');
+      else cls.push('history-missed');
+      if (dateKey === todayKey) cls.push('today');
+
+      historyGrid.appendChild(
+        createNode('button', {
+          className: cls.join(' '),
+          dataset: {
+            role: 'habit-history-day',
+            id: habitIdx,
+            date: dateKey
+          },
+          attrs: {
+            title: dateKey
+          },
+          text: formatShortDayLabel(dateKey)
         })
-        .join('')}
-    </div>
-  `;
+      );
+    });
+    card.appendChild(historyGrid);
+
+    const actions = createNode('div', { className: 'habit-actions-row' });
+    actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'open-habit-reflection', id: habitIdx }, text: '📝' }));
+    actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'toggle-habit-skip-today', id: habitIdx }, text: 'Skip' }));
+    actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'open-habit-modal', id: habitIdx }, text: 'Edit' }));
+    card.appendChild(actions);
+
+    grid.appendChild(card);
+  });
+
+  fragment.appendChild(grid);
+  container.appendChild(fragment);
 
   updateGrowthTree();
 }
@@ -811,31 +1042,35 @@ function renderNotes() {
   const container = document.getElementById('page-notes');
   if (!container) return;
 
+  container.replaceChildren();
+
   const { notes } = getState();
 
-  container.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-title">Notes</h1>
-      <button class="action-btn" data-action="open-note-modal">+ New Note</button>
-    </div>
-    <div class="notes-masonry" id="notes-grid">
-      ${notes
-        .map(
-          (note) => `
-            <div class="note-card" data-note-id="${note.id}" style="background:${escapeHtml(note.color || NOTE_COLORS[0])}">
-              <div class="note-title">${escapeHtml(note.title || '(Untitled)')}</div>
-              <div class="note-body">${escapeHtml(note.body || '')}</div>
-            </div>
-          `
-        )
-        .join('')}
-    </div>
-  `;
+  const header = createNode('div', { className: 'page-header' });
+  header.appendChild(createNode('h1', { className: 'page-title', text: 'Notes' }));
+  header.appendChild(createNode('button', { className: 'action-btn', dataset: { action: 'open-note-modal' }, text: '+ New Note' }));
+  container.appendChild(header);
+
+  const grid = createNode('div', { className: 'notes-masonry', attrs: { id: 'notes-grid' } });
+  notes.forEach((note) => {
+    const card = createNode('div', {
+      className: 'note-card',
+      dataset: { noteId: note.id }
+    });
+    card.style.background = sanitizeUserText(note.color || NOTE_COLORS[0]);
+    card.appendChild(createNode('div', { className: 'note-title', text: sanitizeUserText(note.title || '(Untitled)') }));
+    card.appendChild(createNode('div', { className: 'note-body', text: sanitizeUserText(note.body || '') }));
+    grid.appendChild(card);
+  });
+
+  container.appendChild(grid);
 }
 
 function renderCalendar() {
   const container = document.getElementById('page-calendar');
   if (!container) return;
+
+  container.replaceChildren();
 
   const allItems = getCalendarItems();
   const categories = getCalendarCategories(allItems);
@@ -843,177 +1078,279 @@ function renderCalendar() {
   const itemsByDate = buildItemsByDate(visibleItems);
   const selectedItems = itemsByDate[calendarSelectedDateKey] || [];
 
-  let calendarBody = '';
+  const fragment = document.createDocumentFragment();
+
+  const header = createNode('div', { className: 'page-header' });
+  header.appendChild(createNode('h1', { className: 'page-title', text: 'Calendar' }));
+  const nav = createNode('div', { className: 'calendar-nav' });
+  nav.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'calendar-prev' }, text: '←' }));
+  nav.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'calendar-today' }, text: 'Today' }));
+  nav.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'calendar-next' }, text: '→' }));
+  header.appendChild(nav);
+  fragment.appendChild(header);
+
+  const wrap = createNode('div', { className: 'calendar-wrap' });
+  const toolbar = createNode('div', { className: 'calendar-toolbar' });
+
+  const viewSwitch = createNode('div', { className: 'calendar-view-switch' });
+  [
+    ['day', 'Day'],
+    ['3day', '3 Day'],
+    ['workweek', 'Work Week'],
+    ['7day', '7 Day'],
+    ['month', 'Month'],
+    ['3month', '3 Month'],
+    ['6month', '6 Month']
+  ].forEach(([value, label]) => {
+    viewSwitch.appendChild(
+      createNode('button', {
+        className: `tb-btn ${calendarView === value ? 'active' : ''}`,
+        dataset: { action: 'calendar-set-view', value },
+        text: label
+      })
+    );
+  });
+  toolbar.appendChild(viewSwitch);
+
+  const filterRow = createNode('div', { className: 'calendar-filter-row' });
+  [
+    ['task', 'Task', calendarFilters.task],
+    ['habit', 'Habit', calendarFilters.habit],
+    ['other', 'Other', calendarFilters.other]
+  ].forEach(([type, label, checked]) => {
+    const cb = createNode('input', {
+      type: 'checkbox',
+      dataset: { role: 'calendar-filter-type', type }
+    });
+    cb.checked = Boolean(checked);
+    const labelEl = createNode('label', {}, [cb, ` ${label}`]);
+    filterRow.appendChild(labelEl);
+  });
+
+  const categorySelect = createNode('select', { className: 'input-field task-filter-select', dataset: { role: 'calendar-filter-category' } });
+  categories.forEach((category) => {
+    const label = category === 'all' ? 'All Categories' : category;
+    categorySelect.appendChild(createNode('option', { attrs: { value: category }, text: label }));
+  });
+  categorySelect.value = calendarFilters.category;
+  filterRow.appendChild(categorySelect);
+
+  toolbar.appendChild(filterRow);
+  wrap.appendChild(toolbar);
+
   if (calendarView === 'month') {
     const monthStart = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), 1);
-    calendarBody = renderMonthGrid(monthStart, itemsByDate, calendarSelectedDateKey);
+    wrap.appendChild(renderMonthGrid(monthStart, itemsByDate, calendarSelectedDateKey));
   }
 
   if (calendarView === '3month' || calendarView === '6month') {
     const count = calendarView === '3month' ? 3 : 6;
     const start = new Date(calendarCursor.getFullYear(), calendarCursor.getMonth(), 1);
-    const blocks = [];
+    const multi = createNode('div', { className: 'calendar-multi-month' });
     for (let idx = 0; idx < count; idx += 1) {
       const month = new Date(start.getFullYear(), start.getMonth() + idx, 1);
-      blocks.push(renderMonthGrid(month, itemsByDate, calendarSelectedDateKey));
+      multi.appendChild(renderMonthGrid(month, itemsByDate, calendarSelectedDateKey));
     }
-    calendarBody = `<div class="calendar-multi-month">${blocks.join('')}</div>`;
+    wrap.appendChild(multi);
   }
 
   if (calendarView === 'day' || calendarView === '3day' || calendarView === 'workweek' || calendarView === '7day') {
-    calendarBody = renderRangeView(getCalendarRangeDays(), itemsByDate);
+    wrap.appendChild(renderRangeView(getCalendarRangeDays(), itemsByDate));
   }
 
-  container.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-title">Calendar</h1>
-      <div class="calendar-nav">
-        <button class="tb-btn" data-action="calendar-prev">←</button>
-        <button class="tb-btn" data-action="calendar-today">Today</button>
-        <button class="tb-btn" data-action="calendar-next">→</button>
-      </div>
-    </div>
-    <div class="calendar-wrap">
-      <div class="calendar-toolbar">
-        <div class="calendar-view-switch">
-          <button class="tb-btn ${calendarView === 'day' ? 'active' : ''}" data-action="calendar-set-view" data-value="day">Day</button>
-          <button class="tb-btn ${calendarView === '3day' ? 'active' : ''}" data-action="calendar-set-view" data-value="3day">3 Day</button>
-          <button class="tb-btn ${calendarView === 'workweek' ? 'active' : ''}" data-action="calendar-set-view" data-value="workweek">Work Week</button>
-          <button class="tb-btn ${calendarView === '7day' ? 'active' : ''}" data-action="calendar-set-view" data-value="7day">7 Day</button>
-          <button class="tb-btn ${calendarView === 'month' ? 'active' : ''}" data-action="calendar-set-view" data-value="month">Month</button>
-          <button class="tb-btn ${calendarView === '3month' ? 'active' : ''}" data-action="calendar-set-view" data-value="3month">3 Month</button>
-          <button class="tb-btn ${calendarView === '6month' ? 'active' : ''}" data-action="calendar-set-view" data-value="6month">6 Month</button>
-        </div>
-        <div class="calendar-filter-row">
-          <label><input type="checkbox" data-role="calendar-filter-type" data-type="task" ${calendarFilters.task ? 'checked' : ''} /> Task</label>
-          <label><input type="checkbox" data-role="calendar-filter-type" data-type="habit" ${calendarFilters.habit ? 'checked' : ''} /> Habit</label>
-          <label><input type="checkbox" data-role="calendar-filter-type" data-type="other" ${calendarFilters.other ? 'checked' : ''} /> Other</label>
-          <select class="input-field task-filter-select" data-role="calendar-filter-category">
-            ${categories
-              .map((category) => `<option value="${escapeHtml(category)}" ${calendarFilters.category === category ? 'selected' : ''}>${category === 'all' ? 'All Categories' : escapeHtml(category)}</option>`)
-              .join('')}
-          </select>
-        </div>
-      </div>
-      ${calendarBody}
-      <div class="calendar-agenda">
-        <div class="calendar-agenda-title">Items on ${escapeHtml(calendarSelectedDateKey)}</div>
-        <div class="calendar-agenda-list">
-          ${selectedItems.length === 0 ? '<div class="settings-row-desc">No items for selected date.</div>' : ''}
-          ${selectedItems
-            .map(
-              (item) => `
-                <button class="calendar-agenda-item calendar-item-${item.type}" data-action="calendar-open-item" data-item-type="${item.type}" data-item-id="${escapeHtml(item.id)}">
-                  <span>${escapeHtml(item.title)}</span>
-                  <span>${escapeHtml(item.meta)} • ${escapeHtml(item.category || 'General')}</span>
-                </button>
-              `
-            )
-            .join('')}
-        </div>
-      </div>
-    </div>
-  `;
+  const agenda = createNode('div', { className: 'calendar-agenda' });
+  agenda.appendChild(createNode('div', { className: 'calendar-agenda-title', text: `Items on ${calendarSelectedDateKey}` }));
+  const agendaList = createNode('div', { className: 'calendar-agenda-list' });
+  if (selectedItems.length === 0) {
+    agendaList.appendChild(createNode('div', { className: 'settings-row-desc', text: 'No items for selected date.' }));
+  } else {
+    selectedItems.forEach((item) => {
+      const row = createNode('button', {
+        className: `calendar-agenda-item calendar-item-${item.type}`,
+        dataset: {
+          action: 'calendar-open-item',
+          itemType: item.type,
+          itemId: item.id
+        }
+      });
+      row.appendChild(createNode('span', { text: sanitizeUserText(item.title) || '(Untitled)' }));
+      row.appendChild(createNode('span', { text: `${sanitizeUserText(item.meta)} • ${sanitizeUserText(item.category || 'General')}` }));
+      agendaList.appendChild(row);
+    });
+  }
+  agenda.appendChild(agendaList);
+  wrap.appendChild(agenda);
+
+  fragment.appendChild(wrap);
+  container.appendChild(fragment);
 }
 
 function renderAnalytics() {
   const container = document.getElementById('page-analytics');
   if (!container) return;
-  container.innerHTML = '<div class="analytics-section"><h3>Analytics</h3><div class="settings-row-desc">Analytics rendering module hooks are ready.</div></div>';
+
+  container.replaceChildren();
+  const section = createNode('div', { className: 'analytics-section' });
+  section.appendChild(createNode('h3', { text: 'Analytics' }));
+  section.appendChild(createNode('div', { className: 'settings-row-desc', text: 'Analytics rendering module hooks are ready.' }));
+  container.appendChild(section);
 }
 
 function renderInsights() {
   const container = document.getElementById('page-insights');
   if (!container) return;
-  container.innerHTML = '<div class="analytics-section"><h3>Insights</h3><div class="settings-row-desc">Insights rendering module hooks are ready.</div></div>';
+
+  container.replaceChildren();
+  const section = createNode('div', { className: 'analytics-section' });
+  section.appendChild(createNode('h3', { text: 'Insights' }));
+  section.appendChild(createNode('div', { className: 'settings-row-desc', text: 'Insights rendering module hooks are ready.' }));
+  container.appendChild(section);
 }
 
 function renderSettings() {
   const container = document.getElementById('page-settings');
   if (!container) return;
 
+  container.replaceChildren();
+
   const state = getState();
   const settings = state.settings || {};
   const tzCurrent = settings.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-  const timeZoneOptions = SETTINGS_TIME_ZONES.map(
-    (tz) => `<option value="${escapeHtml(tz)}" ${tz === tzCurrent ? 'selected' : ''}>${escapeHtml(tz)}</option>`
-  ).join('');
+  const fragment = document.createDocumentFragment();
 
-  container.innerHTML = `
-    <div class="page-header">
-      <h1 class="page-title">Settings</h1>
-      <button class="action-btn" data-action="settings-sync-now">Sync Now</button>
-    </div>
+  const header = createNode('div', { className: 'page-header' });
+  header.appendChild(createNode('h1', { className: 'page-title', text: 'Settings' }));
+  header.appendChild(createNode('button', { className: 'action-btn', dataset: { action: 'settings-sync-now' }, text: 'Sync Now' }));
+  fragment.appendChild(header);
 
-    <div class="settings-stack">
-      <section class="settings-card">
-        <h3>Appearance</h3>
-        <div class="settings-grid">
-          <label class="settings-field">Theme
-            <select class="input-field" data-role="settings-theme">
-              <option value="light" ${settings.theme === 'light' ? 'selected' : ''}>Light</option>
-              <option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>Dark</option>
-              <option value="system" ${settings.theme === 'system' ? 'selected' : ''}>System</option>
-            </select>
-          </label>
-          <label class="settings-field">Accent Color
-            <input class="input-field" data-role="settings-accent" type="color" value="${escapeHtml(settings.accent || '#d4a373')}" />
-          </label>
-          <label class="settings-field">Accent Dark
-            <input class="input-field" data-role="settings-accent-dark" type="color" value="${escapeHtml(settings.accentDark || '#c49363')}" />
-          </label>
-          <label class="settings-check"><input type="checkbox" data-role="settings-compact" ${settings.compact ? 'checked' : ''} /> Compact Layout</label>
-        </div>
-      </section>
+  const stack = createNode('div', { className: 'settings-stack' });
 
-      <section class="settings-card">
-        <h3>Calendar & Time</h3>
-        <div class="settings-grid">
-          <label class="settings-field">Time Zone
-            <select class="input-field" data-role="settings-timezone">${timeZoneOptions}</select>
-          </label>
-          <label class="settings-field">First Day of Week
-            <select class="input-field" data-role="settings-firstday">
-              <option value="mon" ${settings.firstday === 'mon' ? 'selected' : ''}>Monday</option>
-              <option value="sun" ${settings.firstday === 'sun' ? 'selected' : ''}>Sunday</option>
-            </select>
-          </label>
-        </div>
-      </section>
+  const appearance = createNode('section', { className: 'settings-card' });
+  appearance.appendChild(createNode('h3', { text: 'Appearance' }));
+  const appearanceGrid = createNode('div', { className: 'settings-grid' });
 
-      <section class="settings-card">
-        <h3>Behavior</h3>
-        <div class="settings-grid">
-          <label class="settings-check"><input type="checkbox" data-role="settings-autolock" ${settings.autolock ? 'checked' : ''} /> Auto-lock</label>
-          <label class="settings-check"><input type="checkbox" data-role="settings-fireworks" ${settings.fireworks ? 'checked' : ''} /> Fireworks Effects</label>
-        </div>
-      </section>
+  const themeField = createNode('label', { className: 'settings-field' }, ['Theme']);
+  const themeSelect = createNode('select', { className: 'input-field', dataset: { role: 'settings-theme' } });
+  [['light', 'Light'], ['dark', 'Dark'], ['system', 'System']].forEach(([value, label]) => {
+    themeSelect.appendChild(createNode('option', { attrs: { value }, text: label }));
+  });
+  themeSelect.value = settings.theme || 'light';
+  themeField.appendChild(themeSelect);
+  appearanceGrid.appendChild(themeField);
 
-      <section class="settings-card">
-        <h3>Cloud</h3>
-        <div class="settings-grid">
-          <label class="settings-field settings-wide">Supabase URL
-            <input class="input-field" data-role="settings-supabase-url" type="text" value="${escapeHtml(settings.supabaseUrl || '')}" placeholder="https://...supabase.co" />
-          </label>
-          <label class="settings-field settings-wide">Supabase Anon Key
-            <input class="input-field" data-role="settings-supabase-key" type="password" value="${escapeHtml(settings.supabaseAnonKey || '')}" placeholder="sb_publishable_..." />
-          </label>
-          <label class="settings-check"><input type="checkbox" data-role="settings-google-auth" ${settings.googleAuthEnabled ? 'checked' : ''} /> Google Auth Enabled</label>
-        </div>
-      </section>
+  const accentField = createNode('label', { className: 'settings-field' }, ['Accent Color']);
+  const accentInput = createNode('input', {
+    className: 'input-field',
+    dataset: { role: 'settings-accent' },
+    type: 'color',
+    value: settings.accent || '#d4a373'
+  });
+  accentField.appendChild(accentInput);
+  appearanceGrid.appendChild(accentField);
 
-      <section class="settings-card">
-        <h3>Account & Data</h3>
-        <div class="settings-actions">
-          <button class="tb-btn" data-action="settings-signout">Sign Out</button>
-          <button class="tb-btn" data-action="settings-export">Export Backup</button>
-          <button class="tb-btn" data-action="settings-import">Import Backup</button>
-          <button class="tb-btn" data-action="settings-reset-local">Reset Local Data</button>
-          <input data-role="settings-import-file" type="file" accept="application/json" hidden />
-        </div>
-      </section>
-    </div>
-  `;
+  const accentDarkField = createNode('label', { className: 'settings-field' }, ['Accent Dark']);
+  const accentDarkInput = createNode('input', {
+    className: 'input-field',
+    dataset: { role: 'settings-accent-dark' },
+    type: 'color',
+    value: settings.accentDark || '#c49363'
+  });
+  accentDarkField.appendChild(accentDarkInput);
+  appearanceGrid.appendChild(accentDarkField);
+
+  const compactCheckbox = createNode('input', { type: 'checkbox', dataset: { role: 'settings-compact' } });
+  compactCheckbox.checked = Boolean(settings.compact);
+  appearanceGrid.appendChild(createNode('label', { className: 'settings-check' }, [compactCheckbox, ' Compact Layout']));
+  appearance.appendChild(appearanceGrid);
+  stack.appendChild(appearance);
+
+  const calendarTime = createNode('section', { className: 'settings-card' });
+  calendarTime.appendChild(createNode('h3', { text: 'Calendar & Time' }));
+  const calendarGrid = createNode('div', { className: 'settings-grid' });
+
+  const tzField = createNode('label', { className: 'settings-field' }, ['Time Zone']);
+  const tzSelect = createNode('select', { className: 'input-field', dataset: { role: 'settings-timezone' } });
+  SETTINGS_TIME_ZONES.forEach((tz) => {
+    tzSelect.appendChild(createNode('option', { attrs: { value: tz }, text: tz }));
+  });
+  tzSelect.value = tzCurrent;
+  tzField.appendChild(tzSelect);
+  calendarGrid.appendChild(tzField);
+
+  const firstDayField = createNode('label', { className: 'settings-field' }, ['First Day of Week']);
+  const firstDaySelect = createNode('select', { className: 'input-field', dataset: { role: 'settings-firstday' } });
+  firstDaySelect.appendChild(createNode('option', { attrs: { value: 'mon' }, text: 'Monday' }));
+  firstDaySelect.appendChild(createNode('option', { attrs: { value: 'sun' }, text: 'Sunday' }));
+  firstDaySelect.value = settings.firstday || 'mon';
+  firstDayField.appendChild(firstDaySelect);
+  calendarGrid.appendChild(firstDayField);
+
+  calendarTime.appendChild(calendarGrid);
+  stack.appendChild(calendarTime);
+
+  const behavior = createNode('section', { className: 'settings-card' });
+  behavior.appendChild(createNode('h3', { text: 'Behavior' }));
+  const behaviorGrid = createNode('div', { className: 'settings-grid' });
+
+  const autolockCheckbox = createNode('input', { type: 'checkbox', dataset: { role: 'settings-autolock' } });
+  autolockCheckbox.checked = Boolean(settings.autolock);
+  behaviorGrid.appendChild(createNode('label', { className: 'settings-check' }, [autolockCheckbox, ' Auto-lock']));
+
+  const fireworksCheckbox = createNode('input', { type: 'checkbox', dataset: { role: 'settings-fireworks' } });
+  fireworksCheckbox.checked = Boolean(settings.fireworks);
+  behaviorGrid.appendChild(createNode('label', { className: 'settings-check' }, [fireworksCheckbox, ' Fireworks Effects']));
+
+  behavior.appendChild(behaviorGrid);
+  stack.appendChild(behavior);
+
+  const cloud = createNode('section', { className: 'settings-card' });
+  cloud.appendChild(createNode('h3', { text: 'Cloud' }));
+  const cloudGrid = createNode('div', { className: 'settings-grid' });
+
+  const urlField = createNode('label', { className: 'settings-field settings-wide' }, ['Supabase URL']);
+  urlField.appendChild(
+    createNode('input', {
+      className: 'input-field',
+      dataset: { role: 'settings-supabase-url' },
+      type: 'text',
+      value: settings.supabaseUrl || '',
+      attrs: { placeholder: 'https://...supabase.co' }
+    })
+  );
+  cloudGrid.appendChild(urlField);
+
+  const keyField = createNode('label', { className: 'settings-field settings-wide' }, ['Supabase Anon Key']);
+  keyField.appendChild(
+    createNode('input', {
+      className: 'input-field',
+      dataset: { role: 'settings-supabase-key' },
+      type: 'password',
+      value: settings.supabaseAnonKey || '',
+      attrs: { placeholder: 'sb_publishable_...' }
+    })
+  );
+  cloudGrid.appendChild(keyField);
+
+  const googleAuthCheckbox = createNode('input', { type: 'checkbox', dataset: { role: 'settings-google-auth' } });
+  googleAuthCheckbox.checked = Boolean(settings.googleAuthEnabled);
+  cloudGrid.appendChild(createNode('label', { className: 'settings-check' }, [googleAuthCheckbox, ' Google Auth Enabled']));
+
+  cloud.appendChild(cloudGrid);
+  stack.appendChild(cloud);
+
+  const account = createNode('section', { className: 'settings-card' });
+  account.appendChild(createNode('h3', { text: 'Account & Data' }));
+  const actions = createNode('div', { className: 'settings-actions' });
+  actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'settings-signout' }, text: 'Sign Out' }));
+  actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'settings-export' }, text: 'Export Backup' }));
+  actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'settings-import' }, text: 'Import Backup' }));
+  actions.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'settings-reset-local' }, text: 'Reset Local Data' }));
+  actions.appendChild(createNode('input', { dataset: { role: 'settings-import-file' }, type: 'file', attrs: { accept: 'application/json', hidden: '' } }));
+  account.appendChild(actions);
+  stack.appendChild(account);
+
+  fragment.appendChild(stack);
+  container.appendChild(fragment);
 }
 
 export function renderApp() {
@@ -1074,6 +1411,7 @@ function setupTaskDnD() {
 
     const moved = moveTaskToColumn(taskId, targetCol);
     if (moved) {
+      triggerHapticFeedback();
       await persistSnapshot();
     }
   };
@@ -1156,6 +1494,7 @@ function setupTaskDnD() {
 
       draggingTask = null;
       if (moved) {
+        triggerHapticFeedback();
         await persistSnapshot();
       }
     });
@@ -1166,84 +1505,121 @@ function ensureModals() {
   const taskModal = document.getElementById('task-modal');
   if (taskModal && !taskModal.dataset.initialized) {
     taskModal.dataset.initialized = '1';
-    taskModal.innerHTML = `
-      <div class="modal">
-        <h2 id="task-modal-title">Task</h2>
-        <div class="form-group"><label>Title</label><input id="task-title-input" class="input-field" type="text" /></div>
-        <div class="form-group"><label>Due Date</label><input id="task-date-input" class="input-field" type="date" /></div>
-        <div class="modal-footer">
-          <button class="btn btn-cancel" data-action="close-modal" data-modal="task-modal">Cancel</button>
-          <button class="btn btn-save" data-action="save-task-modal">Save</button>
-        </div>
-      </div>
-    `;
+    const wrap = createNode('div', { className: 'modal' });
+    wrap.appendChild(createNode('h2', { attrs: { id: 'task-modal-title' }, text: 'Task' }));
+
+    const group1 = createNode('div', { className: 'form-group' });
+    group1.appendChild(createNode('label', { text: 'Title' }));
+    group1.appendChild(createNode('input', { className: 'input-field', attrs: { id: 'task-title-input' }, type: 'text' }));
+    wrap.appendChild(group1);
+
+    const group2 = createNode('div', { className: 'form-group' });
+    group2.appendChild(createNode('label', { text: 'Due Date' }));
+    group2.appendChild(createNode('input', { className: 'input-field', attrs: { id: 'task-date-input' }, type: 'date' }));
+    wrap.appendChild(group2);
+
+    const footer = createNode('div', { className: 'modal-footer' });
+    footer.appendChild(createNode('button', { className: 'btn btn-cancel', dataset: { action: 'close-modal', modal: 'task-modal' }, text: 'Cancel' }));
+    footer.appendChild(createNode('button', { className: 'btn btn-save', dataset: { action: 'save-task-modal' }, text: 'Save' }));
+    wrap.appendChild(footer);
+
+    taskModal.replaceChildren(wrap);
   }
 
   const habitModal = document.getElementById('habit-modal');
   if (habitModal && !habitModal.dataset.initialized) {
     habitModal.dataset.initialized = '1';
-    habitModal.innerHTML = `
-      <div class="modal">
-        <h2 id="habit-modal-title">Habit</h2>
-        <div class="form-group"><label>Name</label><input id="habit-name-input" class="input-field" type="text" /></div>
-        <div class="form-group"><label>Category</label><input id="habit-category-input" class="input-field" type="text" /></div>
-        <div class="modal-footer">
-          <button class="btn btn-cancel" data-action="close-modal" data-modal="habit-modal">Cancel</button>
-          <button class="btn btn-save" data-action="save-habit-modal">Save</button>
-        </div>
-      </div>
-    `;
+    const wrap = createNode('div', { className: 'modal' });
+    wrap.appendChild(createNode('h2', { attrs: { id: 'habit-modal-title' }, text: 'Habit' }));
+
+    const group1 = createNode('div', { className: 'form-group' });
+    group1.appendChild(createNode('label', { text: 'Name' }));
+    group1.appendChild(createNode('input', { className: 'input-field', attrs: { id: 'habit-name-input' }, type: 'text' }));
+    wrap.appendChild(group1);
+
+    const group2 = createNode('div', { className: 'form-group' });
+    group2.appendChild(createNode('label', { text: 'Category' }));
+    group2.appendChild(createNode('input', { className: 'input-field', attrs: { id: 'habit-category-input' }, type: 'text' }));
+    wrap.appendChild(group2);
+
+    const footer = createNode('div', { className: 'modal-footer' });
+    footer.appendChild(createNode('button', { className: 'btn btn-cancel', dataset: { action: 'close-modal', modal: 'habit-modal' }, text: 'Cancel' }));
+    footer.appendChild(createNode('button', { className: 'btn btn-save', dataset: { action: 'save-habit-modal' }, text: 'Save' }));
+    wrap.appendChild(footer);
+
+    habitModal.replaceChildren(wrap);
   }
 
   const noteModal = document.getElementById('note-modal');
   if (noteModal && !noteModal.dataset.initialized) {
     noteModal.dataset.initialized = '1';
-    noteModal.innerHTML = `
-      <div class="modal">
-        <h2 id="note-modal-title">Note</h2>
-        <div class="form-group"><label>Title</label><input id="note-title-input" class="input-field" type="text" /></div>
-        <div class="form-group"><label>Body</label><textarea id="note-body-input" class="input-field" rows="5"></textarea></div>
-        <div class="modal-footer">
-          <button class="btn btn-cancel" data-action="close-modal" data-modal="note-modal">Cancel</button>
-          <button class="btn btn-save" data-action="save-note-modal">Save</button>
-        </div>
-      </div>
-    `;
+    const wrap = createNode('div', { className: 'modal' });
+    wrap.appendChild(createNode('h2', { attrs: { id: 'note-modal-title' }, text: 'Note' }));
+
+    const group1 = createNode('div', { className: 'form-group' });
+    group1.appendChild(createNode('label', { text: 'Title' }));
+    group1.appendChild(createNode('input', { className: 'input-field', attrs: { id: 'note-title-input' }, type: 'text' }));
+    wrap.appendChild(group1);
+
+    const group2 = createNode('div', { className: 'form-group' });
+    group2.appendChild(createNode('label', { text: 'Body' }));
+    group2.appendChild(createNode('textarea', { className: 'input-field', attrs: { id: 'note-body-input', rows: '5' } }));
+    wrap.appendChild(group2);
+
+    const footer = createNode('div', { className: 'modal-footer' });
+    footer.appendChild(createNode('button', { className: 'btn btn-cancel', dataset: { action: 'close-modal', modal: 'note-modal' }, text: 'Cancel' }));
+    footer.appendChild(createNode('button', { className: 'btn btn-save', dataset: { action: 'save-note-modal' }, text: 'Save' }));
+    wrap.appendChild(footer);
+
+    noteModal.replaceChildren(wrap);
   }
 
   const reflectionModal = document.getElementById('habit-reflection-modal');
   if (reflectionModal && !reflectionModal.dataset.initialized) {
     reflectionModal.dataset.initialized = '1';
-    reflectionModal.innerHTML = `
-      <div class="modal">
-        <h2>Habit Reflection</h2>
-        <div class="settings-row-desc" id="habit-reflection-label"></div>
-        <div class="form-group"><textarea id="habit-reflection-input" class="input-field" rows="5" placeholder="Write your reflection..."></textarea></div>
-        <div class="modal-footer">
-          <button class="btn btn-cancel" data-action="close-modal" data-modal="habit-reflection-modal">Cancel</button>
-          <button class="btn btn-save" data-action="save-habit-reflection">Save Reflection</button>
-        </div>
-      </div>
-    `;
+    const wrap = createNode('div', { className: 'modal' });
+    wrap.appendChild(createNode('h2', { text: 'Habit Reflection' }));
+    wrap.appendChild(createNode('div', { className: 'settings-row-desc', attrs: { id: 'habit-reflection-label' } }));
+
+    const group = createNode('div', { className: 'form-group' });
+    group.appendChild(
+      createNode('textarea', {
+        className: 'input-field',
+        attrs: {
+          id: 'habit-reflection-input',
+          rows: '5',
+          placeholder: 'Write your reflection...'
+        }
+      })
+    );
+    wrap.appendChild(group);
+
+    const footer = createNode('div', { className: 'modal-footer' });
+    footer.appendChild(createNode('button', { className: 'btn btn-cancel', dataset: { action: 'close-modal', modal: 'habit-reflection-modal' }, text: 'Cancel' }));
+    footer.appendChild(createNode('button', { className: 'btn btn-save', dataset: { action: 'save-habit-reflection' }, text: 'Save Reflection' }));
+    wrap.appendChild(footer);
+
+    reflectionModal.replaceChildren(wrap);
   }
 
   const authGate = document.getElementById('auth-gate');
   if (authGate && !authGate.dataset.initialized) {
     authGate.dataset.initialized = '1';
-    authGate.innerHTML = `
-      <div class="auth-card">
-        <div class="auth-title">2DoByU</div>
-        <div class="auth-sub">Sign in to continue</div>
-        <div class="auth-form show">
-          <input id="auth-email" type="email" class="input-field" placeholder="Email" />
-          <input id="auth-password" type="password" class="input-field" placeholder="Password" />
-          <div class="auth-actions">
-            <button class="settings-btn" data-action="auth-signup">Create Account</button>
-            <button class="settings-btn primary" data-action="auth-signin">Sign In</button>
-          </div>
-        </div>
-      </div>
-    `;
+    const card = createNode('div', { className: 'auth-card' });
+    card.appendChild(createNode('div', { className: 'auth-title', text: '2DoByU' }));
+    card.appendChild(createNode('div', { className: 'auth-sub', text: 'Sign in to continue' }));
+
+    const form = createNode('div', { className: 'auth-form show' });
+    form.appendChild(createNode('input', { className: 'input-field', attrs: { id: 'auth-email', placeholder: 'Email' }, type: 'email' }));
+    form.appendChild(createNode('input', { className: 'input-field', attrs: { id: 'auth-password', placeholder: 'Password' }, type: 'password' }));
+
+    const actions = createNode('div', { className: 'auth-actions' });
+    actions.appendChild(createNode('button', { className: 'settings-btn', dataset: { action: 'auth-signup' }, text: 'Create Account' }));
+    actions.appendChild(createNode('button', { className: 'settings-btn primary', dataset: { action: 'auth-signin' }, text: 'Sign In' }));
+    form.appendChild(actions);
+    card.appendChild(form);
+
+    authGate.replaceChildren(card);
   }
 }
 
@@ -1259,7 +1635,10 @@ export function openModal(modalId) {
   }
 
   const modal = document.getElementById(modalId);
-  if (modal) modal.style.display = 'flex';
+  if (!modal) return;
+
+  modal.style.display = 'flex';
+  activateModalFocusTrap(modal);
 }
 
 export function closeModal(modalId) {
@@ -1274,7 +1653,55 @@ export function closeModal(modalId) {
   }
 
   const modal = document.getElementById(modalId);
-  if (modal) modal.style.display = 'none';
+  if (!modal) return;
+
+  modal.style.display = 'none';
+  if (activeModalTrap?.modal === modal) {
+    deactivateModalFocusTrap();
+  }
+}
+
+function getModalFocusableElements(modal) {
+  return Array.from(
+    modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
+  ).filter((el) => !el.hasAttribute('disabled') && el.offsetParent !== null);
+}
+
+function deactivateModalFocusTrap() {
+  if (!activeModalTrap) return;
+  document.removeEventListener('keydown', activeModalTrap.handler, true);
+  activeModalTrap = null;
+}
+
+function activateModalFocusTrap(modal) {
+  deactivateModalFocusTrap();
+
+  const focusables = getModalFocusableElements(modal);
+  const first = focusables[0] || modal;
+  const last = focusables[focusables.length - 1] || modal;
+
+  const handler = (event) => {
+    if (event.key !== 'Tab') return;
+    if (!modal || modal.style.display === 'none') return;
+
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+      return;
+    }
+
+    if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  document.addEventListener('keydown', handler, true);
+  activeModalTrap = { modal, handler };
+
+  queueMicrotask(() => {
+    if (first && typeof first.focus === 'function') first.focus();
+  });
 }
 
 function triggerHapticFeedback() {
@@ -1381,10 +1808,12 @@ async function saveTaskFromModal() {
   const dateInput = document.getElementById('task-date-input');
   if (!titleInput || !dateInput) return;
 
-  const title = titleInput.value.trim();
+  const title = sanitizeUserText(titleInput.value);
   if (!title) return;
 
   const editId = titleInput.dataset.editTaskId;
+
+  let changedTaskId = null;
 
   setState((prev) => {
     const next = structuredClone(prev);
@@ -1392,19 +1821,21 @@ async function saveTaskFromModal() {
     if (editId) {
       const found = getTaskById(editId);
       if (found) {
+        changedTaskId = String(found.task.id);
         next.tasks[found.col][found.idx] = {
           ...next.tasks[found.col][found.idx],
           title,
-          dueDate: dateInput.value || ''
+          dueDate: dateInput.value || parseNaturalDueDate(title) || ''
         };
       }
       return next;
     }
 
+    changedTaskId = String(next.taskIdCounter);
     next.tasks.todo.push({
       id: next.taskIdCounter,
       title,
-      dueDate: dateInput.value || '',
+      dueDate: dateInput.value || parseNaturalDueDate(title) || '',
       priority: 'medium',
       tag: '',
       notes: ''
@@ -1412,6 +1843,8 @@ async function saveTaskFromModal() {
     next.taskIdCounter += 1;
     return next;
   });
+
+  if (changedTaskId) markDirty('tasks', changedTaskId);
 
   closeModal('task-modal');
   await persistSnapshot();
@@ -1422,10 +1855,12 @@ async function saveHabitFromModal() {
   const categoryInput = document.getElementById('habit-category-input');
   if (!nameInput || !categoryInput) return;
 
-  const name = nameInput.value.trim();
+  const name = sanitizeUserText(nameInput.value);
   if (!name) return;
 
   const editId = nameInput.dataset.editHabitId;
+
+  let changedHabitIndex = null;
 
   setState((prev) => {
     const next = structuredClone(prev);
@@ -1433,6 +1868,7 @@ async function saveHabitFromModal() {
     if (editId != null && editId !== '') {
       const idx = Number(editId);
       if (next.habits[idx]) {
+        changedHabitIndex = idx;
         next.habits[idx] = {
           ...next.habits[idx],
           name,
@@ -1442,6 +1878,7 @@ async function saveHabitFromModal() {
       return next;
     }
 
+    changedHabitIndex = next.habits.length;
     next.habits.push({
       name,
       category: categoryInput.value || 'Other',
@@ -1454,6 +1891,8 @@ async function saveHabitFromModal() {
     return next;
   });
 
+  if (changedHabitIndex != null) markDirty('habits', changedHabitIndex);
+
   closeModal('habit-modal');
   await persistSnapshot();
 }
@@ -1463,8 +1902,8 @@ async function saveNoteFromModal() {
   const bodyInput = document.getElementById('note-body-input');
   if (!titleInput || !bodyInput) return;
 
-  const title = titleInput.value.trim();
-  const body = bodyInput.value.trim();
+  const title = sanitizeUserText(titleInput.value);
+  const body = sanitizeUserText(bodyInput.value);
   const editId = titleInput.dataset.editNoteId;
 
   setState((prev) => {
@@ -1491,6 +1930,8 @@ async function saveNoteFromModal() {
 
     return next;
   });
+
+  markDirty('notes');
 
   closeModal('note-modal');
   await persistSnapshot();
@@ -1524,6 +1965,8 @@ async function saveHabitReflectionFromModal() {
     return next;
   });
 
+  markDirty('habits', habitId);
+
   closeModal('habit-reflection-modal');
   await persistSnapshot();
 }
@@ -1541,6 +1984,8 @@ async function toggleHabitDayByDate(habitId, dateKey) {
     return next;
   });
 
+  markDirty('habits', idx);
+
   await persistSnapshot();
 }
 
@@ -1556,6 +2001,8 @@ async function toggleHabitSkipByDate(habitId, dateKey) {
 
     return next;
   });
+
+  markDirty('habits', idx);
 
   await persistSnapshot();
 }
@@ -1590,13 +2037,47 @@ function applyAuthGateVisibility() {
   gate.classList.toggle('hidden', !showAuth);
 }
 
+function renderSnackbar() {
+  let snackbarEl = document.getElementById('snackbar-host');
+  if (!snackbarEl) {
+    snackbarEl = document.createElement('div');
+    snackbarEl.id = 'snackbar-host';
+    document.body.appendChild(snackbarEl);
+  }
+
+  const snackbar = getState().ui?.snackbar;
+  if (!snackbar) {
+    snackbarEl.replaceChildren();
+    snackbarEl.classList.remove('show');
+    return;
+  }
+
+  const card = createNode('div', { className: 'snackbar-card' });
+  card.appendChild(createNode('span', { text: sanitizeUserText(snackbar.label || 'Changes saved') }));
+  card.appendChild(createNode('button', { className: 'tb-btn', dataset: { action: 'undo-snackbar' }, text: 'Undo' }));
+
+  snackbarEl.replaceChildren(card);
+  snackbarEl.classList.add('show');
+}
+
 async function updateSettings(nextPartial) {
+  markDirty('settings');
+
   patchState({
     settings: {
       ...getState().settings,
       ...nextPartial
     }
   });
+
+  if (Object.prototype.hasOwnProperty.call(nextPartial, 'supabaseUrl')) {
+    localStorage.setItem('2dobyu_supabase_url', String(nextPartial.supabaseUrl || '').trim());
+  }
+
+  if (Object.prototype.hasOwnProperty.call(nextPartial, 'supabaseAnonKey')) {
+    localStorage.setItem('2dobyu_supabase_anon_key', String(nextPartial.supabaseAnonKey || '').trim());
+  }
+
   applySettingsVisuals();
   await persistSnapshot();
 }
@@ -1618,6 +2099,14 @@ function bindGlobalEvents() {
     sidebarOverlay?.classList.remove('show');
   };
 
+  const closeAllModals = () => {
+    document.querySelectorAll('.modal-overlay').forEach((modal) => {
+      modal.style.display = 'none';
+    });
+    closeModal('auth-modal');
+    deactivateModalFocusTrap();
+  };
+
   if (hamburgerBtn) {
     hamburgerBtn.addEventListener('click', () => {
       if (!sidebar) return;
@@ -1633,6 +2122,30 @@ function bindGlobalEvents() {
   if (sidebarOverlay) {
     sidebarOverlay.addEventListener('click', closeSidebar);
   }
+
+  document.addEventListener('keydown', (event) => {
+    const active = document.activeElement;
+    const typingTarget = active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName);
+
+    if (event.key === 'Escape') {
+      closeAllModals();
+      return;
+    }
+
+    if (event.ctrlKey && event.key.toLowerCase() === 'k') {
+      event.preventDefault();
+      const searchBtn = document.getElementById('search-btn');
+      if (searchBtn) searchBtn.focus();
+      return;
+    }
+
+    if (typingTarget) return;
+
+    if (!event.ctrlKey && !event.metaKey && event.key.toLowerCase() === 'n') {
+      event.preventDefault();
+      openTaskModal();
+    }
+  });
 
   document.addEventListener('click', async (event) => {
     if (taskSortMenuOpen && !event.target.closest('.task-sort-menu')) {
@@ -1827,8 +2340,17 @@ function bindGlobalEvents() {
         const confirmed = window.confirm('Reset all local data? This cannot be undone.');
         if (!confirmed) return;
         resetState();
+        markDirty('full');
         applySettingsVisuals();
         await persistSnapshot();
+        return;
+      }
+
+      if (action === 'undo-snackbar') {
+        const didUndo = undoLastChange();
+        if (didUndo) {
+          await persistSnapshot();
+        }
         return;
       }
     }
@@ -2005,6 +2527,7 @@ function bindGlobalEvents() {
             ...(parsed.settings || {})
           }
         }));
+        markDirty('full');
         applySettingsVisuals();
         await persistSnapshot();
       } catch (err) {
@@ -2036,9 +2559,11 @@ export function initUI() {
     renderApp();
     applyAuthGateVisibility();
     applySettingsVisuals();
+    renderSnackbar();
   });
 
   applySettingsVisuals();
   renderApp();
   applyAuthGateVisibility();
+  renderSnackbar();
 }

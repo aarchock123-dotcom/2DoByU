@@ -178,6 +178,59 @@
    gap:8px;
    flex-wrap:wrap;
 }
+
+.skeleton-grid {
+   display:grid;
+   gap:14px;
+   grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+}
+
+.skeleton-card {
+   height:120px;
+   border-radius:10px;
+   border:1px solid var(--border);
+   background:linear-gradient(90deg, var(--surface2) 25%, var(--surface) 50%, var(--surface2) 75%);
+   background-size:200% 100%;
+   animation:skeleton-shimmer 1.2s infinite linear;
+}
+
+@keyframes skeleton-shimmer {
+   from { background-position:200% 0; }
+   to { background-position:-200% 0; }
+}
+
+#snackbar-host {
+   position:fixed;
+   left:50%;
+   bottom:18px;
+   transform:translateX(-50%);
+   z-index:9000;
+   opacity:0;
+   pointer-events:none;
+   transition:opacity .2s ease;
+}
+
+#snackbar-host.show {
+   opacity:1;
+   pointer-events:auto;
+}
+
+.snackbar-card {
+   display:flex;
+   gap:10px;
+   align-items:center;
+   background:rgba(26,26,26,.92);
+   color:#fff;
+   border-radius:10px;
+   padding:10px 12px;
+   box-shadow:0 12px 28px rgba(0,0,0,.24);
+}
+
+.snackbar-card .tb-btn {
+   background:rgba(255,255,255,.08);
+   color:#fff;
+   border-color:rgba(255,255,255,.25);
+}
 .column {
    background:var(--surface2);
    border-radius:8px;

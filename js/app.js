@@ -16,7 +16,24 @@ async function bootstrap() {
   await registerServiceWorker();
   await initDB();
   handleAuthChange();
-  const syncResult = await syncData();
+  patchState({
+    ui: {
+      ...getState().ui,
+      syncPending: true
+    }
+  });
+
+  let syncResult = null;
+  try {
+    syncResult = await syncData();
+  } finally {
+    patchState({
+      ui: {
+        ...getState().ui,
+        syncPending: false
+      }
+    });
+  }
 
   if (syncResult?.authRequired) {
     openModal('auth-modal');

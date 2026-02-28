@@ -1,4 +1,4 @@
-import { getState, patchState } from './state.js';
+import { consumeDirtyState, getState, patchState, restoreDirtyState } from './state.js';
 
 const DB_NAME = '2DoByU_DB';
 const DB_VERSION = 1;
@@ -58,8 +58,11 @@ function getSupabaseClient() {
   }
 
   const { settings } = getState();
-  const url = (settings?.supabaseUrl || SUPABASE_URL || '').trim();
-  const key = (settings?.supabaseAnonKey || SUPABASE_ANON_KEY || '').trim();
+  const storedUrl = localStorage.getItem('2dobyu_supabase_url') || localStorage.getItem('supabase_url') || '';
+  const storedKey = localStorage.getItem('2dobyu_supabase_anon_key') || localStorage.getItem('supabase_anon_key') || '';
+
+  const url = (storedUrl || settings?.supabaseUrl || SUPABASE_URL || '').trim();
+  const key = (storedKey || settings?.supabaseAnonKey || SUPABASE_ANON_KEY || '').trim();
 
   if (!url || !key) {
     throw new Error('Supabase URL/Anon key missing in settings.');
@@ -113,6 +116,97 @@ function normalizeDocShape(doc, fallbackState = getState()) {
     settings: doc?.settings || fallbackState.settings,
     updatedAt: doc?.updatedAt || new Date().toISOString()
   };
+}
+
+function isDirtyEmpty(dirty) {
+  return (
+    !dirty?.full &&
+    !dirty?.notes &&
+    !dirty?.settings &&
+    Object.keys(dirty?.tasks || {}).length === 0 &&
+    Object.keys(dirty?.habits || {}).length === 0
+  );
+}
+
+function buildGranularPatch(snapshot, dirty) {
+  const patch = {
+    tasks: {
+      todo: [],
+      inprogress: [],
+      done: []
+    },
+    habits: []
+  };
+
+  if (dirty.settings) {
+    patch.settings = snapshot.settings;
+  }
+
+  if (dirty.notes) {
+    patch.notes = snapshot.notes;
+  }
+
+  const taskIds = new Set(Object.keys(dirty.tasks || {}).map(String));
+  ['todo', 'inprogress', 'done'].forEach((column) => {
+    snapshot.tasks[column].forEach((task) => {
+      if (taskIds.has(String(task.id))) {
+        patch.tasks[column].push(task);
+      }
+    });
+  });
+
+  Object.keys(dirty.habits || {}).forEach((indexKey) => {
+    const index = Number(indexKey);
+    if (!Number.isInteger(index)) return;
+    patch.habits.push({
+      index,
+      value: snapshot.habits[index] || null
+    });
+  });
+
+  return patch;
+}
+
+function applyGranularPatch(baseDoc, patch) {
+  const merged = normalizeDocShape(baseDoc || {}, getState());
+
+  if (patch.settings) {
+    merged.settings = {
+      ...(merged.settings || {}),
+      ...(patch.settings || {})
+    };
+  }
+
+  if (patch.notes) {
+    merged.notes = patch.notes;
+  }
+
+  if (patch.tasks) {
+    const removeById = (taskId) => {
+      ['todo', 'inprogress', 'done'].forEach((column) => {
+        merged.tasks[column] = merged.tasks[column].filter((task) => String(task.id) !== String(taskId));
+      });
+    };
+
+    ['todo', 'inprogress', 'done'].forEach((column) => {
+      (patch.tasks[column] || []).forEach((task) => {
+        removeById(task.id);
+        merged.tasks[column].push(task);
+      });
+    });
+  }
+
+  if (Array.isArray(patch.habits) && patch.habits.length > 0) {
+    const nextHabits = [...merged.habits];
+    patch.habits.forEach(({ index, value }) => {
+      if (!Number.isInteger(index) || index < 0) return;
+      nextHabits[index] = value;
+    });
+    merged.habits = nextHabits.filter((item) => item != null);
+  }
+
+  merged.updatedAt = new Date().toISOString();
+  return merged;
 }
 
 function mergeState(localDoc, remoteDoc) {
@@ -306,16 +400,28 @@ export async function syncData() {
 export async function pushUpdate(nextStateLike) {
   const snapshot = nextStateLike || getState();
   const doc = cloneStateForStorage(snapshot);
+  const dirty = consumeDirtyState();
 
   await saveUserData(doc);
 
   if (!navigator.onLine) {
     console.info('[2DoByU] Offline: update saved locally; sync deferred.');
+    restoreDirtyState(dirty);
     return;
   }
 
   try {
-    await pushRemoteUserData(doc);
+    if (dirty.full || dirty.notes || dirty.settings) {
+      await pushRemoteUserData(doc);
+    } else if (isDirtyEmpty(dirty)) {
+      return;
+    } else {
+      const remoteDoc = await fetchRemoteUserData().catch(() => null);
+      const patch = buildGranularPatch(snapshot, dirty);
+      const mergedDoc = applyGranularPatch(remoteDoc || doc, patch);
+      await pushRemoteUserData(mergedDoc);
+    }
+
     patchState({
       sync: {
         ...getState().sync,
@@ -323,6 +429,7 @@ export async function pushUpdate(nextStateLike) {
       }
     });
   } catch (err) {
+    restoreDirtyState(dirty);
     handleSupabaseFailure(err, 'pushUpdate:pushRemoteUserData');
     console.warn('[2DoByU] Remote push failed; local IndexedDB data preserved.', err);
   }

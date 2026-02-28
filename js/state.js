@@ -47,9 +47,11 @@ let state = {
     taskView: 'status',
     habitView: 'grid',
     calView: 'month',
+    syncPending: false,
     gateMode: 'signin',
     gateStep: 'choice',
-    appUnlocked: false
+    appUnlocked: false,
+    snackbar: null
   },
   sync: {
     cloudUser: null,
@@ -57,6 +59,18 @@ let state = {
     cloudOfflineQueue: []
   },
   settings: structuredClone(DEFAULT_SETTINGS)
+};
+
+let pendingUndo = null;
+let undoNonce = 0;
+let suppressUndoTracking = false;
+
+let dirtyState = {
+  full: false,
+  tasks: {},
+  habits: {},
+  notes: false,
+  settings: false
 };
 
 const listeners = new Set();
@@ -74,10 +88,80 @@ function notify() {
   for (const listener of listeners) listener(state);
 }
 
+function clearSnackbarOnly() {
+  state = {
+    ...state,
+    ui: {
+      ...state.ui,
+      snackbar: null
+    }
+  };
+}
+
+function commitPendingUndoSnapshot() {
+  if (!pendingUndo) return;
+
+  const snapshot = pendingUndo.snapshot;
+  clearTimeout(pendingUndo.timer);
+  pendingUndo = null;
+
+  state = {
+    ...state,
+    undoStack: [snapshot, ...(state.undoStack || [])].slice(0, 50)
+  };
+  clearSnackbarOnly();
+}
+
+function queueUndoSnapshot(previousState, label = 'Change') {
+  commitPendingUndoSnapshot();
+
+  undoNonce += 1;
+  const id = undoNonce;
+  const timer = setTimeout(() => {
+    commitPendingUndoSnapshot();
+    notify();
+  }, 5000);
+
+  pendingUndo = {
+    id,
+    label,
+    snapshot: structuredClone(previousState),
+    timer
+  };
+
+  return {
+    id,
+    label,
+    expiresAt: Date.now() + 5000
+  };
+}
+
+function shouldTrackUndo(previousState, nextState) {
+  return (
+    previousState.tasks !== nextState.tasks ||
+    previousState.habits !== nextState.habits ||
+    previousState.notes !== nextState.notes ||
+    previousState.archived !== nextState.archived
+  );
+}
+
 export function setState(updater) {
+  const previousState = state;
   const next = typeof updater === 'function' ? updater(state) : updater;
   if (next && typeof next === 'object') {
-    state = next;
+    let snackbar = next.ui?.snackbar || null;
+
+    if (!suppressUndoTracking && shouldTrackUndo(previousState, next)) {
+      snackbar = queueUndoSnapshot(previousState, 'Changes saved');
+    }
+
+    state = {
+      ...next,
+      ui: {
+        ...next.ui,
+        snackbar
+      }
+    };
     notify();
   }
 }
@@ -100,6 +184,113 @@ export function patchState(partial) {
     }
   };
   notify();
+}
+
+export function undoLastChange() {
+  if (pendingUndo) {
+    const snapshot = pendingUndo.snapshot;
+    clearTimeout(pendingUndo.timer);
+    pendingUndo = null;
+
+    suppressUndoTracking = true;
+    state = structuredClone(snapshot);
+    suppressUndoTracking = false;
+    clearSnackbarOnly();
+
+    markDirty('full');
+    notify();
+    return true;
+  }
+
+  const stack = state.undoStack || [];
+  if (stack.length === 0) return false;
+
+  const [snapshot, ...rest] = stack;
+  suppressUndoTracking = true;
+  state = {
+    ...structuredClone(snapshot),
+    undoStack: rest,
+    ui: {
+      ...structuredClone(snapshot).ui,
+      snackbar: null
+    }
+  };
+  suppressUndoTracking = false;
+
+  markDirty('full');
+  notify();
+  return true;
+}
+
+export function markDirty(scope, key = null) {
+  if (scope === 'full') {
+    dirtyState = {
+      full: true,
+      tasks: {},
+      habits: {},
+      notes: true,
+      settings: true
+    };
+    return;
+  }
+
+  if (dirtyState.full) return;
+
+  if (scope === 'tasks' && key != null) {
+    dirtyState.tasks[String(key)] = true;
+    return;
+  }
+
+  if (scope === 'habits' && key != null) {
+    dirtyState.habits[String(key)] = true;
+    return;
+  }
+
+  if (scope === 'notes') {
+    dirtyState.notes = true;
+    return;
+  }
+
+  if (scope === 'settings') {
+    dirtyState.settings = true;
+  }
+}
+
+export function consumeDirtyState() {
+  const snapshot = {
+    full: dirtyState.full,
+    tasks: { ...dirtyState.tasks },
+    habits: { ...dirtyState.habits },
+    notes: dirtyState.notes,
+    settings: dirtyState.settings
+  };
+
+  dirtyState = {
+    full: false,
+    tasks: {},
+    habits: {},
+    notes: false,
+    settings: false
+  };
+
+  return snapshot;
+}
+
+export function restoreDirtyState(previousDirty) {
+  if (!previousDirty) return;
+  dirtyState = {
+    full: Boolean(previousDirty.full || dirtyState.full),
+    tasks: {
+      ...dirtyState.tasks,
+      ...(previousDirty.tasks || {})
+    },
+    habits: {
+      ...dirtyState.habits,
+      ...(previousDirty.habits || {})
+    },
+    notes: Boolean(previousDirty.notes || dirtyState.notes),
+    settings: Boolean(previousDirty.settings || dirtyState.settings)
+  };
 }
 
 function getThisWeekDate(dIdx) {
@@ -185,9 +376,11 @@ export function resetState() {
       taskView: 'status',
       habitView: 'grid',
       calView: 'month',
+      syncPending: false,
       gateMode: 'signin',
       gateStep: 'choice',
-      appUnlocked: false
+      appUnlocked: false,
+      snackbar: null
     },
     sync: {
       cloudUser: null,
