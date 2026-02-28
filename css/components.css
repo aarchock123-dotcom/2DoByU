@@ -1,0 +1,197 @@
+.action-btn,
+.btn,
+.settings-btn {
+   background:var(--accent);
+   color:#fff;
+   border:none;
+   padding:10px 20px;
+   border-radius:6px;
+   font-weight:600;
+   cursor:pointer;
+   transition:.2s;
+   font-size:.9em;
+}
+
+.action-btn:hover,
+.btn:hover,
+.settings-btn:hover { background:var(--accent-dark); transform:translateY(-1px); }
+
+.settings-btn {
+   padding:8px 16px;
+   border-radius:6px;
+   border:1px solid var(--border);
+   background:var(--surface);
+   color:var(--text);
+   font-size:.82em;
+   font-weight:500;
+   white-space:nowrap;
+}
+
+.settings-btn.primary { background:var(--accent); color:#fff; border-color:var(--accent); }
+.settings-btn.danger { color:#e74c3c; border-color:#fcc; }
+.settings-btn.danger:hover { background:#fff5f5; }
+
+.input-field {
+   width:100%;
+   border:1px solid var(--border);
+   border-radius:6px;
+   background:var(--surface);
+   color:var(--text);
+   padding:10px 12px;
+   font-size:.9em;
+   outline:none;
+}
+.input-field:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(212,163,115,.12); }
+
+.columns-container,
+.kanban-board { display:flex; gap:18px; overflow-x:auto; padding-bottom:16px; }
+.column {
+   background:var(--surface2);
+   border-radius:8px;
+   padding:18px;
+   min-width:260px;
+   border:1px solid var(--border);
+   flex:1;
+}
+
+@media(max-width:700px){
+   .columns-container,
+   .kanban-board { flex-direction:column; overflow-x:visible; }
+   .column { min-width:unset; }
+}
+
+.column-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-weight:600; text-transform:uppercase; font-size:.8em; letter-spacing:1px; }
+.task-count { background:var(--border); padding:2px 8px; border-radius:10px; color:#666; }
+.cards { min-height:120px; }
+
+.card,
+.task-item {
+   background:var(--surface);
+   border-radius:6px;
+   padding:14px;
+   margin-bottom:10px;
+   box-shadow:0 1px 4px rgba(0,0,0,.05);
+   cursor:grab;
+   border-left:4px solid var(--accent);
+   transition:.2s;
+}
+.card:hover,
+.task-item:hover { box-shadow:0 3px 10px rgba(0,0,0,.09); }
+.card.dragging,
+.task-item.dragging,
+.touch-dragging { opacity:.4; transform:scale(.95); }
+
+.card-title { font-weight:600; margin-bottom:4px; }
+.card-meta { display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; align-items:center; }
+.date-text { font-size:.78em; color:var(--muted); }
+.tag-badge { font-size:.68em; padding:2px 7px; border-radius:10px; font-weight:600; background:#fdf4ea; color:var(--accent); }
+
+.tree-container { background:var(--surface); border-radius:8px; padding:24px; margin-bottom:24px; border:1px solid var(--border); text-align:center; }
+.tree-svg { width:200px; height:200px; }
+.tree-branch,.tree-leaf,.tree-flower { transition:all .6s cubic-bezier(.175,.885,.32,1.275); transform-origin:center bottom; }
+.tree-leaf { fill:#8b9d83; }
+.tree-flower { fill:#ffb7c5; stroke:#ff99aa; stroke-width:.5; opacity:0; transform:scale(0); }
+.blooming { opacity:1!important; transform:scale(1)!important; }
+#comp-rate { transition:color .5s; }
+.perfect-score { color:var(--accent); text-shadow:0 0 10px rgba(212,163,115,.5); }
+
+.habits-grid,
+.habit-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; }
+.habit-card {
+   background:var(--surface);
+   padding:18px;
+   border-radius:8px;
+   border:1px solid var(--border);
+   border-top:4px solid var(--accent);
+}
+.habit-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; gap:8px; }
+.habit-name-area { flex:1; }
+.habit-name { font-weight:600; margin-bottom:3px; }
+.habit-category { font-size:.72em; color:var(--muted); }
+.habit-badges { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.habit-streak { background:#ff5722; color:#fff; padding:3px 9px; border-radius:12px; font-size:.75em; font-weight:bold; white-space:nowrap; }
+
+.days-grid,
+.habit-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:5px; margin-bottom:10px; }
+.day-checkbox,
+.habit-cell {
+   aspect-ratio:1;
+   display:flex;
+   align-items:center;
+   justify-content:center;
+   border:1px solid var(--border);
+   border-radius:4px;
+   cursor:pointer;
+   font-size:.62em;
+   color:var(--muted);
+   transition:.25s;
+   font-weight:600;
+}
+.day-checkbox.checked,
+.habit-cell.checked { background:#8b9d83; border-color:#8b9d83; color:#fff; }
+.day-checkbox.skipped,
+.habit-cell.skipped { background:#f3f3f3; border:1px dashed #b9b9b9; color:#8a8a8a; }
+.habit-actions-row { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+
+.notes-masonry,
+.notes-grid { column-count:3; column-gap:14px; }
+@media(max-width:900px){ .notes-masonry,.notes-grid { column-count:2; } }
+@media(max-width:560px){ .notes-masonry,.notes-grid { column-count:1; } }
+
+.note-card {
+   break-inside:avoid;
+   margin:0 0 14px;
+   background:var(--surface);
+   border:1px solid var(--border);
+   border-radius:10px;
+   padding:12px;
+   box-shadow:0 2px 10px rgba(0,0,0,.05);
+}
+.note-title { font-weight:700; margin-bottom:6px; }
+.note-body { color:var(--text); opacity:.92; white-space:pre-wrap; }
+
+.modal-overlay {
+   position:fixed;
+   inset:0;
+   background:rgba(0,0,0,.45);
+   z-index:5000;
+   display:none;
+   align-items:center;
+   justify-content:center;
+   padding:16px;
+}
+
+.modal {
+   width:min(640px,96vw);
+   max-height:90vh;
+   overflow:auto;
+   background:var(--surface);
+   border:1px solid var(--border);
+   border-radius:12px;
+   padding:18px;
+   box-shadow:0 10px 30px rgba(0,0,0,.2);
+}
+
+.modal-header,
+.modal-footer { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.modal-footer { margin-top:14px; justify-content:flex-end; flex-wrap:wrap; }
+.note-editor textarea { min-height:180px; }
+
+.drag-ghost,
+.glass,
+.glassmorphism {
+   background:rgba(255,255,255,.78);
+   box-shadow:0 8px 24px rgba(0,0,0,.18);
+   backdrop-filter:blur(8px);
+   -webkit-backdrop-filter:blur(8px);
+}
+
+body.dark .column,
+body.dark .card,
+body.dark .task-item,
+body.dark .habit-card,
+body.dark .tree-container,
+body.dark .note-card,
+body.dark .modal,
+body.dark .settings-btn,
+body.dark .input-field { background:var(--surface); border-color:var(--border); }

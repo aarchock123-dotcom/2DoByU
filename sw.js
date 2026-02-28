@@ -1,4 +1,4 @@
-const CACHE_NAME = '2dobyu-v5';
+const CACHE_NAME = '2dobyu-v6';
 const ASSETS = [
   './',
   './index.html',
@@ -62,4 +62,20 @@ self.addEventListener('fetch', (event) => {
       });
     })
   );
+});
+
+async function notifyClientsTriggerSync() {
+  const clientsList = await self.clients.matchAll({ includeUncontrolled: true, type: 'window' });
+  clientsList.forEach((client) => client.postMessage({ type: 'TRIGGER_SYNC' }));
+}
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type !== 'REGISTER_SYNC') return;
+  if (!self.registration || !self.registration.sync) return;
+  event.waitUntil(self.registration.sync.register('2dobyu-sync'));
+});
+
+self.addEventListener('sync', (event) => {
+  if (event.tag !== '2dobyu-sync') return;
+  event.waitUntil(notifyClientsTriggerSync());
 });
