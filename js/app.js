@@ -1,11 +1,15 @@
 import { getState, patchState } from './state.js';
 import { handleAuthChange, initDB, syncData } from './api.js';
-import { initUI } from './ui.js';
+import { initUI, openModal } from './ui.js';
 
 async function bootstrap() {
   await initDB();
   handleAuthChange();
-  await syncData();
+  const syncResult = await syncData();
+
+  if (syncResult?.authRequired) {
+    openModal('auth-modal');
+  }
 
   patchState({
     ui: {

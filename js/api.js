@@ -11,6 +11,44 @@ const SUPABASE_ANON_KEY = 'sb_publishable_eBavrWNjMUpHt9Kp7lMONA_YDK-EQQ4';
 let dbPromise = null;
 let supabaseClient = null;
 
+function showOfflineModeToast() {
+  let toast = document.getElementById('offline-mode-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'offline-mode-toast';
+    toast.textContent = 'Offline Mode - Changes saved locally';
+    Object.assign(toast.style, {
+      position: 'fixed',
+      right: '16px',
+      bottom: '16px',
+      padding: '10px 12px',
+      background: 'rgba(26, 26, 26, 0.9)',
+      color: '#fff',
+      borderRadius: '8px',
+      fontSize: '12px',
+      zIndex: '9999',
+      opacity: '0',
+      transform: 'translateY(8px)',
+      transition: 'opacity .2s ease, transform .2s ease',
+      pointerEvents: 'none'
+    });
+    document.body.appendChild(toast);
+  }
+
+  clearTimeout(toast._hideTimer);
+  toast.style.opacity = '1';
+  toast.style.transform = 'translateY(0)';
+  toast._hideTimer = setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(8px)';
+  }, 2200);
+}
+
+function handleSupabaseFailure(error, context) {
+  console.warn(`[2DoByU] Supabase request failed (${context}).`, error);
+  showOfflineModeToast();
+}
+
 function getSupabaseClient() {
   if (supabaseClient) return supabaseClient;
 
@@ -128,9 +166,9 @@ export async function fetchUserData() {
 
 async function fetchRemoteUserData() {
   const sb = getSupabaseClient();
-  const {
-    data: { user }
-  } = await sb.auth.getUser();
+  const userResp = await sb.auth.getUser();
+  if (userResp.error) throw userResp.error;
+  const user = userResp.data?.user || null;
 
   if (!user) return null;
 
@@ -151,9 +189,9 @@ async function fetchRemoteUserData() {
 
 async function pushRemoteUserData(doc) {
   const sb = getSupabaseClient();
-  const {
-    data: { user }
-  } = await sb.auth.getUser();
+  const userResp = await sb.auth.getUser();
+  if (userResp.error) throw userResp.error;
+  const user = userResp.data?.user || null;
 
   if (!user) return;
 
@@ -175,8 +213,7 @@ export async function syncData() {
   await initDB();
 
   const localDoc = await fetchUserData();
-
-  if (!navigator.onLine) {
+  const buildLocalFallback = () => {
     if (localDoc) {
       patchState({
         tasks: localDoc.tasks,
@@ -187,10 +224,49 @@ export async function syncData() {
         settings: localDoc.settings
       });
     }
-    return localDoc;
+    return {
+      ...(localDoc || {}),
+      authRequired: !getState().user
+    };
+  };
+
+  if (!navigator.onLine) {
+    return buildLocalFallback();
   }
 
-  const remoteDoc = await fetchRemoteUserData();
+  let sb = null;
+  try {
+    sb = getSupabaseClient();
+    const userResp = await sb.auth.getUser();
+    if (userResp.error) throw userResp.error;
+    const user = userResp.data?.user || null;
+    patchState({
+      user,
+      ui: {
+        ...getState().ui,
+        authModal: !user
+      }
+    });
+
+    if (!user) {
+      return {
+        ...(localDoc || {}),
+        authRequired: true
+      };
+    }
+  } catch (err) {
+    handleSupabaseFailure(err, 'syncData:getUser');
+    return buildLocalFallback();
+  }
+
+  let remoteDoc = null;
+  try {
+    remoteDoc = await fetchRemoteUserData();
+  } catch (err) {
+    handleSupabaseFailure(err, 'syncData:fetchRemoteUserData');
+    return buildLocalFallback();
+  }
+
   const merged = mergeState(localDoc || {}, remoteDoc || {});
 
   patchState({
@@ -207,7 +283,10 @@ export async function syncData() {
   });
 
   await saveUserData(merged);
-  return merged;
+  return {
+    ...merged,
+    authRequired: false
+  };
 }
 
 export async function pushUpdate(nextStateLike) {
@@ -230,6 +309,7 @@ export async function pushUpdate(nextStateLike) {
       }
     });
   } catch (err) {
+    handleSupabaseFailure(err, 'pushUpdate:pushRemoteUserData');
     console.warn('[2DoByU] Remote push failed; local IndexedDB data preserved.', err);
   }
 }
@@ -238,7 +318,10 @@ export async function signIn(email, password) {
   const sb = getSupabaseClient();
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
-  if (error) throw error;
+  if (error) {
+    handleSupabaseFailure(error, 'signIn');
+    throw error;
+  }
 
   patchState({
     user: data?.user || data?.session?.user || null,
@@ -255,7 +338,10 @@ export async function signUp(email, password) {
   const sb = getSupabaseClient();
   const { data, error } = await sb.auth.signUp({ email, password });
 
-  if (error) throw error;
+  if (error) {
+    handleSupabaseFailure(error, 'signUp');
+    throw error;
+  }
 
   patchState({
     user: data?.user || data?.session?.user || null,
@@ -272,7 +358,10 @@ export async function signOut() {
   const sb = getSupabaseClient();
   const { error } = await sb.auth.signOut();
 
-  if (error) throw error;
+  if (error) {
+    handleSupabaseFailure(error, 'signOut');
+    throw error;
+  }
 
   patchState({
     user: null,
@@ -284,7 +373,13 @@ export async function signOut() {
 }
 
 export function handleAuthChange() {
-  const sb = getSupabaseClient();
+  let sb = null;
+  try {
+    sb = getSupabaseClient();
+  } catch (err) {
+    console.warn('[2DoByU] Auth listener unavailable; Supabase client not initialized.', err);
+    return;
+  }
 
   sb.auth.onAuthStateChange((_event, session) => {
     patchState({

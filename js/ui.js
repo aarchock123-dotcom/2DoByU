@@ -477,13 +477,38 @@ function ensureModals() {
 }
 
 export function openModal(modalId) {
+  if (modalId === 'auth-modal') {
+    patchState({
+      ui: {
+        ...getState().ui,
+        authModal: true
+      }
+    });
+    return;
+  }
+
   const modal = document.getElementById(modalId);
   if (modal) modal.style.display = 'flex';
 }
 
 export function closeModal(modalId) {
+  if (modalId === 'auth-modal') {
+    patchState({
+      ui: {
+        ...getState().ui,
+        authModal: false
+      }
+    });
+    return;
+  }
+
   const modal = document.getElementById(modalId);
   if (modal) modal.style.display = 'none';
+}
+
+function triggerHapticFeedback() {
+  if (!('vibrate' in navigator)) return;
+  navigator.vibrate(12);
 }
 
 function openTaskModal(taskId = null) {
@@ -884,6 +909,7 @@ function bindGlobalEvents() {
 
     const habitDay = event.target.closest('[data-role="habit-day"]');
     if (habitDay && habitDay.dataset.active === 'true') {
+      triggerHapticFeedback();
       await toggleHabitDay(habitDay.dataset.id, habitDay.dataset.day);
       return;
     }
