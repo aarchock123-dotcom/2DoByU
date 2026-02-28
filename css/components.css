@@ -150,6 +150,58 @@
 .note-title { font-weight:700; margin-bottom:6px; }
 .note-body { color:var(--text); opacity:.92; white-space:pre-wrap; }
 
+.hidden { display:none !important; }
+
+#auth-gate {
+   position:fixed;
+   inset:0;
+   z-index:7000;
+   display:flex;
+   align-items:center;
+   justify-content:center;
+   padding:20px;
+   background:rgba(0,0,0,.35);
+   backdrop-filter:blur(2px);
+   -webkit-backdrop-filter:blur(2px);
+}
+
+.auth-card {
+   width:min(420px,94vw);
+   background:var(--surface);
+   border:1px solid var(--border);
+   border-radius:12px;
+   padding:18px;
+   box-shadow:0 16px 34px rgba(0,0,0,.2);
+   display:flex;
+   flex-direction:column;
+   gap:12px;
+}
+
+.auth-title {
+   font-size:1.25em;
+   font-weight:700;
+   color:var(--text);
+}
+
+.auth-sub {
+   font-size:.9em;
+   color:var(--muted);
+}
+
+.auth-form {
+   display:flex;
+   flex-direction:column;
+   gap:10px;
+}
+
+.auth-actions {
+   display:flex;
+   justify-content:flex-end;
+   gap:8px;
+   margin-top:4px;
+   flex-wrap:wrap;
+}
+
 .modal-overlay {
    position:fixed;
    inset:0;
