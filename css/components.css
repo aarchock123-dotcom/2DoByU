@@ -681,6 +681,12 @@
    gap:12px;
 }
 
+.auth-card.auth-main {
+   width:min(560px,96vw);
+   padding:24px;
+   border-radius:14px;
+}
+
 .auth-title {
    font-size:1.25em;
    font-weight:700;
@@ -698,12 +704,48 @@
    gap:10px;
 }
 
+.auth-message {
+   border-radius:10px;
+   padding:10px 12px;
+   font-size:.88em;
+   border:1px solid var(--border);
+}
+
+.auth-error {
+   color:var(--text);
+   background:var(--bg);
+   border-color:var(--accent);
+}
+
+.auth-info {
+   color:var(--text);
+   background:var(--bg);
+   border-color:var(--border);
+}
+
 .auth-actions {
    display:flex;
    justify-content:flex-end;
    gap:8px;
    margin-top:4px;
    flex-wrap:wrap;
+}
+
+.auth-choice-grid {
+   display:grid;
+   grid-template-columns:repeat(2,minmax(0,1fr));
+   gap:10px;
+}
+
+.auth-choice-btn {
+   min-height:46px;
+   font-weight:700;
+}
+
+@media(max-width:560px){
+   .auth-choice-grid {
+      grid-template-columns:1fr;
+   }
 }
 
 .calendar-wrap {

@@ -53,6 +53,9 @@ let state = {
     gateMode: 'signin',
     gateStep: 'choice',
     appUnlocked: false,
+    authSubmitting: false,
+    authError: null,
+    authInfo: null,
     snackbar: null
   },
   sync: {
@@ -426,6 +429,9 @@ export function resetState() {
       gateMode: 'signin',
       gateStep: 'choice',
       appUnlocked: false,
+      authSubmitting: false,
+      authError: null,
+      authInfo: null,
       snackbar: null
     },
     sync: {

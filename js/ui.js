@@ -2430,22 +2430,78 @@ function ensureModals() {
   const authGate = document.getElementById('auth-gate');
   if (authGate && !authGate.dataset.initialized) {
     authGate.dataset.initialized = '1';
-    const card = createNode('div', { className: 'auth-card' });
-    card.appendChild(createNode('div', { className: 'auth-title', text: '2DoByU' }));
-    card.appendChild(createNode('div', { className: 'auth-sub', text: 'Sign in to continue' }));
+    renderAuthGateContent();
+  }
+}
 
+function renderAuthGateContent() {
+  const authGate = document.getElementById('auth-gate');
+  if (!authGate) return;
+
+  const ui = getState().ui || {};
+  const gateStep = ui.gateStep || 'choice';
+  const gateMode = ui.gateMode || 'signin';
+  const authSubmitting = Boolean(ui.authSubmitting);
+  const authError = ui.authError || '';
+  const authInfo = ui.authInfo || '';
+
+  const card = createNode('div', { className: 'auth-card auth-main' });
+  card.appendChild(createNode('div', { className: 'auth-title', text: 'Welcome to 2DoByU' }));
+  card.appendChild(
+    createNode('div', {
+      className: 'auth-sub',
+      text: gateStep === 'choice' ? 'Choose how you want to continue.' : gateMode === 'signin' ? 'Sign in to continue to your dashboard.' : 'Create your account to get started.'
+    })
+  );
+
+  if (gateStep === 'choice') {
+    const choiceWrap = createNode('div', { className: 'auth-choice-grid' });
+    choiceWrap.appendChild(createNode('button', { className: 'settings-btn primary auth-choice-btn', dataset: { action: 'auth-open-signin' }, text: 'Sign In' }));
+    choiceWrap.appendChild(createNode('button', { className: 'settings-btn auth-choice-btn', dataset: { action: 'auth-open-signup' }, text: 'Create Account' }));
+    card.appendChild(choiceWrap);
+  } else {
     const form = createNode('div', { className: 'auth-form show' });
     form.appendChild(createNode('input', { className: 'input-field', attrs: { id: 'auth-email', placeholder: 'Email' }, type: 'email' }));
     form.appendChild(createNode('input', { className: 'input-field', attrs: { id: 'auth-password', placeholder: 'Password' }, type: 'password' }));
+    if (authError) {
+      form.appendChild(createNode('div', { className: 'auth-message auth-error', text: authError }));
+    } else if (authInfo) {
+      form.appendChild(createNode('div', { className: 'auth-message auth-info', text: authInfo }));
+    }
 
     const actions = createNode('div', { className: 'auth-actions' });
-    actions.appendChild(createNode('button', { className: 'settings-btn', dataset: { action: 'auth-signup' }, text: 'Create Account' }));
-    actions.appendChild(createNode('button', { className: 'settings-btn primary', dataset: { action: 'auth-signin' }, text: 'Sign In' }));
+    actions.appendChild(
+      createNode('button', {
+        className: 'settings-btn',
+        dataset: { action: 'auth-back-choice' },
+        text: 'Back',
+        attrs: authSubmitting ? { disabled: 'disabled' } : undefined
+      })
+    );
+    if (gateMode === 'signin') {
+      actions.appendChild(
+        createNode('button', {
+          className: 'settings-btn primary',
+          dataset: { action: 'auth-signin' },
+          text: authSubmitting ? 'Signing In…' : 'Sign In',
+          attrs: authSubmitting ? { disabled: 'disabled' } : undefined
+        })
+      );
+    } else {
+      actions.appendChild(
+        createNode('button', {
+          className: 'settings-btn primary',
+          dataset: { action: 'auth-signup' },
+          text: authSubmitting ? 'Creating…' : 'Create Account',
+          attrs: authSubmitting ? { disabled: 'disabled' } : undefined
+        })
+      );
+    }
     form.appendChild(actions);
     card.appendChild(form);
-
-    authGate.replaceChildren(card);
   }
+
+  authGate.replaceChildren(card);
 }
 
 export function openModal(modalId) {
@@ -2896,19 +2952,124 @@ async function toggleHabitSkipToday(habitId) {
 }
 
 async function handleAuthSignIn() {
+  if (getState().ui?.authSubmitting) return;
   const emailInput = document.getElementById('auth-email');
   const passwordInput = document.getElementById('auth-password');
   if (!emailInput || !passwordInput) return;
 
-  await signIn(emailInput.value.trim(), passwordInput.value);
+  patchState({
+    ui: {
+      ...getState().ui,
+      authSubmitting: true,
+      authError: null,
+      authInfo: null
+    }
+  });
+
+  try {
+    await signIn(emailInput.value.trim(), passwordInput.value);
+    patchState({
+      ui: {
+        ...getState().ui,
+        gateStep: 'choice',
+        gateMode: 'signin',
+        appUnlocked: true,
+        authSubmitting: false,
+        authError: null,
+        authInfo: null
+      }
+    });
+  } catch (error) {
+    const rawMessage = String(error?.message || 'Unable to sign in right now.');
+    const lower = rawMessage.toLowerCase();
+    let message = rawMessage;
+    if (lower.includes('invalid login credentials')) {
+      message = 'Incorrect email or password.';
+    } else if (lower.includes('email not confirmed')) {
+      message = 'Please confirm your email before signing in.';
+    }
+    patchState({
+      ui: {
+        ...getState().ui,
+        authModal: true,
+        gateStep: 'form',
+        gateMode: 'signin',
+        appUnlocked: false,
+        authSubmitting: false,
+        authError: message,
+        authInfo: null
+      }
+    });
+  } finally {
+    patchState({
+      ui: {
+        ...getState().ui,
+        authSubmitting: false
+      }
+    });
+  }
 }
 
 async function handleAuthSignUp() {
+  if (getState().ui?.authSubmitting) return;
   const emailInput = document.getElementById('auth-email');
   const passwordInput = document.getElementById('auth-password');
   if (!emailInput || !passwordInput) return;
 
-  await signUp(emailInput.value.trim(), passwordInput.value);
+  patchState({
+    ui: {
+      ...getState().ui,
+      authSubmitting: true,
+      authError: null,
+      authInfo: null
+    }
+  });
+
+  try {
+    const authData = await signUp(emailInput.value.trim(), passwordInput.value);
+    const hasSession = Boolean(authData?.session?.user);
+
+    patchState({
+      ui: {
+        ...getState().ui,
+        authModal: !hasSession,
+        gateStep: hasSession ? 'choice' : 'form',
+        gateMode: 'signin',
+        appUnlocked: hasSession,
+        authSubmitting: false,
+        authError: null,
+        authInfo: hasSession ? null : 'Account created. Check your email to confirm your account, then sign in.'
+      }
+    });
+  } catch (error) {
+    const rawMessage = String(error?.message || 'Unable to create your account right now.');
+    const lower = rawMessage.toLowerCase();
+    let message = rawMessage;
+    if (lower.includes('user already registered')) {
+      message = 'An account with this email already exists. Please sign in.';
+    } else if (lower.includes('password') && lower.includes('6')) {
+      message = 'Password must be at least 6 characters.';
+    }
+    patchState({
+      ui: {
+        ...getState().ui,
+        authModal: true,
+        gateStep: 'form',
+        gateMode: 'signup',
+        appUnlocked: false,
+        authSubmitting: false,
+        authError: message,
+        authInfo: null
+      }
+    });
+  } finally {
+    patchState({
+      ui: {
+        ...getState().ui,
+        authSubmitting: false
+      }
+    });
+  }
 }
 
 function applyAuthGateVisibility() {
@@ -2918,6 +3079,7 @@ function applyAuthGateVisibility() {
   const state = getState();
   const showAuth = Boolean(state.ui.authModal || !state.user);
   gate.classList.toggle('hidden', !showAuth);
+  renderAuthGateContent();
 }
 
 function renderSnackbar() {
@@ -3011,6 +3173,23 @@ function bindGlobalEvents() {
     const active = document.activeElement;
     const typingTarget = active && ['INPUT', 'TEXTAREA', 'SELECT'].includes(active.tagName);
 
+    if (event.key === 'Enter' && typingTarget && !event.repeat && !event.isComposing) {
+      const targetEl = event.target instanceof HTMLElement ? event.target : null;
+      const inAuthGate = Boolean(targetEl?.closest('#auth-gate'));
+      if (inAuthGate) {
+        const ui = getState().ui || {};
+        if (ui.gateStep === 'form' && !ui.authSubmitting) {
+          event.preventDefault();
+          if (ui.gateMode === 'signup') {
+            void handleAuthSignUp();
+          } else {
+            void handleAuthSignIn();
+          }
+        }
+        return;
+      }
+    }
+
     if (event.key === 'Escape') {
       closeAllModals();
       return;
@@ -3093,11 +3272,60 @@ function bindGlobalEvents() {
       }
 
       if (action === 'auth-signin') {
+        if (getState().ui?.authSubmitting) return;
         await handleAuthSignIn();
         return;
       }
 
+      if (action === 'auth-open-signin') {
+        patchState({
+          ui: {
+            ...getState().ui,
+            authModal: true,
+            gateMode: 'signin',
+            gateStep: 'form',
+            appUnlocked: false,
+            authSubmitting: false,
+            authError: null,
+            authInfo: null
+          }
+        });
+        return;
+      }
+
+      if (action === 'auth-open-signup') {
+        patchState({
+          ui: {
+            ...getState().ui,
+            authModal: true,
+            gateMode: 'signup',
+            gateStep: 'form',
+            appUnlocked: false,
+            authSubmitting: false,
+            authError: null,
+            authInfo: null
+          }
+        });
+        return;
+      }
+
+      if (action === 'auth-back-choice') {
+        patchState({
+          ui: {
+            ...getState().ui,
+            gateStep: 'choice',
+            gateMode: 'signin',
+            appUnlocked: false,
+            authSubmitting: false,
+            authError: null,
+            authInfo: null
+          }
+        });
+        return;
+      }
+
       if (action === 'auth-signup') {
+        if (getState().ui?.authSubmitting) return;
         await handleAuthSignUp();
         return;
       }

@@ -44,9 +44,24 @@ function showOfflineModeToast() {
   }, 2200);
 }
 
+function isNetworkLikeError(error) {
+  const msg = String(error?.message || '').toLowerCase();
+  const code = String(error?.code || '').toLowerCase();
+  if (!navigator.onLine) return true;
+  return (
+    msg.includes('failed to fetch') ||
+    msg.includes('network') ||
+    msg.includes('load failed') ||
+    msg.includes('timeout') ||
+    code.includes('network')
+  );
+}
+
 function handleSupabaseFailure(error, context) {
   console.warn(`[2DoByU] Supabase request failed (${context}).`, error);
-  showOfflineModeToast();
+  if (isNetworkLikeError(error)) {
+    showOfflineModeToast();
+  }
 }
 
 function getSupabaseClient() {
@@ -499,11 +514,16 @@ export async function signUp(email, password) {
     throw error;
   }
 
+  const signedInUser = data?.session?.user || null;
   patchState({
-    user: data?.user || data?.session?.user || null,
+    user: signedInUser,
     ui: {
       ...getState().ui,
-      authModal: false
+      authModal: !signedInUser,
+      appUnlocked: Boolean(signedInUser),
+      authSubmitting: false,
+      authError: null,
+      authInfo: null
     }
   });
 
@@ -523,7 +543,15 @@ export async function signOut() {
     user: null,
     ui: {
       ...getState().ui,
-      authModal: true
+      authModal: true,
+      gateStep: 'choice',
+      gateMode: 'signin',
+      appUnlocked: false,
+      authSubmitting: false,
+      authError: null,
+      authInfo: null,
+      currentView: 'tasks',
+      currentPage: 'tasks'
     }
   });
 }
@@ -538,11 +566,18 @@ export function handleAuthChange() {
   }
 
   sb.auth.onAuthStateChange((_event, session) => {
+    const hasUser = Boolean(session?.user);
     patchState({
       user: session?.user || null,
       ui: {
         ...getState().ui,
-        authModal: !session?.user
+        authModal: !hasUser,
+        gateStep: hasUser ? getState().ui?.gateStep || 'choice' : 'choice',
+        gateMode: hasUser ? getState().ui?.gateMode || 'signin' : 'signin',
+        appUnlocked: hasUser,
+        authSubmitting: false,
+        authError: null,
+        authInfo: null
       }
     });
   });
