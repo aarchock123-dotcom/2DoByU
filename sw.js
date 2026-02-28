@@ -1,4 +1,4 @@
-const CACHE_NAME = '2dobyu-v14';
+const CACHE_NAME = '2dobyu-v16';
 const ASSETS = [
   './',
   './index.html',

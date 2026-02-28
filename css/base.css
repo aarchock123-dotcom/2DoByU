@@ -1,5 +1,10 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 
+html,
+body {
+   overscroll-behavior-y:none;
+}
+
 :root {
    --accent:#d4a373;
    --accent-dark:#c49363;
@@ -114,6 +119,7 @@ h1,h2,h3,strong { letter-spacing:-0.02em; }
    flex:1;
    padding:28px;
    min-height:100vh;
+   overscroll-behavior:contain;
 }
 
 .page { display:none; }
@@ -146,10 +152,17 @@ body.dark {
    --muted:#777;
 }
 
+body.theme-system {
+   color-scheme:light dark;
+}
+
 @media (prefers-color-scheme: dark) {
-   :root {
+   body.theme-system {
       --bg:#1a1a1a;
       --surface:#242424;
+      --surface2:#2a2a2a;
+      --border:#333;
       --text:#f0f0f0;
+      --muted:#777;
    }
 }

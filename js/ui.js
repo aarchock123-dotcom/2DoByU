@@ -3,6 +3,10 @@ import { pushUpdate, saveUserData, signIn, signUp, signOut, syncData } from './a
 
 let initialized = false;
 let draggingTask = null;
+let touchDragging = false;
+let touchDragGhost = null;
+let touchDropColumn = null;
+let touchDnDListenersBound = false;
 let calendarCursor = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 let calendarSelectedDateKey = new Date().toISOString().slice(0, 10);
 let calendarView = 'month';
@@ -69,8 +73,12 @@ function applySettingsVisuals() {
     document.documentElement.style.setProperty('--accent-dark', settings.accentDark);
   }
 
+  const theme = settings.theme || 'light';
+  document.body.classList.remove('theme-light', 'theme-dark', 'theme-system');
+  document.body.classList.add(`theme-${theme}`);
+
   const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-  const forceDark = settings.theme === 'dark' || (settings.theme === 'system' && prefersDark);
+  const forceDark = theme === 'dark' || (theme === 'system' && prefersDark);
   document.body.classList.toggle('dark', forceDark);
   document.body.classList.toggle('compact', Boolean(settings.compact));
 
@@ -203,6 +211,21 @@ function removeTaskById(tasks, id) {
     if (idx !== -1) return tasks[col].splice(idx, 1)[0];
   }
   return null;
+}
+
+function moveTaskToColumn(taskId, targetCol) {
+  let moved = false;
+
+  setState((prev) => {
+    const next = structuredClone(prev);
+    const task = removeTaskById(next.tasks, taskId);
+    if (!task || !next.tasks[targetCol]) return prev;
+    next.tasks[targetCol].push(task);
+    moved = true;
+    return next;
+  });
+
+  return moved;
 }
 
 function getAllTasksWithColumn(tasks) {
@@ -1021,12 +1044,102 @@ export function renderApp() {
 }
 
 function setupTaskDnD() {
+  const clearTouchDropTargets = () => {
+    document.querySelectorAll('[data-drop-col]').forEach((zone) => zone.classList.remove('touch-drop-target'));
+  };
+
+  const removeTouchGhost = () => {
+    if (!touchDragGhost) return;
+    touchDragGhost.remove();
+    touchDragGhost = null;
+  };
+
+  const positionTouchGhost = (touch) => {
+    if (!touchDragGhost) return;
+    touchDragGhost.style.left = `${touch.clientX + 12}px`;
+    touchDragGhost.style.top = `${touch.clientY + 12}px`;
+  };
+
+  const finishTouchDrag = async () => {
+    const taskId = draggingTask;
+    const targetCol = touchDropColumn;
+
+    draggingTask = null;
+    touchDragging = false;
+    touchDropColumn = null;
+    clearTouchDropTargets();
+    removeTouchGhost();
+
+    if (!taskId || !targetCol) return;
+
+    const moved = moveTaskToColumn(taskId, targetCol);
+    if (moved) {
+      await persistSnapshot();
+    }
+  };
+
   document.querySelectorAll('.task-item').forEach((card) => {
     card.addEventListener('dragstart', (event) => {
       draggingTask = event.currentTarget.dataset.taskId;
       event.dataTransfer.effectAllowed = 'move';
     });
+
+    card.addEventListener(
+      'touchstart',
+      (event) => {
+        if (event.touches.length !== 1) return;
+
+        draggingTask = event.currentTarget.dataset.taskId;
+        touchDragging = true;
+        touchDropColumn = null;
+
+        touchDragGhost = event.currentTarget.cloneNode(true);
+        touchDragGhost.classList.add('touch-drag-ghost');
+        document.body.appendChild(touchDragGhost);
+        positionTouchGhost(event.touches[0]);
+      },
+      { passive: true }
+    );
   });
+
+  if (!touchDnDListenersBound) {
+    touchDnDListenersBound = true;
+
+    document.addEventListener(
+      'touchmove',
+      (event) => {
+        if (!touchDragging || !draggingTask) return;
+        if (event.touches.length !== 1) return;
+
+        event.preventDefault();
+
+        const touch = event.touches[0];
+        positionTouchGhost(touch);
+
+        const hit = document.elementFromPoint(touch.clientX, touch.clientY);
+        const dropZone = hit?.closest('[data-drop-col]');
+
+        clearTouchDropTargets();
+        touchDropColumn = null;
+
+        if (dropZone) {
+          touchDropColumn = dropZone.dataset.dropCol || null;
+          dropZone.classList.add('touch-drop-target');
+        }
+      },
+      { passive: false }
+    );
+
+    document.addEventListener('touchend', () => {
+      if (!touchDragging) return;
+      finishTouchDrag();
+    });
+
+    document.addEventListener('touchcancel', () => {
+      if (!touchDragging) return;
+      finishTouchDrag();
+    });
+  }
 
   document.querySelectorAll('[data-drop-col]').forEach((dropZone) => {
     dropZone.addEventListener('dragover', (event) => {
@@ -1039,16 +1152,12 @@ function setupTaskDnD() {
       const targetCol = event.currentTarget.dataset.dropCol;
       if (!draggingTask || !targetCol) return;
 
-      setState((prev) => {
-        const next = structuredClone(prev);
-        const moved = removeTaskById(next.tasks, draggingTask);
-        if (!moved) return prev;
-        next.tasks[targetCol].push(moved);
-        return next;
-      });
+      const moved = moveTaskToColumn(draggingTask, targetCol);
 
       draggingTask = null;
-      await persistSnapshot();
+      if (moved) {
+        await persistSnapshot();
+      }
     });
   });
 }
