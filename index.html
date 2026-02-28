@@ -359,6 +359,9 @@ body.dark .outlook-day-col:hover, body.dark .outlook-hour-cell:hover { backgroun
 .auth-choice-actions .settings-btn { flex:1; }
 .auth-form { display:none; flex-direction:column; gap:10px; }
 .auth-form.show { display:flex; }
+.auth-password-wrap { display:flex; align-items:center; gap:8px; }
+.auth-password-wrap .input-field { flex:1; }
+.auth-eye-btn { min-width:72px; }
 .auth-row-between { display:flex; justify-content:space-between; align-items:center; gap:8px; }
 .auth-link-btn { background:none; border:none; color:var(--accent); cursor:pointer; font-size:.82em; text-decoration:underline; padding:0; }
 body.dark { --bg:#1a1a1a; --surface:#242424; --surface2:#2a2a2a; --border:#333; --text:#f0f0f0; --muted:#777; }
@@ -621,7 +624,10 @@ body.dark .habit-list-row { background:var(--surface); border-color:var(--border
         <button class="auth-mode-btn" id="gate-mode-signup" onclick="setGateMode('signup')">Create Account</button>
       </div>
       <input id="gate-email" type="email" class="input-field" placeholder="Email">
-      <input id="gate-password" type="password" class="input-field" placeholder="Password">
+      <div class="auth-password-wrap">
+        <input id="gate-password" type="password" class="input-field" placeholder="Password">
+        <button class="settings-btn auth-eye-btn" id="gate-password-toggle" type="button" onclick="toggleGatePassword()">Show</button>
+      </div>
       <div class="auth-row-between">
         <button class="auth-link-btn" id="gate-back-btn" onclick="showGateChoice()">← Back</button>
         <button class="auth-link-btn" id="gate-forgot-btn" onclick="gateForgotPassword()">Forgot password?</button>
@@ -3837,7 +3843,21 @@ function setGateMode(mode){
   if(submitBtn) submitBtn.textContent = gateMode==='signup' ? 'Create Account' : 'Sign In';
   if(forgotBtn) forgotBtn.style.display = gateMode==='signin' ? '' : 'none';
   if(title) title.textContent = gateMode==='signup' ? 'Create your account' : 'Welcome back';
+  setGatePasswordVisibility(false);
   renderGateView();
+}
+
+function setGatePasswordVisibility(show){
+  const passwordInput = document.getElementById('gate-password');
+  const toggleBtn = document.getElementById('gate-password-toggle');
+  if(passwordInput) passwordInput.type = show ? 'text' : 'password';
+  if(toggleBtn) toggleBtn.textContent = show ? 'Hide' : 'Show';
+}
+
+function toggleGatePassword(){
+  const passwordInput = document.getElementById('gate-password');
+  if(!passwordInput) return;
+  setGatePasswordVisibility(passwordInput.type !== 'text');
 }
 
 function showGateChoice(){
@@ -3907,7 +3927,18 @@ async function cloudSignInEmail(source='settings'){
   if(source==='gate') setAuthGate('Signing you in...');
   if(source==='gate') setGateBusy(true);
   const {data,error}=await sb.auth.signInWithPassword({email,password});
-  if(error){ showToast('Sign in failed: '+error.message); if(source==='gate') setAuthGate('Sign in failed. Check your credentials.'); if(source==='gate') setGateBusy(false); return; }
+  if(error){
+    const msg=(error.message||'').toLowerCase();
+    if(msg.includes('email not confirmed') || msg.includes('email not verified')){
+      showToast('Sign in blocked: this account still requires email confirmation in Supabase Auth settings.');
+      if(source==='gate') setAuthGate('Email confirmation is still enabled in Supabase for this account.');
+    } else {
+      showToast('Sign in failed: '+error.message);
+      if(source==='gate') setAuthGate('Sign in failed. Check your credentials.');
+    }
+    if(source==='gate') setGateBusy(false);
+    return;
+  }
   cloudUser = data?.user || data?.session?.user || cloudUser;
   renderCloudState();
   if(cloudUser){
@@ -3926,7 +3957,18 @@ async function cloudSignUpEmail(source='settings'){
   if(source==='gate') setAuthGate('Creating your account...');
   if(source==='gate') setGateBusy(true);
   const {data,error}=await sb.auth.signUp({email,password});
-  if(error){ showToast('Sign up failed: '+error.message); if(source==='gate') setAuthGate('Sign up failed.'); if(source==='gate') setGateBusy(false); return; }
+  if(error){
+    const msg=(error.message||'').toLowerCase();
+    if(msg.includes('email not confirmed') || msg.includes('email not verified')){
+      showToast('Sign up blocked by email confirmation policy in Supabase Auth settings.');
+      if(source==='gate') setAuthGate('Supabase email confirmation is still enabled.');
+    } else {
+      showToast('Sign up failed: '+error.message);
+      if(source==='gate') setAuthGate('Sign up failed.');
+    }
+    if(source==='gate') setGateBusy(false);
+    return;
+  }
   if(data?.session?.user){
     cloudUser = data.session.user;
     renderCloudState();
