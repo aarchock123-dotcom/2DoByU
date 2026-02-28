@@ -338,6 +338,12 @@ body.dark .outlook-day-col:hover, body.dark .outlook-hour-cell:hover { backgroun
 .theme-card-label { font-size:.78em; font-weight:600; color:var(--muted); }
 .theme-card.selected .theme-card-label { color:var(--accent); }
 .version-tag { font-size:.75em; color:var(--muted); background:var(--bg); padding:3px 8px; border-radius:4px; }
+#auth-gate { position:fixed; inset:0; background:var(--bg); z-index:12000; display:flex; align-items:center; justify-content:center; padding:20px; }
+#auth-gate.hidden { display:none; }
+.auth-card { width:min(460px,96vw); background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; display:flex; flex-direction:column; gap:12px; }
+.auth-title { font-size:1.25em; font-weight:800; color:var(--accent); letter-spacing:-0.02em; }
+.auth-sub { color:var(--muted); font-size:.9em; }
+.auth-actions { display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap; }
 body.dark { --bg:#1a1a1a; --surface:#242424; --surface2:#2a2a2a; --border:#333; --text:#f0f0f0; --muted:#777; }
 body.dark #sidebar, body.dark #topbar, body.dark .column, body.dark .card, body.dark .habit-card,
 body.dark .modal, body.dark .analytics-section, body.dark .stat-card,
@@ -561,6 +567,19 @@ body.dark .habit-list-row { background:var(--surface); border-color:var(--border
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+<div id="auth-gate">
+  <div class="auth-card">
+    <div class="auth-title">2DoByU</div>
+    <div class="auth-sub" id="auth-gate-status">Sign in to continue</div>
+    <input id="gate-email" type="email" class="input-field" placeholder="Email">
+    <input id="gate-password" type="password" class="input-field" placeholder="Password">
+    <div class="auth-actions">
+      <button class="settings-btn" onclick="cloudSignUpEmail('gate')">Create Account</button>
+      <button class="settings-btn primary" onclick="cloudSignInEmail('gate')">Sign In</button>
+    </div>
+  </div>
+</div>
 
 <canvas id="fireworks"></canvas>
 
@@ -3419,6 +3438,7 @@ let cloudUser = null;
 let cloudSyncTimer = null;
 let cloudSyncInFlight = false;
 let applyingRemoteData = false;
+let appUnlocked = false;
 
 function loadSettings(){
   try { const s=JSON.parse(localStorage.getItem(SETTINGS_KEY)); if(s) appSettings={...appSettings,...s}; } catch{}
@@ -3488,11 +3508,32 @@ function initSupabaseClient(){
   return supabaseClient;
 }
 
-function getCloudCreds(){
+function getCloudCreds(source='settings'){
+  if(source==='gate'){
+    return {
+      email:(document.getElementById('gate-email')?.value||'').trim(),
+      password:document.getElementById('gate-password')?.value||''
+    };
+  }
   return {
     email:(document.getElementById('cloud-email')?.value||'').trim(),
     password:document.getElementById('cloud-password')?.value||''
   };
+}
+
+function setAuthGate(status='Sign in to continue'){
+  const gate = document.getElementById('auth-gate');
+  const label = document.getElementById('auth-gate-status');
+  if(label) label.textContent = status;
+  if(gate) gate.classList.remove('hidden');
+}
+
+function unlockApp(){
+  if(appUnlocked) return;
+  appUnlocked = true;
+  const gate = document.getElementById('auth-gate');
+  if(gate) gate.classList.add('hidden');
+  navigateTo(currentPage);
 }
 
 function saveCloudConfig(){
@@ -3508,23 +3549,26 @@ function saveCloudConfig(){
   showToast('Supabase config saved.');
 }
 
-async function cloudSignInEmail(){
+async function cloudSignInEmail(source='settings'){
   const sb=initSupabaseClient();
-  if(!sb){ showToast('Configure Supabase first.'); return; }
-  const {email,password}=getCloudCreds();
+  if(!sb){ showToast('Configure Supabase first.'); setAuthGate('Supabase is not configured yet.'); return; }
+  const {email,password}=getCloudCreds(source);
   if(!email || !password){ showToast('Enter email and password.'); return; }
+  if(source==='gate') setAuthGate('Signing you in...');
   const {error}=await sb.auth.signInWithPassword({email,password});
-  if(error){ showToast('Sign in failed: '+error.message); return; }
+  if(error){ showToast('Sign in failed: '+error.message); if(source==='gate') setAuthGate('Sign in failed. Check your credentials.'); return; }
   showToast('Signed in. Syncing data...');
 }
 
-async function cloudSignUpEmail(){
+async function cloudSignUpEmail(source='settings'){
   const sb=initSupabaseClient();
-  if(!sb){ showToast('Configure Supabase first.'); return; }
-  const {email,password}=getCloudCreds();
+  if(!sb){ showToast('Configure Supabase first.'); setAuthGate('Supabase is not configured yet.'); return; }
+  const {email,password}=getCloudCreds(source);
   if(!email || !password){ showToast('Enter email and password.'); return; }
+  if(source==='gate') setAuthGate('Creating your account...');
   const {error}=await sb.auth.signUp({email,password});
-  if(error){ showToast('Sign up failed: '+error.message); return; }
+  if(error){ showToast('Sign up failed: '+error.message); if(source==='gate') setAuthGate('Sign up failed.'); return; }
+  if(source==='gate') setAuthGate('Account created. Sign in with your credentials.');
   showToast('Check your email to confirm sign-up (if confirmation is enabled).');
 }
 
@@ -3540,9 +3584,11 @@ async function cloudSignInGoogle(){
 }
 
 async function cloudSignOut(){
-  if(!supabaseClient){ cloudUser=null; renderCloudState(); return; }
+  if(!supabaseClient){ cloudUser=null; renderCloudState(); setAuthGate('Signed out. Sign in to continue.'); return; }
   await supabaseClient.auth.signOut();
   cloudUser=null;
+  appUnlocked = false;
+  setAuthGate('Signed out. Sign in to continue.');
   renderCloudState();
   showToast('Signed out of cloud account.');
 }
@@ -3648,15 +3694,28 @@ async function reconcileCloudData(){
 
 async function initCloudAuth(){
   const sb=initSupabaseClient();
-  if(!sb){ cloudUser=null; renderCloudState(); return; }
+  if(!sb){ cloudUser=null; renderCloudState(); appUnlocked=false; setAuthGate('Configure Supabase first in Settings.'); return; }
+  setAuthGate('Checking session...');
   const {data:{session}}=await sb.auth.getSession();
   cloudUser=session?.user||null;
   renderCloudState();
-  if(cloudUser) await reconcileCloudData();
+  if(cloudUser){
+    await reconcileCloudData();
+    unlockApp();
+  } else {
+    appUnlocked = false;
+    setAuthGate('Sign in to continue');
+  }
   sb.auth.onAuthStateChange(async (_event, sessionNow) => {
     cloudUser = sessionNow?.user || null;
     renderCloudState();
-    if(cloudUser) await reconcileCloudData();
+    if(cloudUser){
+      await reconcileCloudData();
+      unlockApp();
+    } else {
+      appUnlocked = false;
+      setAuthGate('Sign in to continue');
+    }
   });
 }
 
@@ -3711,7 +3770,7 @@ function showToast(msg){
 //  BOOT
 // ════════════════════════════════════════════════
 (function openApp(){
-  // Initialize settings/data first, then render current page.
+  // Initialize settings/data and require auth before rendering app UI.
   try{
     loadSettings();
     loadData();
@@ -3720,8 +3779,7 @@ function showToast(msg){
     if(hash && document.getElementById('page-'+hash)) currentPage=hash;
     // Ensure cal view select matches state
     const cv=document.getElementById('cal-view-select'); if(cv) cv.value=calView;
-    // Render the active page
-    navigateTo(currentPage);
+    setAuthGate('Checking session...');
     initCloudAuth();
   }catch(err){console.warn('[2DoByU] openApp error',err);}
 })();
