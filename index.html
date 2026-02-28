@@ -3936,12 +3936,26 @@ async function cloudSignUpEmail(source='settings'){
     showToast('Account created and signed in.');
     return;
   }
-  if(source==='gate'){
-    setGateBusy(false);
-    setGateMode('signin');
-    setAuthGate('Account created. Check email if confirmation is enabled, then sign in.');
+
+  const {data:signInData,error:signInError}=await sb.auth.signInWithPassword({email,password});
+  if(signInError){
+    if(source==='gate'){
+      setGateBusy(false);
+      setGateMode('signin');
+      setAuthGate('Account created. Sign in with your new credentials.');
+    }
+    showToast('Account created. Sign in with your new credentials.');
+    return;
   }
-  showToast('Check your email to confirm sign-up (if confirmation is enabled).');
+
+  cloudUser = signInData?.user || signInData?.session?.user || cloudUser;
+  renderCloudState();
+  if(cloudUser){
+    await reconcileCloudData();
+    unlockApp();
+  }
+  if(source==='gate') setGateBusy(false);
+  showToast('Account created and signed in.');
 }
 
 async function cloudSignInGoogle(){
