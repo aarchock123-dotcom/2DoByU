@@ -127,6 +127,57 @@
    gap:12px;
    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
 }
+
+.settings-stack {
+   display:flex;
+   flex-direction:column;
+   gap:14px;
+}
+
+.settings-card {
+   background:var(--surface);
+   border:1px solid var(--border);
+   border-radius:10px;
+   padding:14px;
+}
+
+.settings-card h3 {
+   font-size:1em;
+   margin-bottom:10px;
+}
+
+.settings-grid {
+   display:grid;
+   gap:10px;
+   grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+}
+
+.settings-field {
+   display:flex;
+   flex-direction:column;
+   gap:6px;
+   font-size:.82em;
+   color:var(--muted);
+   font-weight:600;
+}
+
+.settings-wide {
+   grid-column:1 / -1;
+}
+
+.settings-check {
+   display:flex;
+   align-items:center;
+   gap:8px;
+   color:var(--text);
+   font-size:.86em;
+}
+
+.settings-actions {
+   display:flex;
+   gap:8px;
+   flex-wrap:wrap;
+}
 .column {
    background:var(--surface2);
    border-radius:8px;
@@ -564,5 +615,12 @@ body.dark .habit-card,
 body.dark .tree-container,
 body.dark .note-card,
 body.dark .modal,
+body.dark .settings-card,
 body.dark .settings-btn,
 body.dark .input-field { background:var(--surface); border-color:var(--border); }
+
+body.compact .page-header { margin-bottom:14px; }
+body.compact .column,
+body.compact .habit-card,
+body.compact .tree-container,
+body.compact .settings-card { padding:12px; }

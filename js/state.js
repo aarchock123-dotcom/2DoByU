@@ -44,7 +44,7 @@ let state = {
   ui: {
     currentPage: 'tasks',
     pageTitles: PAGE_TITLES,
-    taskView: 'board',
+    taskView: 'status',
     habitView: 'grid',
     calView: 'month',
     gateMode: 'signin',
@@ -182,7 +182,7 @@ export function resetState() {
     ui: {
       currentPage: 'tasks',
       pageTitles: PAGE_TITLES,
-      taskView: 'board',
+      taskView: 'status',
       habitView: 'grid',
       calView: 'month',
       gateMode: 'signin',

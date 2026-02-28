@@ -1,5 +1,5 @@
-import { getState, patchState, setState, subscribe } from './state.js';
-import { pushUpdate, saveUserData, signIn, signUp, signOut } from './api.js';
+import { getState, patchState, setState, subscribe, resetState } from './state.js';
+import { pushUpdate, saveUserData, signIn, signUp, signOut, syncData } from './api.js';
 
 let initialized = false;
 let draggingTask = null;
@@ -21,6 +21,28 @@ let taskFilters = {
 
 const NOTE_COLORS = ['#fff8e1', '#e3f2fd', '#f3e5f5', '#e8f5e9', '#ffebee', '#fbe9e7'];
 
+const SETTINGS_TIME_ZONES = (() => {
+  try {
+    const zones = Intl.supportedValuesOf?.('timeZone') || [];
+    if (zones.length > 0) return zones;
+  } catch (_err) {
+    // fallback below
+  }
+
+  return [
+    'UTC',
+    'Australia/Sydney',
+    'Australia/Melbourne',
+    'Australia/Perth',
+    'Europe/London',
+    'Europe/Berlin',
+    'America/New_York',
+    'America/Los_Angeles',
+    'Asia/Singapore',
+    'Asia/Tokyo'
+  ];
+})();
+
 function getCurrentView() {
   const state = getState();
   return state.ui.currentView || state.ui.currentPage || 'tasks';
@@ -34,6 +56,28 @@ function setCurrentView(view) {
       currentPage: view
     }
   });
+}
+
+function applySettingsVisuals() {
+  const settings = getState().settings || {};
+
+  if (settings.accent) {
+    document.documentElement.style.setProperty('--accent', settings.accent);
+  }
+
+  if (settings.accentDark) {
+    document.documentElement.style.setProperty('--accent-dark', settings.accentDark);
+  }
+
+  const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const forceDark = settings.theme === 'dark' || (settings.theme === 'system' && prefersDark);
+  document.body.classList.toggle('dark', forceDark);
+  document.body.classList.toggle('compact', Boolean(settings.compact));
+
+  const fireworksEl = document.getElementById('fireworks');
+  if (fireworksEl) {
+    fireworksEl.style.display = settings.fireworks === false ? 'none' : 'block';
+  }
 }
 
 function cloneForSync(snapshot) {
@@ -864,7 +908,89 @@ function renderInsights() {
 function renderSettings() {
   const container = document.getElementById('page-settings');
   if (!container) return;
-  container.innerHTML = '<div class="analytics-section"><h3>Settings</h3><div class="settings-row-desc">Settings module hooks are ready.</div></div>';
+
+  const state = getState();
+  const settings = state.settings || {};
+  const tzCurrent = settings.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+  const timeZoneOptions = SETTINGS_TIME_ZONES.map(
+    (tz) => `<option value="${escapeHtml(tz)}" ${tz === tzCurrent ? 'selected' : ''}>${escapeHtml(tz)}</option>`
+  ).join('');
+
+  container.innerHTML = `
+    <div class="page-header">
+      <h1 class="page-title">Settings</h1>
+      <button class="action-btn" data-action="settings-sync-now">Sync Now</button>
+    </div>
+
+    <div class="settings-stack">
+      <section class="settings-card">
+        <h3>Appearance</h3>
+        <div class="settings-grid">
+          <label class="settings-field">Theme
+            <select class="input-field" data-role="settings-theme">
+              <option value="light" ${settings.theme === 'light' ? 'selected' : ''}>Light</option>
+              <option value="dark" ${settings.theme === 'dark' ? 'selected' : ''}>Dark</option>
+              <option value="system" ${settings.theme === 'system' ? 'selected' : ''}>System</option>
+            </select>
+          </label>
+          <label class="settings-field">Accent Color
+            <input class="input-field" data-role="settings-accent" type="color" value="${escapeHtml(settings.accent || '#d4a373')}" />
+          </label>
+          <label class="settings-field">Accent Dark
+            <input class="input-field" data-role="settings-accent-dark" type="color" value="${escapeHtml(settings.accentDark || '#c49363')}" />
+          </label>
+          <label class="settings-check"><input type="checkbox" data-role="settings-compact" ${settings.compact ? 'checked' : ''} /> Compact Layout</label>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h3>Calendar & Time</h3>
+        <div class="settings-grid">
+          <label class="settings-field">Time Zone
+            <select class="input-field" data-role="settings-timezone">${timeZoneOptions}</select>
+          </label>
+          <label class="settings-field">First Day of Week
+            <select class="input-field" data-role="settings-firstday">
+              <option value="mon" ${settings.firstday === 'mon' ? 'selected' : ''}>Monday</option>
+              <option value="sun" ${settings.firstday === 'sun' ? 'selected' : ''}>Sunday</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h3>Behavior</h3>
+        <div class="settings-grid">
+          <label class="settings-check"><input type="checkbox" data-role="settings-autolock" ${settings.autolock ? 'checked' : ''} /> Auto-lock</label>
+          <label class="settings-check"><input type="checkbox" data-role="settings-fireworks" ${settings.fireworks ? 'checked' : ''} /> Fireworks Effects</label>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h3>Cloud</h3>
+        <div class="settings-grid">
+          <label class="settings-field settings-wide">Supabase URL
+            <input class="input-field" data-role="settings-supabase-url" type="text" value="${escapeHtml(settings.supabaseUrl || '')}" placeholder="https://...supabase.co" />
+          </label>
+          <label class="settings-field settings-wide">Supabase Anon Key
+            <input class="input-field" data-role="settings-supabase-key" type="password" value="${escapeHtml(settings.supabaseAnonKey || '')}" placeholder="sb_publishable_..." />
+          </label>
+          <label class="settings-check"><input type="checkbox" data-role="settings-google-auth" ${settings.googleAuthEnabled ? 'checked' : ''} /> Google Auth Enabled</label>
+        </div>
+      </section>
+
+      <section class="settings-card">
+        <h3>Account & Data</h3>
+        <div class="settings-actions">
+          <button class="tb-btn" data-action="settings-signout">Sign Out</button>
+          <button class="tb-btn" data-action="settings-export">Export Backup</button>
+          <button class="tb-btn" data-action="settings-import">Import Backup</button>
+          <button class="tb-btn" data-action="settings-reset-local">Reset Local Data</button>
+          <input data-role="settings-import-file" type="file" accept="application/json" hidden />
+        </div>
+      </section>
+    </div>
+  `;
 }
 
 export function renderApp() {
@@ -1355,6 +1481,17 @@ function applyAuthGateVisibility() {
   gate.classList.toggle('hidden', !showAuth);
 }
 
+async function updateSettings(nextPartial) {
+  patchState({
+    settings: {
+      ...getState().settings,
+      ...nextPartial
+    }
+  });
+  applySettingsVisuals();
+  await persistSnapshot();
+}
+
 function bindGlobalEvents() {
   const sidebar = document.getElementById('sidebar');
   const sidebarOverlay = document.getElementById('sidebar-overlay');
@@ -1545,6 +1682,46 @@ function bindGlobalEvents() {
         }
         return;
       }
+
+      if (action === 'settings-sync-now') {
+        await persistSnapshot();
+        await syncData();
+        return;
+      }
+
+      if (action === 'settings-signout') {
+        await signOut();
+        return;
+      }
+
+      if (action === 'settings-export') {
+        const snapshot = cloneForSync(getState());
+        const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+        const href = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = href;
+        link.download = `2dobyu-backup-${new Date().toISOString().slice(0, 10)}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(href);
+        return;
+      }
+
+      if (action === 'settings-import') {
+        const fileInput = document.querySelector('[data-role="settings-import-file"]');
+        if (fileInput) fileInput.click();
+        return;
+      }
+
+      if (action === 'settings-reset-local') {
+        const confirmed = window.confirm('Reset all local data? This cannot be undone.');
+        if (!confirmed) return;
+        resetState();
+        applySettingsVisuals();
+        await persistSnapshot();
+        return;
+      }
     }
 
     const navItem = event.target.closest('.nav-item[data-page]');
@@ -1592,7 +1769,7 @@ function bindGlobalEvents() {
     renderTasks();
   });
 
-  document.addEventListener('change', (event) => {
+  document.addEventListener('change', async (event) => {
     const sortSelect = event.target.closest('[data-role="task-filter-sort"]');
     if (sortSelect) {
       taskFilters = {
@@ -1633,6 +1810,99 @@ function bindGlobalEvents() {
         [type]: Boolean(calendarTypeFilter.checked)
       };
       renderCalendar();
+      return;
+    }
+
+    const settingTheme = event.target.closest('[data-role="settings-theme"]');
+    if (settingTheme) {
+      await updateSettings({ theme: settingTheme.value || 'light' });
+      return;
+    }
+
+    const settingAccent = event.target.closest('[data-role="settings-accent"]');
+    if (settingAccent) {
+      await updateSettings({ accent: settingAccent.value || '#d4a373' });
+      return;
+    }
+
+    const settingAccentDark = event.target.closest('[data-role="settings-accent-dark"]');
+    if (settingAccentDark) {
+      await updateSettings({ accentDark: settingAccentDark.value || '#c49363' });
+      return;
+    }
+
+    const settingCompact = event.target.closest('[data-role="settings-compact"]');
+    if (settingCompact) {
+      await updateSettings({ compact: Boolean(settingCompact.checked) });
+      return;
+    }
+
+    const settingTimezone = event.target.closest('[data-role="settings-timezone"]');
+    if (settingTimezone) {
+      await updateSettings({ timeZone: settingTimezone.value || 'UTC' });
+      return;
+    }
+
+    const settingFirstDay = event.target.closest('[data-role="settings-firstday"]');
+    if (settingFirstDay) {
+      await updateSettings({ firstday: settingFirstDay.value || 'mon' });
+      return;
+    }
+
+    const settingAutolock = event.target.closest('[data-role="settings-autolock"]');
+    if (settingAutolock) {
+      await updateSettings({ autolock: Boolean(settingAutolock.checked) });
+      return;
+    }
+
+    const settingFireworks = event.target.closest('[data-role="settings-fireworks"]');
+    if (settingFireworks) {
+      await updateSettings({ fireworks: Boolean(settingFireworks.checked) });
+      return;
+    }
+
+    const settingGoogleAuth = event.target.closest('[data-role="settings-google-auth"]');
+    if (settingGoogleAuth) {
+      await updateSettings({ googleAuthEnabled: Boolean(settingGoogleAuth.checked) });
+      return;
+    }
+
+    const settingSupabaseUrl = event.target.closest('[data-role="settings-supabase-url"]');
+    if (settingSupabaseUrl) {
+      await updateSettings({ supabaseUrl: String(settingSupabaseUrl.value || '').trim() });
+      return;
+    }
+
+    const settingSupabaseKey = event.target.closest('[data-role="settings-supabase-key"]');
+    if (settingSupabaseKey) {
+      await updateSettings({ supabaseAnonKey: String(settingSupabaseKey.value || '').trim() });
+      return;
+    }
+
+    const importFileInput = event.target.closest('[data-role="settings-import-file"]');
+    if (importFileInput && importFileInput.files?.[0]) {
+      try {
+        const text = await importFileInput.files[0].text();
+        const parsed = JSON.parse(text);
+        setState((prev) => ({
+          ...prev,
+          tasks: parsed.tasks || prev.tasks,
+          habits: Array.isArray(parsed.habits) ? parsed.habits : prev.habits,
+          notes: Array.isArray(parsed.notes) ? parsed.notes : prev.notes,
+          archived: parsed.archived || prev.archived,
+          taskIdCounter: Number(parsed.taskIdCounter || prev.taskIdCounter || 1),
+          settings: {
+            ...prev.settings,
+            ...(parsed.settings || {})
+          }
+        }));
+        applySettingsVisuals();
+        await persistSnapshot();
+      } catch (err) {
+        console.warn('[2DoByU] Import failed', err);
+      } finally {
+        importFileInput.value = '';
+      }
     }
   });
 
@@ -1656,8 +1926,10 @@ export function initUI() {
   subscribe(() => {
     renderApp();
     applyAuthGateVisibility();
+    applySettingsVisuals();
   });
 
+  applySettingsVisuals();
   renderApp();
   applyAuthGateVisibility();
 }
