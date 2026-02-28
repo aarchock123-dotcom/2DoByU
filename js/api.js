@@ -102,6 +102,19 @@ function cloneStateForStorage(snapshot) {
   };
 }
 
+function normalizeDocShape(doc, fallbackState = getState()) {
+  return {
+    ...doc,
+    tasks: doc?.tasks || fallbackState.tasks,
+    habits: Array.isArray(doc?.habits) ? doc.habits : fallbackState.habits,
+    notes: Array.isArray(doc?.notes) ? doc.notes : fallbackState.notes,
+    archived: doc?.archived || fallbackState.archived,
+    taskIdCounter: Number(doc?.taskIdCounter || fallbackState.taskIdCounter || 1),
+    settings: doc?.settings || fallbackState.settings,
+    updatedAt: doc?.updatedAt || new Date().toISOString()
+  };
+}
+
 function mergeState(localDoc, remoteDoc) {
   const localTs = Date.parse(localDoc?.updatedAt || 0) || 0;
   const remoteTs = Date.parse(remoteDoc?.updatedAt || 0) || 0;
@@ -214,18 +227,19 @@ export async function syncData() {
 
   const localDoc = await fetchUserData();
   const buildLocalFallback = () => {
+    const normalizedLocal = localDoc ? normalizeDocShape(localDoc) : null;
     if (localDoc) {
       patchState({
-        tasks: localDoc.tasks,
-        habits: localDoc.habits,
-        notes: localDoc.notes,
-        archived: localDoc.archived,
-        taskIdCounter: localDoc.taskIdCounter,
-        settings: localDoc.settings
+        tasks: normalizedLocal.tasks,
+        habits: normalizedLocal.habits,
+        notes: normalizedLocal.notes,
+        archived: normalizedLocal.archived,
+        taskIdCounter: normalizedLocal.taskIdCounter,
+        settings: normalizedLocal.settings
       });
     }
     return {
-      ...(localDoc || {}),
+      ...(normalizedLocal || {}),
       authRequired: !getState().user
     };
   };
@@ -267,7 +281,7 @@ export async function syncData() {
     return buildLocalFallback();
   }
 
-  const merged = mergeState(localDoc || {}, remoteDoc || {});
+  const merged = normalizeDocShape(mergeState(localDoc || {}, remoteDoc || {}));
 
   patchState({
     tasks: merged.tasks,
