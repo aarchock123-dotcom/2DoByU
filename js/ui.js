@@ -833,6 +833,38 @@ function applyAuthGateVisibility() {
 }
 
 function bindGlobalEvents() {
+  const sidebar = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebar-overlay');
+  const hamburgerBtn = document.getElementById('hamburger');
+
+  const openSidebar = () => {
+    if (!sidebar) return;
+    sidebar.classList.add('open');
+    sidebarOverlay?.classList.add('show');
+  };
+
+  const closeSidebar = () => {
+    if (!sidebar) return;
+    sidebar.classList.remove('open');
+    sidebarOverlay?.classList.remove('show');
+  };
+
+  if (hamburgerBtn) {
+    hamburgerBtn.addEventListener('click', () => {
+      if (!sidebar) return;
+      const isOpen = sidebar.classList.contains('open');
+      if (isOpen) {
+        closeSidebar();
+      } else {
+        openSidebar();
+      }
+    });
+  }
+
+  if (sidebarOverlay) {
+    sidebarOverlay.addEventListener('click', closeSidebar);
+  }
+
   document.addEventListener('click', async (event) => {
     const actionEl = event.target.closest('[data-action]');
 
@@ -904,6 +936,9 @@ function bindGlobalEvents() {
     const navItem = event.target.closest('.nav-item[data-page]');
     if (navItem) {
       setCurrentView(navItem.dataset.page);
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        closeSidebar();
+      }
       return;
     }
 
