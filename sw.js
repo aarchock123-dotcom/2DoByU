@@ -1,4 +1,4 @@
-const CACHE_NAME = '2dobyu-v3';
+const CACHE_NAME = '2dobyu-v4';
 const ASSETS = [
   './',
   './index.html',
@@ -24,18 +24,38 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+
+  const requestUrl = new URL(event.request.url);
+  const isSameOrigin = requestUrl.origin === self.location.origin;
+  const isDocument = event.request.mode === 'navigate' || event.request.destination === 'document';
+
+  if (isSameOrigin && isDocument) {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const cacheCopy = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cacheCopy));
+          }
+          return networkResponse;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
-        // Only cache valid successful responses
-        if (networkResponse && networkResponse.status === 200) {
+      if (cachedResponse) return cachedResponse;
+
+      return fetch(event.request).then((networkResponse) => {
+        if (isSameOrigin && networkResponse && networkResponse.status === 200) {
           const cacheCopy = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cacheCopy));
         }
         return networkResponse;
-      }).catch(() => cachedResponse); // Fallback to cache if network fails entirely
-
-      return cachedResponse || fetchPromise;
+      });
     })
   );
 });
