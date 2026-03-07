@@ -3079,6 +3079,7 @@ function applyAuthGateVisibility() {
   const state = getState();
   const showAuth = Boolean(state.ui.authModal || !state.user);
   gate.classList.toggle('hidden', !showAuth);
+  document.body.classList.toggle('auth-active', showAuth);
   renderAuthGateContent();
 }
 

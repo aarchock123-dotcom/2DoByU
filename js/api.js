@@ -544,12 +544,12 @@ export async function signOut() {
     ui: {
       ...getState().ui,
       authModal: true,
-      gateStep: 'choice',
+      gateStep: 'form',
       gateMode: 'signin',
       appUnlocked: false,
       authSubmitting: false,
       authError: null,
-      authInfo: null,
+      authInfo: 'You have been signed out. Sign in to continue.',
       currentView: 'tasks',
       currentPage: 'tasks'
     }
@@ -572,7 +572,7 @@ export function handleAuthChange() {
       ui: {
         ...getState().ui,
         authModal: !hasUser,
-        gateStep: hasUser ? getState().ui?.gateStep || 'choice' : 'choice',
+        gateStep: hasUser ? getState().ui?.gateStep || 'choice' : 'form',
         gateMode: hasUser ? getState().ui?.gateMode || 'signin' : 'signin',
         appUnlocked: hasUser,
         authSubmitting: false,
